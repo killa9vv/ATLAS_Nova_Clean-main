@@ -1,0 +1,10 @@
+# Arquivos de sistema operacional
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Arquivos compactados (ex: exports/backups da loja)
+*.zip
+
+# Dependências (caso algum projeto futuro use Node)
+node_modules/
