@@ -36,7 +36,8 @@ export class ProcessarWebhookUseCase {
   ) {}
 
   async executar(gatewayTransactionId: string): Promise<ProcessarWebhookOutput> {
-    const pagamento = await this.pagamentoRepository.buscarPorGatewayTransactionId(gatewayTransactionId);
+    const pagamento =
+      await this.pagamentoRepository.buscarPorGatewayTransactionId(gatewayTransactionId);
     if (!pagamento) {
       throw new PagamentoNaoEncontradoException(gatewayTransactionId);
     }

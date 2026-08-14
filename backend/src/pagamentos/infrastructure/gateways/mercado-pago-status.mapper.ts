@@ -11,7 +11,10 @@ import { StatusPagamento } from '../../domain/status-pagamento.enum';
  * fixo para isso, validar esse mapeamento contra um pagamento Pix expirado real
  * antes de ir para produção.
  */
-export function mapearStatusMercadoPago(status: string, statusDetail?: string | null): StatusPagamento {
+export function mapearStatusMercadoPago(
+  status: string,
+  statusDetail?: string | null,
+): StatusPagamento {
   switch (status) {
     case 'approved':
     case 'authorized':

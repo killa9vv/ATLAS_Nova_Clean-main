@@ -39,6 +39,8 @@ export class CredenciaisInvalidasGatewayException extends DomainException {
   readonly code = 'CREDENCIAIS_GATEWAY_INVALIDAS';
 
   constructor(detalhe?: string) {
-    super(`Credenciais do gateway de pagamento inválidas ou não configuradas.${detalhe ? ` (${detalhe})` : ''}`);
+    super(
+      `Credenciais do gateway de pagamento inválidas ou não configuradas.${detalhe ? ` (${detalhe})` : ''}`,
+    );
   }
 }

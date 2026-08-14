@@ -2,7 +2,10 @@
 // aciona o gateway (Pix ou cartão) e persiste o resultado.
 import { Injectable } from '@nestjs/common';
 import { PedidoRepository } from '../../pedidos/domain/pedido.repository';
-import { PedidoEmStatusInvalidoException, PedidoNaoEncontradoException } from '../../pedidos/domain/pedidos.exceptions';
+import {
+  PedidoEmStatusInvalidoException,
+  PedidoNaoEncontradoException,
+} from '../../pedidos/domain/pedidos.exceptions';
 import { MetodoPagamento } from '../domain/metodo-pagamento.enum';
 import { PagamentoRepository } from '../domain/pagamento.repository';
 import { PaymentGateway, ResultadoPagamentoGateway } from '../domain/payment-gateway.port';

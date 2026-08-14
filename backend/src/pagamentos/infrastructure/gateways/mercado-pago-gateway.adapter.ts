@@ -138,8 +138,10 @@ export class MercadoPagoGatewayAdapter extends PaymentGateway {
     }
 
     const mensagem =
-      (erro.response.data as { message?: string; cause?: Array<{ description?: string }> } | undefined)
-        ?.message ?? erro.message;
+      (
+        erro.response.data as
+          { message?: string; cause?: Array<{ description?: string }> } | undefined
+      )?.message ?? erro.message;
     return new PagamentoRecusadoException(mensagem);
   }
 

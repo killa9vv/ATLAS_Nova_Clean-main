@@ -43,6 +43,8 @@ export interface ResultadoPagamentoGateway {
  */
 export abstract class PaymentGateway {
   abstract criarPagamentoPix(input: CriarPagamentoPixInput): Promise<ResultadoPagamentoGateway>;
-  abstract criarPagamentoCartao(input: CriarPagamentoCartaoInput): Promise<ResultadoPagamentoGateway>;
+  abstract criarPagamentoCartao(
+    input: CriarPagamentoCartaoInput,
+  ): Promise<ResultadoPagamentoGateway>;
   abstract consultarPagamento(gatewayTransactionId: string): Promise<ResultadoPagamentoGateway>;
 }

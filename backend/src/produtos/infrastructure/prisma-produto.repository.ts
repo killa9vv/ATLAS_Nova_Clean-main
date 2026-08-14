@@ -2,7 +2,8 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { Produto } from '../domain/produto.entity';
-import { ProdutoRepository } from '../domain/produto.repository';
+import { ItemParaDecrementarEstoque, ProdutoRepository } from '../domain/produto.repository';
+import { EstoqueInsuficienteException } from '../../carrinho/domain/carrinho.exceptions';
 import type { Produto as ProdutoPrisma } from '@prisma/client';
 
 @Injectable()
@@ -24,6 +25,21 @@ export class PrismaProdutoRepository extends ProdutoRepository {
   async buscarPorIds(ids: string[]): Promise<Produto[]> {
     const produtos = await this.prisma.produto.findMany({ where: { id: { in: ids } } });
     return produtos.map((produto) => this.paraDominio(produto));
+  }
+
+  async decrementarEstoque(itens: ItemParaDecrementarEstoque[]): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      for (const item of itens) {
+        const resultado = await tx.produto.updateMany({
+          where: { id: item.produtoId, estoque: { gte: item.quantidade } },
+          data: { estoque: { decrement: item.quantidade } },
+        });
+
+        if (resultado.count === 0) {
+          throw new EstoqueInsuficienteException(item.nome);
+        }
+      }
+    });
   }
 
   private paraDominio(produto: ProdutoPrisma): Produto {
