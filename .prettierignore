@@ -3,5 +3,6 @@ dist/
 coverage/
 backend/.pgdata/
 backend/.pgdata-test/
+frontend/.next/
 package-lock.json
 *.csv

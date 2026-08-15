@@ -1,0 +1,111 @@
+@import 'tailwindcss';
+
+/* Tokens portados de atlas-nova-clean-loja/css/styles.css (:root). Radius e
+   sombra ficam sob o namespace "atlas" em vez de sobrescrever a escala padrão
+   do Tailwind, pra não colidir com as classes "rounded" e "shadow" genéricas
+   usadas fora do design system da loja. */
+@theme {
+  --color-navy: #0b1f4d;
+  --color-navy-2: #132a63;
+  --color-blue: #2e9bf5;
+  --color-sky: #eaf4ff;
+  --color-paper: #f7f9fc;
+  --color-ink: #0a0e1a;
+  --color-muted: #5b6b8c;
+  --color-amber: #ffb020;
+  --color-green: #1faa59;
+  --color-line: #dce6f5;
+
+  --radius-atlas: 14px;
+  --radius-atlas-sm: 8px;
+
+  --shadow-atlas: 0 8px 24px rgba(11, 31, 77, 0.08);
+  --shadow-atlas-lg: 0 20px 50px rgba(11, 31, 77, 0.18);
+
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-space-grotesk);
+  --font-mono: var(--font-ibm-plex-mono);
+  --font-script: var(--font-caveat);
+  --font-black: var(--font-archivo-black);
+
+  --animate-scroll: scroll 40s linear infinite;
+  --animate-blob-float: blob-float 16s ease-in-out infinite;
+  --animate-card-in: cardIn 0.4s ease both;
+  --animate-fab-pulse: fab-pulse 2.2s ease-out infinite;
+  --animate-cart-bump: cartBump 0.35s ease;
+  --animate-brand-scroll: brand-scroll 48s linear infinite;
+}
+
+@keyframes scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+@keyframes blob-float {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(30px, -20px) scale(1.08);
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.94);
+  }
+}
+@keyframes cardIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes fab-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+@keyframes cartBump {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.35);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes brand-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+}

@@ -15,6 +15,13 @@
     ],
     "atlas-nova-clean-loja/**/*.{js,css,html}": [
       "backend/node_modules/.bin/prettier --write"
+    ],
+    "frontend/**/*.{ts,tsx}": [
+      "frontend/node_modules/.bin/eslint --config frontend/eslint.config.mjs --fix",
+      "frontend/node_modules/.bin/prettier --write"
+    ],
+    "frontend/**/*.{css,mjs,json}": [
+      "frontend/node_modules/.bin/prettier --write"
     ]
   }
 }
