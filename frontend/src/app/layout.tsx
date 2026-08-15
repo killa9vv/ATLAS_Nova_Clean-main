@@ -1,5 +1,8 @@
 import type { Metadata } from 'next';
 import { fontVariables } from '@/lib/fonts';
+import { Header } from '@/components/layout/Header';
+import { Ticker } from '@/components/layout/Ticker';
+import { Footer } from '@/components/layout/Footer';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -13,7 +16,12 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
     <html lang="pt-BR" className={`${fontVariables} antialiased`}>
-      <body>{children}</body>
+      <body>
+        <Header variant="full" />
+        <Ticker />
+        {children}
+        <Footer variant="full" />
+      </body>
     </html>
   );
 }

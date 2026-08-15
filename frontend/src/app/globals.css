@@ -28,12 +28,18 @@
   --font-script: var(--font-caveat);
   --font-black: var(--font-archivo-black);
 
-  --animate-scroll: scroll 40s linear infinite;
+  --animate-scroll: scroll 22s linear infinite;
   --animate-blob-float: blob-float 16s ease-in-out infinite;
   --animate-card-in: cardIn 0.4s ease both;
   --animate-fab-pulse: fab-pulse 2.2s ease-out infinite;
   --animate-cart-bump: cartBump 0.35s ease;
   --animate-brand-scroll: brand-scroll 48s linear infinite;
+
+  /* Breakpoint exato do styles.css original pra troca entre nav mobile
+     (hambúrguer) e nav desktop (barra horizontal + mega-menu por hover).
+     Não é 768px (o "md" padrão do Tailwind) — usar "nav:" em vez de "md:"
+     em qualquer classe que dependa desse corte específico. */
+  --breakpoint-nav: 861px;
 }
 
 @keyframes scroll {
