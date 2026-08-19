@@ -15,6 +15,8 @@ import { DomainExceptionFilter } from '../src/shared/exceptions/domain-exception
 describe('Pedidos (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
+  let produtoTipoId: string;
+  let marcaId: string;
 
   beforeAll(async () => {
     const moduleRef: TestingModule = await Test.createTestingModule({
@@ -31,6 +33,18 @@ describe('Pedidos (e2e)', () => {
     await app.init();
 
     prisma = moduleRef.get(PrismaService);
+
+    // Produto agora exige categoria/marca/tipo — cria essa base uma única vez
+    // e reutiliza em todo o arquivo, já que os testes só se importam com estoque.
+    const categoria = await prisma.categoria.create({
+      data: { slug: `categoria-teste-${randomUUID()}`, nome: 'Categoria de teste' },
+    });
+    const marca = await prisma.marca.create({ data: { nome: `Marca de teste ${randomUUID()}` } });
+    const produtoTipo = await prisma.produtoTipo.create({
+      data: { categoriaId: categoria.id, nome: `Tipo de teste ${randomUUID()}` },
+    });
+    produtoTipoId = produtoTipo.id;
+    marcaId = marca.id;
   });
 
   afterAll(async () => {
@@ -39,7 +53,15 @@ describe('Pedidos (e2e)', () => {
 
   function criarProdutoComEstoque(estoque: number) {
     return prisma.produto.create({
-      data: { id: randomUUID(), nome: `Produto de teste ${randomUUID()}`, preco: 10, estoque },
+      data: {
+        id: randomUUID(),
+        nome: `Produto de teste ${randomUUID()}`,
+        pack: 'unidade',
+        preco: 10,
+        estoque,
+        produtoTipoId,
+        marcaId,
+      },
     });
   }
 

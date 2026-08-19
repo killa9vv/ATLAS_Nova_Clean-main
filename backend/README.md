@@ -14,6 +14,12 @@ npm run dev                 # sobe o Postgres local e a API juntos (Ctrl+C encer
 Se preferir bancos separados (útil se você já sobe o Postgres manualmente por outro
 lado), use `node scripts/dev-db.mjs keep-alive` numa aba e `npm run start:dev` em outra.
 
+## Banco de dados
+
+Schema em `prisma/schema.prisma`, diagrama de entidades em
+[`prisma/ERD.md`](prisma/ERD.md). `npm run prisma:seed` popula o catálogo a
+partir de `frontend/src/data/products.ts`.
+
 ## Testes
 
 ```bash
