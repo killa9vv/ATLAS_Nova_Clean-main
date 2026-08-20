@@ -1,12 +1,50 @@
+import path from 'path';
 import { PrismaClient } from '@prisma/client';
-// Import estático direto: products.ts é um arquivo de dados puro (sem imports
-// específicos do Next como "@/" ou next/image), então o ts-node do backend
-// compila normalmente via require(). Se esse arquivo um dia passar a importar
-// algo do Next.js, essa importação cross-projeto quebra — não é um risco hoje,
-// mas é o motivo desta observação existir.
-import { BRANDS, CATEGORIES, CATEGORY_INFO, PRODUCT_TYPES } from '../../frontend/src/data/products';
 
 const prisma = new PrismaClient();
+
+interface ProdutoVarianteCatalogo {
+  id: string;
+  brand: string;
+  pack: string;
+  price: number;
+}
+
+interface ProdutoTipoCatalogo {
+  id: string;
+  cat: string;
+  name: string;
+  variants: ProdutoVarianteCatalogo[];
+}
+
+interface CatalogoFrontend {
+  PRODUCT_TYPES: ProdutoTipoCatalogo[];
+  CATEGORIES: string[];
+  CATEGORY_INFO: Record<string, { info: string; precautions: string }>;
+  BRANDS: Array<{ brand: string; count: number }>;
+}
+
+/**
+ * Carrega o catálogo de frontend/src/data/products.ts via `require()` com um
+ * caminho calculado em runtime (não um `import` estático). Isso é proposital:
+ * um `import` literal faria o TypeScript do backend puxar esse arquivo pra
+ * dentro do próprio "programa" de compilação — e como ele mora fora de
+ * `backend/`, isso corrompe o cálculo automático de rootDir/outDir (o `nest
+ * build` passa a gerar `dist/backend/src/main.js` em vez de `dist/main.js`,
+ * silenciosamente, sem erro). Com `require()` de uma string não-literal, o
+ * compilador não enxerga o alvo do import — só o `ts-node` resolve isso em
+ * runtime (mesmo mecanismo usado pela versão anterior deste seed pra ler o
+ * catálogo do site estático). O tipo é declarado localmente acima em vez de
+ * importado, pelo mesmo motivo: nada aqui referencia arquivos de fora do
+ * backend em tempo de compilação.
+ */
+function carregarCatalogo(): CatalogoFrontend {
+  const caminho = path.resolve(__dirname, '../../frontend/src/data/products.ts');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  return require(caminho) as CatalogoFrontend;
+}
+
+const { PRODUCT_TYPES, CATEGORIES, CATEGORY_INFO, BRANDS } = carregarCatalogo();
 
 async function seedCategorias() {
   const categorias = new Map<string, string>();

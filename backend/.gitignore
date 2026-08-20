@@ -5,3 +5,4 @@ coverage/
 *.log
 .pgdata/
 .pgdata-test/
+*.tsbuildinfo
