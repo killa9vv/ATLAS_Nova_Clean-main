@@ -1,6 +1,3 @@
-// Ponto de entrada do frontend: liga os elementos da página (cliques nos
-// cards, busca, carrinho, menus) aos módulos de renderização/estado e
-// inicializa as demais funcionalidades da loja ao carregar.
 import { CATEGORIES, PRODUCTS } from './data/products.js';
 import { changeQty, removeItem } from './cart.js';
 import { activeFilters, expandedCategories, buildFilters, renderGrid, renderAllGrids, renderCart } from './render.js';

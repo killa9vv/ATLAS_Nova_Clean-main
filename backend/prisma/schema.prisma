@@ -30,224 +30,35 @@ enum MetodoPagamento {
   CARTAO_CREDITO
 }
 
-enum PapelUsuario {
-  ADMIN
-}
-
-enum TipoDesconto {
-  PERCENTUAL
-  VALOR_FIXO
-}
-
-enum TipoMovimentacaoEstoque {
-  ENTRADA
-  SAIDA
-  AJUSTE
-}
-
-model Categoria {
-  id   String @id @default(uuid())
-  slug String @unique
-  nome String
-
-  produtoTipos ProdutoTipo[]
-
-  @@map("categorias")
-}
-
-model Marca {
-  id   String @id @default(uuid())
-  nome String @unique
-
-  produtos Produto[]
-
-  @@map("marcas")
-}
-
-// Produto genérico (ex: "Detergente para Louça"), independente de marca. Cada
-// linha de Produto é uma variante vendável desse tipo (marca + embalagem + preço).
-model ProdutoTipo {
-  id          String  @id @default(uuid())
-  categoriaId String  @map("categoria_id")
-  nome        String
-  // Texto técnico/precauções padrão do tipo — sobreposição por variante (existe
-  // no catálogo do frontend como ProductVariant.info/precautions) não tem campo
-  // aqui: nenhum dado real usa isso hoje, fica pra quando existir de verdade.
-  infoTecnica String? @map("info_tecnica")
-  precaucoes  String?
-
-  categoria Categoria @relation(fields: [categoriaId], references: [id])
-  produtos  Produto[]
-
-  @@unique([categoriaId, nome])
-  @@index([categoriaId])
-  @@map("produto_tipos")
-}
-
 model Produto {
-  id            String   @id @default(uuid())
-  produtoTipoId String   @map("produto_tipo_id")
-  marcaId       String   @map("marca_id")
-  nome          String
-  pack          String
-  descricao     String?
-  preco         Decimal  @db.Decimal(10, 2)
-  estoque       Int      @default(0)
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  id        String   @id @default(uuid())
+  nome      String
+  descricao String?
+  slug      String   @unique
+  categoria String?
+  preco     Decimal  @db.Decimal(10, 2)
+  estoque   Int      @default(0)
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  produtoTipo          ProdutoTipo           @relation(fields: [produtoTipoId], references: [id])
-  marca                Marca                 @relation(fields: [marcaId], references: [id])
-  itensPedido          ItemPedido[]
-  itensCarrinho        ItemCarrinho[]
-  imagens              ImagemProduto[]
-  movimentacoesEstoque MovimentacaoEstoque[]
+  itensPedido ItemPedido[]
 
-  @@index([produtoTipoId])
-  @@index([marcaId])
+  @@index([nome])
+  @@index([categoria])
   @@map("produtos")
 }
 
-model ImagemProduto {
-  id        String @id @default(uuid())
-  produtoId String @map("produto_id")
-  url       String
-  ordem     Int    @default(0)
-
-  produto Produto @relation(fields: [produtoId], references: [id])
-
-  @@index([produtoId])
-  @@map("imagens_produto")
-}
-
-// Ledger de entradas/saídas/ajustes de estoque. Existe só como registro — nenhum
-// fluxo escreve aqui ainda (decrementarEstoque continua sendo a única escrita
-// real em Produto.estoque); popular esse histórico é trabalho de aplicação de
-// uma carta futura, não desta modelagem.
-model MovimentacaoEstoque {
-  id         String                  @id @default(uuid())
-  produtoId  String                  @map("produto_id")
-  tipo       TipoMovimentacaoEstoque
-  quantidade Int
-  motivo     String?
-  createdAt  DateTime                @default(now()) @map("created_at")
-
-  produto Produto @relation(fields: [produtoId], references: [id])
-
-  @@index([produtoId])
-  @@map("movimentacoes_estoque")
-}
-
-model Usuario {
+model Pedido {
   id        String       @id @default(uuid())
-  email     String       @unique
-  senhaHash String       @map("senha_hash")
-  nome      String
-  papel     PapelUsuario @default(ADMIN)
+  status    StatusPedido @default(CRIADO)
+  total     Decimal      @db.Decimal(10, 2)
   createdAt DateTime     @default(now()) @map("created_at")
   updatedAt DateTime     @updatedAt @map("updated_at")
 
-  @@map("usuarios")
-}
-
-model Cliente {
-  id        String   @id @default(uuid())
-  nome      String
-  email     String?  @unique
-  telefone  String?
-  cpf       String?
-  createdAt DateTime @default(now()) @map("created_at")
-
-  enderecos Endereco[]
-  pedidos   Pedido[]
-  carrinhos Carrinho[]
-
-  @@map("clientes")
-}
-
-model Endereco {
-  id          String  @id @default(uuid())
-  clienteId   String  @map("cliente_id")
-  cep         String
-  logradouro  String
-  numero      String
-  complemento String?
-  bairro      String
-  cidade      String
-  estado      String
-
-  cliente Cliente @relation(fields: [clienteId], references: [id])
-
-  @@index([clienteId])
-  @@map("enderecos")
-}
-
-model Cupom {
-  id           String       @id @default(uuid())
-  codigo       String       @unique
-  tipoDesconto TipoDesconto @map("tipo_desconto")
-  valor        Decimal      @db.Decimal(10, 2)
-  ativo        Boolean      @default(true)
-  validoAte    DateTime?    @map("valido_ate")
-  usoMaximo    Int?         @map("uso_maximo")
-  usosCount    Int          @default(0) @map("usos_count")
-  createdAt    DateTime     @default(now()) @map("created_at")
-
-  @@map("cupons")
-}
-
-// Carrinho persistido por sessão (sessionToken guardado no cliente — cookie/
-// localStorage —, sem exigir login), opcionalmente ligado a um Cliente quando
-// conhecido. Diferente de ItemPedido, ItemCarrinho NÃO guarda snapshot de
-// preço: um carrinho é referência viva ao catálogo atual, e o preço cobrado
-// de verdade continua sendo recalculado no servidor (MontarCarrinhoUseCase)
-// no momento da compra — nunca confiar no que está salvo aqui.
-model Carrinho {
-  id           String    @id @default(uuid())
-  clienteId    String?   @map("cliente_id")
-  sessionToken String    @unique @map("session_token")
-  expiraEm     DateTime? @map("expira_em")
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
-
-  cliente Cliente?       @relation(fields: [clienteId], references: [id])
-  itens   ItemCarrinho[]
-
-  @@index([clienteId])
-  @@map("carrinhos")
-}
-
-model ItemCarrinho {
-  id         String   @id @default(uuid())
-  carrinhoId String   @map("carrinho_id")
-  produtoId  String   @map("produto_id")
-  quantidade Int
-  createdAt  DateTime @default(now()) @map("created_at")
-
-  carrinho Carrinho @relation(fields: [carrinhoId], references: [id])
-  produto  Produto  @relation(fields: [produtoId], references: [id])
-
-  @@unique([carrinhoId, produtoId])
-  @@index([carrinhoId])
-  @@index([produtoId])
-  @@map("itens_carrinho")
-}
-
-model Pedido {
-  id          String       @id @default(uuid())
-  clienteId   String?      @map("cliente_id")
-  status      StatusPedido @default(CRIADO)
-  total       Decimal      @db.Decimal(10, 2)
-  desconto    Decimal      @default(0) @db.Decimal(10, 2)
-  cupomCodigo String?      @map("cupom_codigo")
-  createdAt   DateTime     @default(now()) @map("created_at")
-  updatedAt   DateTime     @updatedAt @map("updated_at")
-
-  cliente    Cliente?     @relation(fields: [clienteId], references: [id])
   itens      ItemPedido[]
   pagamentos Pagamento[]
 
-  @@index([clienteId])
   @@map("pedidos")
 }
 
@@ -272,7 +83,7 @@ model Pagamento {
   status               StatusPagamento @default(PENDENTE)
   valor                Decimal         @db.Decimal(10, 2)
   gatewayTransactionId String?         @unique @map("gateway_transaction_id")
-  gatewayPayload       Json?           @map("gateway_payload")
+  gatewayPayload        Json?          @map("gateway_payload")
   createdAt            DateTime        @default(now()) @map("created_at")
   updatedAt            DateTime        @updatedAt @map("updated_at")
 

@@ -1,4 +1,3 @@
-// DTO de saída do carrinho calculado, mapeado a partir da entidade de domínio.
 import { Carrinho } from '../../domain/item-precificado';
 
 class ItemCarrinhoResponseDto {

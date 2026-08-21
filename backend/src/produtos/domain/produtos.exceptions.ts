@@ -1,4 +1,3 @@
-// Exceções de domínio de produtos.
 import { DomainException } from '../../shared/exceptions/domain.exception';
 
 export class ProdutoNaoEncontradoException extends DomainException {

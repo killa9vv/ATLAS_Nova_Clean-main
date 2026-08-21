@@ -1,5 +1,3 @@
-// Banner de consentimento de cookies; a escolha do usuário (aceitar/rejeitar)
-// fica salva no localStorage para não perguntar de novo nas próximas visitas.
 const STORAGE_KEY = 'atlas-nova-clean-cookie-consent';
 
 export function initCookieBanner(){

@@ -1,4 +1,3 @@
-// Exceções de domínio do carrinho de compras.
 import { DomainException } from '../../shared/exceptions/domain.exception';
 
 export class CarrinhoVazioException extends DomainException {

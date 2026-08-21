@@ -1,6 +1,3 @@
-// Fluxo do modal de checkout: alterna entre pedido combinado por WhatsApp e
-// pagamento no site (Mercado Pago), monta o resumo do pedido e trata o
-// resultado do pagamento (incluindo o acompanhamento de um Pix pendente).
 import { STORE_WHATSAPP, PRODUCTS } from './data/products.js';
 import { cart, cartTotalPrice } from './cart.js';
 import { money } from './utils.js';

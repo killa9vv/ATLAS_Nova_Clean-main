@@ -1,4 +1,3 @@
-// DTO de entrada para criação de pagamento via HTTP.
 import { Type } from 'class-transformer';
 import {
   IsEmail,
@@ -27,7 +26,6 @@ export class PagadorDto {
 }
 
 export class CriarPagamentoDto {
-  // Campos abaixo só são validados quando metodo = CARTAO_CREDITO (ValidateIf).
   @IsUUID()
   pedidoId: string;
 

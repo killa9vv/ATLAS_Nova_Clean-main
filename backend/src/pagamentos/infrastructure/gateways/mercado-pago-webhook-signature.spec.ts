@@ -1,4 +1,3 @@
-// Testes da validação de assinatura HMAC do webhook do Mercado Pago.
 import { createHmac } from 'crypto';
 import { validarAssinaturaWebhookMercadoPago } from './mercado-pago-webhook-signature';
 

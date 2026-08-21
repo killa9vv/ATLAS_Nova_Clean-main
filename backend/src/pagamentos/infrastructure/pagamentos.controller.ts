@@ -1,5 +1,3 @@
-// Endpoints HTTP de pagamentos: criação de pagamento e recebimento do webhook
-// do Mercado Pago (com validação de assinatura).
 import {
   Body,
   Controller,

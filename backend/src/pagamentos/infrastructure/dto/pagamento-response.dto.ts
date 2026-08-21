@@ -1,4 +1,3 @@
-// DTO de saída da criação de pagamento.
 import { CriarPagamentoOutput } from '../../application/dto/criar-pagamento-input';
 
 export class PagamentoResponseDto {

@@ -1,5 +1,3 @@
-// Renderização das grades de produto por categoria (com filtro de marca e
-// busca) e do carrinho lateral (drawer), a partir do catálogo e do carrinho.
 import { PRODUCTS, PRODUCT_TYPES, CATEGORIES } from './data/products.js';
 import { cart, cartTotalCount, cartTotalPrice } from './cart.js';
 import { money, iconFor, bgFor } from './utils.js';

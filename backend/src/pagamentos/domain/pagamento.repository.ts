@@ -1,4 +1,3 @@
-// Porta (interface) do repositório de pagamentos, implementada em infrastructure com Prisma.
 import { MetodoPagamento } from './metodo-pagamento.enum';
 import { Pagamento } from './pagamento.entity';
 import { StatusPagamento } from './status-pagamento.enum';

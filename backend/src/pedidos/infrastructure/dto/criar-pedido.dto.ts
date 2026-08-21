@@ -1,4 +1,3 @@
-// DTO de entrada para criação de pedido: lista de itens solicitados.
 import { Type } from 'class-transformer';
 import { ArrayMinSize, ValidateNested } from 'class-validator';
 import { CarrinhoItemDto } from '../../../carrinho/infrastructure/dto/calcular-carrinho.dto';

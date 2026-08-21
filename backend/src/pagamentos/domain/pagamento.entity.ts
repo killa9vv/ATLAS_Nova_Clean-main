@@ -1,4 +1,3 @@
-// Entidade de domínio Pagamento — registro de uma tentativa/transação de pagamento vinculada a um pedido.
 import { MetodoPagamento } from './metodo-pagamento.enum';
 import { StatusPagamento } from './status-pagamento.enum';
 

@@ -1,5 +1,3 @@
-// Entidades de domínio do carrinho já precificado: item com preço aplicado e o
-// carrinho completo com o total calculado.
 export class ItemPrecificado {
   constructor(
     public readonly produtoId: string,

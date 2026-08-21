@@ -1,4 +1,3 @@
-// Módulo raiz: registra config global, Prisma e os módulos de domínio (produtos, carrinho, pedidos, pagamentos).
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from './shared/prisma/prisma.module';

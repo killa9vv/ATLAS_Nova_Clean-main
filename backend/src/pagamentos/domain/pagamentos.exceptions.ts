@@ -1,4 +1,3 @@
-// Exceções de domínio de pagamentos.
 import { DomainException } from '../../shared/exceptions/domain.exception';
 
 export class PagamentoNaoEncontradoException extends DomainException {
@@ -39,8 +38,6 @@ export class CredenciaisInvalidasGatewayException extends DomainException {
   readonly code = 'CREDENCIAIS_GATEWAY_INVALIDAS';
 
   constructor(detalhe?: string) {
-    super(
-      `Credenciais do gateway de pagamento inválidas ou não configuradas.${detalhe ? ` (${detalhe})` : ''}`,
-    );
+    super(`Credenciais do gateway de pagamento inválidas ou não configuradas.${detalhe ? ` (${detalhe})` : ''}`);
   }
 }

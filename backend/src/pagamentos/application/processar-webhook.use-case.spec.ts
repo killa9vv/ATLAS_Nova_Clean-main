@@ -1,4 +1,3 @@
-// Testes do ProcessarWebhookUseCase, focados na idempotência do processamento de notificações do gateway.
 import { ProcessarWebhookUseCase } from './processar-webhook.use-case';
 import { PagamentoRepository } from '../domain/pagamento.repository';
 import { PaymentGateway } from '../domain/payment-gateway.port';
@@ -11,16 +10,7 @@ import { StatusPedido } from '../../pedidos/domain/status-pedido.enum';
 import { PagamentoNaoEncontradoException } from '../domain/pagamentos.exceptions';
 
 function criarPagamento(status: StatusPagamento): Pagamento {
-  return new Pagamento(
-    'pag-1',
-    'pedido-1',
-    MetodoPagamento.PIX,
-    status,
-    100,
-    'mp-123',
-    new Date(),
-    new Date(),
-  );
+  return new Pagamento('pag-1', 'pedido-1', MetodoPagamento.PIX, status, 100, 'mp-123', new Date(), new Date());
 }
 
 function criarPedido(status: StatusPedido): Pedido {
@@ -59,9 +49,7 @@ describe('ProcessarWebhookUseCase (idempotência)', () => {
   it('lança PagamentoNaoEncontradoException quando a transação do gateway é desconhecida', async () => {
     pagamentoRepository.buscarPorGatewayTransactionId.mockResolvedValue(null);
 
-    await expect(useCase.executar('mp-desconhecido')).rejects.toBeInstanceOf(
-      PagamentoNaoEncontradoException,
-    );
+    await expect(useCase.executar('mp-desconhecido')).rejects.toBeInstanceOf(PagamentoNaoEncontradoException);
     expect(paymentGateway.consultarPagamento).not.toHaveBeenCalled();
   });
 

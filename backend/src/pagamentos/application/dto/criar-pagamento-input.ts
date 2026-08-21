@@ -1,4 +1,3 @@
-// DTOs de entrada/saída do use case de criação de pagamento.
 import { MetodoPagamento } from '../../domain/metodo-pagamento.enum';
 import { DadosPagador } from '../../domain/payment-gateway.port';
 

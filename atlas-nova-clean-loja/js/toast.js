@@ -1,5 +1,3 @@
-// Notificação temporária (toast) exibida ao adicionar um item ao carrinho,
-// e a pequena animação do contador do carrinho no cabeçalho.
 let hideTimer;
 
 export function showToast(message){

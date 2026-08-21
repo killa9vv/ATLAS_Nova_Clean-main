@@ -1,4 +1,3 @@
-// Exceções de domínio de pedidos.
 import { DomainException } from '../../shared/exceptions/domain.exception';
 
 export class PedidoNaoEncontradoException extends DomainException {

@@ -1,4 +1,3 @@
-// DTO de entrada para o cálculo do carrinho (também reaproveitado pela criação de pedidos).
 import { Type } from 'class-transformer';
 import { ArrayMinSize, IsInt, IsString, Min, ValidateNested } from 'class-validator';
 

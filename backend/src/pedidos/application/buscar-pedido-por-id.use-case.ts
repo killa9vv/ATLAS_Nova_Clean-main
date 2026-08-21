@@ -1,4 +1,3 @@
-// Use case que busca um pedido pelo id, lançando exceção de domínio se não existir.
 import { Injectable } from '@nestjs/common';
 import { PedidoRepository } from '../domain/pedido.repository';
 import { Pedido } from '../domain/pedido.entity';
