@@ -1,0 +1,94 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum StatusPedido {
+  CRIADO
+  AGUARDANDO_PAGAMENTO
+  PAGO
+  CANCELADO
+  ESTORNADO
+}
+
+enum StatusPagamento {
+  PENDENTE
+  EM_PROCESSAMENTO
+  APROVADO
+  RECUSADO
+  CANCELADO
+  ESTORNADO
+  EXPIRADO
+}
+
+enum MetodoPagamento {
+  PIX
+  CARTAO_CREDITO
+}
+
+model Produto {
+  id        String   @id @default(uuid())
+  nome      String
+  descricao String?
+  slug      String   @unique
+  categoria String?
+  preco     Decimal  @db.Decimal(10, 2)
+  estoque   Int      @default(0)
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  itensPedido ItemPedido[]
+
+  @@index([nome])
+  @@index([categoria])
+  @@map("produtos")
+}
+
+model Pedido {
+  id        String       @id @default(uuid())
+  status    StatusPedido @default(CRIADO)
+  total     Decimal      @db.Decimal(10, 2)
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+
+  itens      ItemPedido[]
+  pagamentos Pagamento[]
+
+  @@map("pedidos")
+}
+
+model ItemPedido {
+  id            String  @id @default(uuid())
+  pedidoId      String  @map("pedido_id")
+  produtoId     String  @map("produto_id")
+  nome          String
+  quantidade    Int
+  precoUnitario Decimal @map("preco_unitario") @db.Decimal(10, 2)
+
+  pedido  Pedido  @relation(fields: [pedidoId], references: [id])
+  produto Produto @relation(fields: [produtoId], references: [id])
+
+  @@map("itens_pedido")
+}
+
+model Pagamento {
+  id                   String          @id @default(uuid())
+  pedidoId             String          @map("pedido_id")
+  metodo               MetodoPagamento
+  status               StatusPagamento @default(PENDENTE)
+  valor                Decimal         @db.Decimal(10, 2)
+  gatewayTransactionId String?         @unique @map("gateway_transaction_id")
+  gatewayPayload        Json?          @map("gateway_payload")
+  createdAt            DateTime        @default(now()) @map("created_at")
+  updatedAt            DateTime        @updatedAt @map("updated_at")
+
+  pedido Pedido @relation(fields: [pedidoId], references: [id])
+
+  @@index([pedidoId])
+  @@map("pagamentos")
+}
