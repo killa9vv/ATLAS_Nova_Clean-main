@@ -5,7 +5,7 @@ import { ProdutosModule } from './produtos/infrastructure/produtos.module';
 import { CarrinhoModule } from './carrinho/infrastructure/carrinho.module';
 import { PedidosModule } from './pedidos/infrastructure/pedidos.module';
 import { PagamentosModule } from './pagamentos/infrastructure/pagamentos.module';
-
+import { AuthModule } from './auth/infrastructure/auth.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -14,6 +14,7 @@ import { PagamentosModule } from './pagamentos/infrastructure/pagamentos.module'
     CarrinhoModule,
     PedidosModule,
     PagamentosModule,
+    AuthModule,
   ],
 })
 export class AppModule {}

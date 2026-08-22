@@ -30,6 +30,61 @@ enum MetodoPagamento {
   CARTAO_CREDITO
 }
 
+enum PapelUsuario {
+  ADMIN
+  CLIENTE
+}
+
+enum TipoDesconto {
+  PERCENTUAL
+  VALOR_FIXO
+}
+
+enum TipoMovimentacaoEstoque {
+  ENTRADA
+  SAIDA
+  AJUSTE
+}
+
+model Categoria {
+  id   String @id @default(uuid())
+  slug String @unique
+  nome String
+
+  produtoTipos ProdutoTipo[]
+
+  @@map("categorias")
+}
+
+model Marca {
+  id   String @id @default(uuid())
+  nome String @unique
+
+  produtos Produto[]
+
+  @@map("marcas")
+}
+
+// Produto genérico (ex: "Detergente para Louça"), independente de marca. Cada
+// linha de Produto é uma variante vendável desse tipo (marca + embalagem + preço).
+model ProdutoTipo {
+  id          String  @id @default(uuid())
+  categoriaId String  @map("categoria_id")
+  nome        String
+  // Texto técnico/precauções padrão do tipo — sobreposição por variante (existe
+  // no catálogo do frontend como ProductVariant.info/precautions) não tem campo
+  // aqui: nenhum dado real usa isso hoje, fica pra quando existir de verdade.
+  infoTecnica String? @map("info_tecnica")
+  precaucoes  String?
+
+  categoria Categoria @relation(fields: [categoriaId], references: [id])
+  produtos  Produto[]
+
+  @@unique([categoriaId, nome])
+  @@index([categoriaId])
+  @@map("produto_tipos")
+}
+
 model Produto {
   id        String   @id @default(uuid())
   nome      String
