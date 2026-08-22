@@ -1,0 +1,5 @@
+# Normaliza quebra de linha pra LF no repositório, independente do core.autocrlf de
+# quem clona. Sem isso, checkouts no Windows com autocrlf=true geram CRLF local que
+# quebra `eslint --fix`/prettier (configurados pra LF) mesmo quando o conteúdo
+# versionado está correto.
+* text=auto eol=lf
