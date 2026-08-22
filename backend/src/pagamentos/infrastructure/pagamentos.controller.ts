@@ -60,6 +60,10 @@ export class PagamentosController {
       if (!assinaturaValida) {
         throw new UnauthorizedException('Assinatura do webhook inválida.');
       }
+    } else if (process.env.NODE_ENV === 'production') {
+      // Em produção, sem o segredo não tem como validar quem está chamando —
+      // rejeita em vez de aceitar sem checagem.
+      throw new UnauthorizedException('Webhook do Mercado Pago não configurado corretamente.');
     } else {
       this.logger.warn(
         'MERCADOPAGO_WEBHOOK_SECRET não configurado — validação de assinatura desabilitada. Não usar em produção.',

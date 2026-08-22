@@ -19,20 +19,30 @@ export class MontarCarrinhoUseCase {
       throw new CarrinhoVazioException();
     }
 
-    const produtos = await this.produtoRepository.buscarPorIds(
-      itensSolicitados.map((item) => item.produtoId),
-    );
+    // Consolida quantidades do mesmo produto antes de validar estoque — senão o
+    // mesmo produtoId repetido em duas linhas passaria na checagem de estoque
+    // duas vezes de forma isolada (5 em estoque, duas linhas de 3 cada "cabem"
+    // individualmente, mas juntas excedem o disponível).
+    const quantidadePorProduto = new Map<string, number>();
+    for (const item of itensSolicitados) {
+      quantidadePorProduto.set(
+        item.produtoId,
+        (quantidadePorProduto.get(item.produtoId) ?? 0) + item.quantidade,
+      );
+    }
+
+    const produtos = await this.produtoRepository.buscarPorIds([...quantidadePorProduto.keys()]);
     const produtosPorId = new Map(produtos.map((produto) => [produto.id, produto]));
 
-    const itens = itensSolicitados.map((solicitado) => {
-      const produto = produtosPorId.get(solicitado.produtoId);
+    const itens = [...quantidadePorProduto.entries()].map(([produtoId, quantidade]) => {
+      const produto = produtosPorId.get(produtoId);
       if (!produto) {
-        throw new ProdutoNaoEncontradoException(solicitado.produtoId);
+        throw new ProdutoNaoEncontradoException(produtoId);
       }
-      if (!produto.possuiEstoqueDisponivel(solicitado.quantidade)) {
+      if (!produto.possuiEstoqueDisponivel(quantidade)) {
         throw new EstoqueInsuficienteException(produto.nome);
       }
-      return new ItemPrecificado(produto.id, produto.nome, solicitado.quantidade, produto.preco);
+      return new ItemPrecificado(produto.id, produto.nome, quantidade, produto.preco);
     });
 
     return new Carrinho(itens);

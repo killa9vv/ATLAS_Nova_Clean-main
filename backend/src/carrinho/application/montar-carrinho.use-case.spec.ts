@@ -77,4 +77,36 @@ describe('MontarCarrinhoUseCase', () => {
     });
     expect(carrinho.total).toBe(45.9);
   });
+
+  it('consolida quantidades do mesmo produto pedido em mais de uma linha', async () => {
+    produtoRepository.buscarPorIds.mockResolvedValue([
+      criarProduto({ id: 'produto-1', nome: 'Detergente', preco: 10, estoque: 5 }),
+    ]);
+
+    const carrinho = await useCase.executar([
+      { produtoId: 'produto-1', quantidade: 2 },
+      { produtoId: 'produto-1', quantidade: 2 },
+    ]);
+
+    // buscarPorIds só deve ser chamado com o id deduplicado, não duas vezes.
+    expect(produtoRepository.buscarPorIds).toHaveBeenCalledWith(['produto-1']);
+    expect(carrinho.itens).toHaveLength(1);
+    expect(carrinho.itens[0]).toMatchObject({ produtoId: 'produto-1', quantidade: 4 });
+    expect(carrinho.total).toBe(40);
+  });
+
+  it('lança EstoqueInsuficienteException quando o mesmo produto em duas linhas excede o estoque somado', async () => {
+    // Estoque 5: cada linha isolada (3) "caberia", mas juntas (6) excedem.
+    // Sem consolidar antes de validar, esse caso passaria pela checagem por engano.
+    produtoRepository.buscarPorIds.mockResolvedValue([
+      criarProduto({ id: 'produto-1', nome: 'Detergente', estoque: 5 }),
+    ]);
+
+    await expect(
+      useCase.executar([
+        { produtoId: 'produto-1', quantidade: 3 },
+        { produtoId: 'produto-1', quantidade: 3 },
+      ]),
+    ).rejects.toBeInstanceOf(EstoqueInsuficienteException);
+  });
 });

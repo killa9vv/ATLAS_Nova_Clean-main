@@ -172,7 +172,7 @@ model Cliente {
   nome      String
   email     String?  @unique
   telefone  String?
-  cpf       String?
+  cpf       String?  @unique
   createdAt DateTime @default(now()) @map("created_at")
 
   enderecos Endereco[]
@@ -209,6 +209,8 @@ model Cupom {
   usoMaximo    Int?         @map("uso_maximo")
   usosCount    Int          @default(0) @map("usos_count")
   createdAt    DateTime     @default(now()) @map("created_at")
+
+  pedidos Pedido[]
 
   @@map("cupons")
 }
@@ -261,6 +263,7 @@ model Pedido {
   updatedAt   DateTime     @updatedAt @map("updated_at")
 
   cliente    Cliente?     @relation(fields: [clienteId], references: [id])
+  cupom      Cupom?       @relation(fields: [cupomCodigo], references: [codigo])
   itens      ItemPedido[]
   pagamentos Pagamento[]
 
@@ -279,6 +282,8 @@ model ItemPedido {
   pedido  Pedido  @relation(fields: [pedidoId], references: [id])
   produto Produto @relation(fields: [produtoId], references: [id])
 
+  @@index([pedidoId])
+  @@index([produtoId])
   @@map("itens_pedido")
 }
 
