@@ -1,0 +1,24 @@
+{
+  "region": "us-east-1",
+  "apps": {
+    "atlas-nova-clean-backend": {
+      "name": "atlas-nova-clean-backend",
+      "root": "backend",
+      "framework": "nestjs",
+      "httpPort": 3000,
+      "build": {
+        "command": "npm run build",
+        "outputDirectory": "dist"
+      }
+    },
+    "frontend": {
+      "name": "frontend",
+      "root": "frontend",
+      "framework": "nextjs",
+      "httpPort": 3000,
+      "build": {
+        "command": "npm run build"
+      }
+    }
+  }
+}
