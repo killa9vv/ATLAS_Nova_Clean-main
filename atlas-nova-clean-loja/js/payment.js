@@ -4,7 +4,9 @@ let mp = null;
 function getMp() {
   if (!mp) {
     if (typeof MercadoPago === 'undefined') {
-      throw new Error('SDK do Mercado Pago não carregou. Verifique sua conexão e recarregue a página.');
+      throw new Error(
+        'SDK do Mercado Pago não carregou. Verifique sua conexão e recarregue a página.',
+      );
     }
     mp = new MercadoPago(MERCADOPAGO_PUBLIC_KEY, { locale: 'pt-BR' });
   }
@@ -19,7 +21,9 @@ async function chamarApi(caminho, opcoes) {
       ...opcoes,
     });
   } catch {
-    throw new Error('Não conseguimos falar com o sistema de pagamento agora. Tente novamente em instantes.');
+    throw new Error(
+      'Não conseguimos falar com o sistema de pagamento agora. Tente novamente em instantes.',
+    );
   }
 
   const corpo = await resposta.json().catch(() => ({}));
@@ -29,8 +33,8 @@ async function chamarApi(caminho, opcoes) {
   return corpo;
 }
 
-export async function criarPedido(itens) {
-  return chamarApi('/pedidos', { method: 'POST', body: JSON.stringify({ itens }) });
+export async function criarPedido(itens, canal = 'site') {
+  return chamarApi('/pedidos', { method: 'POST', body: JSON.stringify({ itens, canal }) });
 }
 
 export async function buscarPedido(pedidoId) {
@@ -71,7 +75,14 @@ let brickController = null;
  * com id `containerId`. O próprio Brick cuida da tokenização do cartão — nenhum
  * dado sensível passa pelo nosso JS.
  */
-export async function renderizarPaymentBrick({ containerId, valor, emailPagador, onSubmit, onErro, onPronto }) {
+export async function renderizarPaymentBrick({
+  containerId,
+  valor,
+  emailPagador,
+  onSubmit,
+  onErro,
+  onPronto,
+}) {
   if (brickController) {
     await brickController.unmount();
     brickController = null;
@@ -113,7 +124,10 @@ export async function desmontarPaymentBrick() {
  * Fica perguntando ao backend se o pedido já foi marcado como pago (webhook do
  * gateway confirma de forma assíncrona). Usado depois de um pagamento Pix.
  */
-export function acompanharPagamentoPix(pedidoId, { aoAtualizar, intervaloMs = 4000, timeoutMs = 10 * 60 * 1000 }) {
+export function acompanharPagamentoPix(
+  pedidoId,
+  { aoAtualizar, intervaloMs = 4000, timeoutMs = 10 * 60 * 1000 },
+) {
   const inicio = Date.now();
   let parado = false;
 
@@ -141,5 +155,7 @@ export function acompanharPagamentoPix(pedidoId, { aoAtualizar, intervaloMs = 40
   };
 
   setTimeout(tick, intervaloMs);
-  return () => { parado = true; };
+  return () => {
+    parado = true;
+  };
 }

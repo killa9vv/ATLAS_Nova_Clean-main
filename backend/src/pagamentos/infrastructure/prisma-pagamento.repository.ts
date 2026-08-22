@@ -41,15 +41,44 @@ export class PrismaPagamentoRepository extends PagamentoRepository {
     return pagamento ? this.paraDominio(pagamento) : null;
   }
 
-  async atualizarStatus(id: string, status: StatusPagamento, gatewayPayload: unknown): Promise<Pagamento> {
-    const pagamento = await this.prisma.pagamento.update({
-      where: { id },
+  async atualizarStatus(
+    id: string,
+    statusEsperado: StatusPagamento,
+    novoStatus: StatusPagamento,
+    gatewayPayload: unknown,
+  ): Promise<Pagamento | null> {
+    // updateMany (em vez de update) porque a condição extra no WHERE (status atual)
+    // não é uma chave única — se o status já mudou, count fica 0 em vez de lançar.
+    const resultado = await this.prisma.pagamento.updateMany({
+      where: { id, status: statusEsperado as unknown as StatusPagamentoPrisma },
       data: {
-        status: status as unknown as StatusPagamentoPrisma,
+        status: novoStatus as unknown as StatusPagamentoPrisma,
         gatewayPayload: (gatewayPayload ?? Prisma.JsonNull) as Prisma.InputJsonValue,
       },
     });
+
+    if (resultado.count === 0) {
+      return null;
+    }
+
+    const pagamento = await this.prisma.pagamento.findUniqueOrThrow({ where: { id } });
     return this.paraDominio(pagamento);
+  }
+
+  async listarPendentesCriadosAntesDe(limite: Date): Promise<Pagamento[]> {
+    const pagamentos = await this.prisma.pagamento.findMany({
+      where: {
+        status: {
+          in: [
+            StatusPagamento.PENDENTE,
+            StatusPagamento.EM_PROCESSAMENTO,
+          ] as unknown as StatusPagamentoPrisma[],
+        },
+        createdAt: { lt: limite },
+        gatewayTransactionId: { not: null },
+      },
+    });
+    return pagamentos.map((pagamento) => this.paraDominio(pagamento));
   }
 
   private paraDominio(pagamento: PagamentoPrisma): Pagamento {
