@@ -32,6 +32,7 @@ enum MetodoPagamento {
 
 enum PapelUsuario {
   ADMIN
+  CLIENTE
 }
 
 enum TipoDesconto {
