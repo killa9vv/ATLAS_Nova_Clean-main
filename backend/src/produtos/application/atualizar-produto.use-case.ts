@@ -3,7 +3,7 @@ import { Produto } from '../domain/produto.entity';
 import { ProdutoRepository } from '../domain/produto.repository';
 import { ProdutoNaoEncontradoException } from '../domain/produtos.exceptions';
 import { AtualizarProdutoDto } from '../infrastructure/dto/atualizar-produto.dto';
-import { gerarSlug } from './slug.util';
+import { gerarSlug } from '../../shared/slug.util';
 
 @Injectable()
 export class AtualizarProdutoUseCase {
