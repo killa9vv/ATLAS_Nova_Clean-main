@@ -9,6 +9,7 @@ import {
   Headers,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { ApiExcludeEndpoint, ApiTags } from '@nestjs/swagger';
 import { CriarPagamentoUseCase } from '../application/criar-pagamento.use-case';
 import { ProcessarWebhookUseCase } from '../application/processar-webhook.use-case';
 import { CriarPagamentoDto } from './dto/criar-pagamento.dto';
@@ -16,6 +17,7 @@ import { PagamentoResponseDto } from './dto/pagamento-response.dto';
 import { WebhookMercadoPagoDto } from './dto/webhook-mercadopago.dto';
 import { validarAssinaturaWebhookMercadoPago } from './gateways/mercado-pago-webhook-signature';
 
+@ApiTags('pagamentos')
 @Controller('pagamentos')
 export class PagamentosController {
   private readonly logger = new Logger(PagamentosController.name);
@@ -39,6 +41,9 @@ export class PagamentosController {
     return PagamentoResponseDto.fromOutput(resultado);
   }
 
+  // Chamado só pelo Mercado Pago, não por consumidores da API — fora da doc pública
+  // pra não parecer um endpoint disponível pra "Try it out".
+  @ApiExcludeEndpoint()
   @Post('webhook')
   @HttpCode(200)
   async webhook(
