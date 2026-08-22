@@ -36,6 +36,12 @@ export interface DadosAtualizacaoProduto {
   ativo?: boolean;
 }
 
+export interface ItemParaDecrementarEstoque {
+  produtoId: string;
+  nome: string;
+  quantidade: number;
+}
+
 /**
  * Porta do repositório de produtos. A camada de domínio/aplicação depende
  * apenas desta abstração — quem implementa é a infraestrutura (Prisma).
@@ -48,4 +54,13 @@ export abstract class ProdutoRepository {
   abstract buscarPorSlug(slug: string): Promise<Produto | null>;
   abstract criar(dados: DadosCriacaoProduto): Promise<Produto>;
   abstract atualizar(id: string, dados: DadosAtualizacaoProduto): Promise<Produto>;
+
+  /**
+   * Decrementa o estoque de cada item de forma atômica (tudo ou nada): se algum
+   * item não tiver estoque suficiente no momento da escrita, nenhum é decrementado.
+   * Existe para fechar a janela de corrida entre a validação de estoque (leitura)
+   * e a criação do pedido — duas compras concorrentes não podem vender o mesmo
+   * último item.
+   */
+  abstract decrementarEstoque(itens: ItemParaDecrementarEstoque[]): Promise<void>;
 }

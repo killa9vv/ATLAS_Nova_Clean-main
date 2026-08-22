@@ -13,9 +13,12 @@ function criarProduto(overrides: Partial<Produto> = {}): Produto {
   return new Produto(
     overrides.id ?? 'produto-1',
     overrides.nome ?? 'Detergente',
+    overrides.slug ?? 'detergente',
     overrides.preco ?? 10,
     overrides.estoque ?? 5,
+    overrides.ativo ?? true,
     overrides.descricao,
+    overrides.categoria,
   );
 }
 

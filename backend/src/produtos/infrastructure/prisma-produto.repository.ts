@@ -5,9 +5,11 @@ import {
   DadosAtualizacaoProduto,
   DadosCriacaoProduto,
   FiltrosListagemProdutos,
+  ItemParaDecrementarEstoque,
   ProdutoRepository,
   ResultadoPaginado,
 } from '../domain/produto.repository';
+import { EstoqueInsuficienteException } from '../../carrinho/domain/carrinho.exceptions';
 import type { Produto as ProdutoPrisma, Prisma } from '@prisma/client';
 
 @Injectable()
@@ -104,6 +106,21 @@ export class PrismaProdutoRepository extends ProdutoRepository {
       },
     });
     return this.paraDominio(produto);
+  }
+
+  async decrementarEstoque(itens: ItemParaDecrementarEstoque[]): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      for (const item of itens) {
+        const resultado = await tx.produto.updateMany({
+          where: { id: item.produtoId, estoque: { gte: item.quantidade } },
+          data: { estoque: { decrement: item.quantidade } },
+        });
+
+        if (resultado.count === 0) {
+          throw new EstoqueInsuficienteException(item.nome);
+        }
+      }
+    });
   }
 
   private paraDominio(produto: ProdutoPrisma): Produto {

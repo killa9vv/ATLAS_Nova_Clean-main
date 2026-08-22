@@ -56,6 +56,7 @@ describe('Pedidos (e2e)', () => {
       data: {
         id: randomUUID(),
         nome: `Produto de teste ${randomUUID()}`,
+        slug: `produto-teste-${randomUUID()}`,
         pack: 'unidade',
         preco: 10,
         estoque,
