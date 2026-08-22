@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import { fontVariables } from '@/lib/fonts';
+import { QueryProvider } from '@/lib/query-provider';
+import { ToastProvider } from '@/components/ui/Toast';
 import { Header } from '@/components/layout/Header';
 import { Ticker } from '@/components/layout/Ticker';
 import { Footer } from '@/components/layout/Footer';
@@ -17,10 +19,14 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
     <html lang="pt-BR" className={`${fontVariables} antialiased`}>
       <body>
-        <Header variant="full" />
-        <Ticker />
-        {children}
-        <Footer variant="full" />
+        <QueryProvider>
+          <ToastProvider>
+            <Header variant="full" />
+            <Ticker />
+            {children}
+            <Footer variant="full" />
+          </ToastProvider>
+        </QueryProvider>
       </body>
     </html>
   );
