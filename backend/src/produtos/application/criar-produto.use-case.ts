@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Produto } from '../domain/produto.entity';
 import { ProdutoRepository } from '../domain/produto.repository';
 import { CriarProdutoDto } from '../infrastructure/dto/criar-produto.dto';
-import { gerarSlug } from './slug.util';
+import { gerarSlug } from '../../shared/slug.util';
 
 @Injectable()
 export class CriarProdutoUseCase {
