@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CriarPedidoUseCase } from '../application/criar-pedido.use-case';
 import { BuscarPedidoPorIdUseCase } from '../application/buscar-pedido-por-id.use-case';
 import { CriarPedidoDto } from './dto/criar-pedido.dto';
@@ -8,6 +9,7 @@ import { RolesGuard } from '../../auth/infrastructure/guards/roles.guard';
 import { Roles } from '../../auth/infrastructure/decorators/roles.decorator';
 import { PapelUsuario } from '../../auth/domain/papel-usuario.enum';
 
+@ApiTags('pedidos')
 @Controller('pedidos')
 export class PedidosController {
   constructor(
@@ -20,7 +22,7 @@ export class PedidosController {
   // login para clientes, só para staff (Usuario/ADMIN).
   @Post()
   async criar(@Body() dto: CriarPedidoDto): Promise<PedidoResponseDto> {
-    const pedido = await this.criarPedidoUseCase.executar(dto.itens);
+    const pedido = await this.criarPedidoUseCase.executar(dto.itens, dto.canal);
     return PedidoResponseDto.fromDomain(pedido);
   }
 
@@ -29,6 +31,7 @@ export class PedidosController {
   // qualquer pedido de qualquer pessoa. Como não existe login de cliente pra
   // provar "dono do recurso", restringe a admin até essa lacuna ser resolvida.
   @Get(':id')
+  @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(PapelUsuario.ADMIN)
   async buscarPorId(@Param('id') id: string): Promise<PedidoResponseDto> {

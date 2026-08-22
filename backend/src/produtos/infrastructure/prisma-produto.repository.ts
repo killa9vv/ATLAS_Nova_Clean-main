@@ -5,12 +5,16 @@ import {
   DadosAtualizacaoProduto,
   DadosCriacaoProduto,
   FiltrosListagemProdutos,
+  ItemParaAjustarEstoque,
   ItemParaDecrementarEstoque,
   ProdutoRepository,
   ResultadoPaginado,
 } from '../domain/produto.repository';
 import { EstoqueInsuficienteException } from '../../carrinho/domain/carrinho.exceptions';
 import type { Produto as ProdutoPrisma, Prisma } from '@prisma/client';
+
+/** Cliente Prisma "normal" ou um client de transação (`tx` de `$transaction`) — mesma API pros métodos usados aqui. */
+type ClientePrisma = PrismaService | Prisma.TransactionClient;
 
 @Injectable()
 export class PrismaProdutoRepository extends ProdutoRepository {
@@ -108,10 +112,10 @@ export class PrismaProdutoRepository extends ProdutoRepository {
     return this.paraDominio(produto);
   }
 
-  async decrementarEstoque(itens: ItemParaDecrementarEstoque[]): Promise<void> {
-    await this.prisma.$transaction(async (tx) => {
+  async decrementarEstoque(itens: ItemParaDecrementarEstoque[], contexto?: unknown): Promise<void> {
+    const decrementar = async (cliente: ClientePrisma) => {
       for (const item of itens) {
-        const resultado = await tx.produto.updateMany({
+        const resultado = await cliente.produto.updateMany({
           where: { id: item.produtoId, estoque: { gte: item.quantidade } },
           data: { estoque: { decrement: item.quantidade } },
         });
@@ -120,7 +124,34 @@ export class PrismaProdutoRepository extends ProdutoRepository {
           throw new EstoqueInsuficienteException(item.nome);
         }
       }
-    });
+    };
+
+    // Se já rodamos dentro de uma transação externa (contexto vindo de
+    // TransactionManager, ex.: junto da criação do pedido), reaproveita o mesmo
+    // client em vez de abrir uma transação aninhada. Sem contexto, abre a própria
+    // transação — mantém o método atômico também quando usado sozinho.
+    if (contexto) {
+      await decrementar(contexto as Prisma.TransactionClient);
+      return;
+    }
+    await this.prisma.$transaction((tx) => decrementar(tx));
+  }
+
+  async incrementarEstoque(itens: ItemParaAjustarEstoque[], contexto?: unknown): Promise<void> {
+    const incrementar = async (cliente: ClientePrisma) => {
+      for (const item of itens) {
+        await cliente.produto.update({
+          where: { id: item.produtoId },
+          data: { estoque: { increment: item.quantidade } },
+        });
+      }
+    };
+
+    if (contexto) {
+      await incrementar(contexto as Prisma.TransactionClient);
+      return;
+    }
+    await this.prisma.$transaction((tx) => incrementar(tx));
   }
 
   private paraDominio(produto: ProdutoPrisma): Produto {

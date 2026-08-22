@@ -19,6 +19,12 @@ export class DomainExceptionFilter implements ExceptionFilter {
     GATEWAY_INDISPONIVEL: 503,
     CREDENCIAIS_GATEWAY_INVALIDAS: 502,
     PAGAMENTO_DUPLICADO: 409,
+    CATEGORIA_NAO_ENCONTRADA: 404,
+    CATEGORIA_COM_PRODUTOS_VINCULADOS: 409,
+    MARCA_NAO_ENCONTRADA: 404,
+    MARCA_COM_PRODUTOS_VINCULADOS: 409,
+    MARCA_DUPLICADA: 409,
+    IMAGEM_PRODUTO_NAO_ENCONTRADA: 404,
   };
 
   private readonly logger = new Logger(DomainExceptionFilter.name);

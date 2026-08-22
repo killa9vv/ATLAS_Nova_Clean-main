@@ -42,6 +42,11 @@ export interface ItemParaDecrementarEstoque {
   quantidade: number;
 }
 
+export interface ItemParaAjustarEstoque {
+  produtoId: string;
+  quantidade: number;
+}
+
 /**
  * Porta do repositório de produtos. A camada de domínio/aplicação depende
  * apenas desta abstração — quem implementa é a infraestrutura (Prisma).
@@ -61,6 +66,20 @@ export abstract class ProdutoRepository {
    * Existe para fechar a janela de corrida entre a validação de estoque (leitura)
    * e a criação do pedido — duas compras concorrentes não podem vender o mesmo
    * último item.
+   *
+   * `contexto`, quando informado, é o contexto de transação devolvido por
+   * `TransactionManager.executar` — usado para que este decremento e a criação do
+   * pedido correspondente aconteçam na mesma transação atômica. Sem ele, o método
+   * abre sua própria transação interna (uso avulso, ex.: testes).
    */
-  abstract decrementarEstoque(itens: ItemParaDecrementarEstoque[]): Promise<void>;
+  abstract decrementarEstoque(
+    itens: ItemParaDecrementarEstoque[],
+    contexto?: unknown,
+  ): Promise<void>;
+
+  /**
+   * Devolve estoque (ex.: pedido cancelado/estornado depois de ter sido decrementado
+   * na criação). Sempre soma — não há checagem de limite superior.
+   */
+  abstract incrementarEstoque(itens: ItemParaAjustarEstoque[], contexto?: unknown): Promise<void>;
 }
