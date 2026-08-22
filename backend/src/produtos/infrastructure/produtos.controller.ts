@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Param, Patch, Post, Put, Query, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { ListarProdutosUseCase } from '../application/listar-produtos.use-case';
 import { BuscarProdutoPorIdUseCase } from '../application/buscar-produto-por-id.use-case';
 import { BuscarProdutoPorSlugUseCase } from '../application/buscar-produto-por-slug.use-case';
@@ -15,6 +16,7 @@ import { RolesGuard } from '../../auth/infrastructure/guards/roles.guard';
 import { Roles } from '../../auth/infrastructure/decorators/roles.decorator';
 import { PapelUsuario } from '../../auth/domain/papel-usuario.enum';
 
+@ApiTags('produtos')
 @Controller('produtos')
 export class ProdutosController {
   constructor(
@@ -45,6 +47,7 @@ export class ProdutosController {
   }
 
   @Post()
+  @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(PapelUsuario.ADMIN)
   async criar(@Body() dto: CriarProdutoDto): Promise<ProdutoResponseDto> {
@@ -53,6 +56,7 @@ export class ProdutosController {
   }
 
   @Put(':id')
+  @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(PapelUsuario.ADMIN)
   async atualizar(
@@ -64,6 +68,7 @@ export class ProdutosController {
   }
 
   @Patch(':id/ativar')
+  @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(PapelUsuario.ADMIN)
   async ativar(@Param('id') id: string): Promise<ProdutoResponseDto> {
@@ -72,6 +77,7 @@ export class ProdutosController {
   }
 
   @Patch(':id/desativar')
+  @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(PapelUsuario.ADMIN)
   async desativar(@Param('id') id: string): Promise<ProdutoResponseDto> {

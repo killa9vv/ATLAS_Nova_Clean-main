@@ -1,0 +1,216 @@
+{
+  "info": {
+    "name": "Atlas Nova Clean — API",
+    "description": "Catálogo, carrinho, pedidos e pagamentos (Mercado Pago) do e-commerce Atlas Nova Clean. Gerado a partir dos controllers reais do backend NestJS — ver também /api/docs (Swagger UI) para o schema completo com exemplos por DTO.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "accessToken", "value": "" },
+    { "key": "produtoId", "value": "" },
+    { "key": "pedidoId", "value": "" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "auth": { "type": "noauth" },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@atlasnovaclean.com\",\n  \"senha\": \"senha-forte-123\"\n}"
+            },
+            "description": "Login de staff (ADMIN/CLIENTE — hoje só existe conta de staff). Copie o `access_token` da resposta para a variável de coleção `accessToken`."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Produtos",
+      "item": [
+        {
+          "name": "Listar produtos",
+          "request": {
+            "method": "GET",
+            "auth": { "type": "noauth" },
+            "url": {
+              "raw": "{{baseUrl}}/produtos?pagina=1&limite=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["produtos"],
+              "query": [
+                { "key": "pagina", "value": "1" },
+                { "key": "limite", "value": "10" },
+                { "key": "busca", "value": "", "disabled": true },
+                { "key": "categoria", "value": "", "disabled": true },
+                { "key": "ativo", "value": "true", "disabled": true },
+                { "key": "ordenarPor", "value": "createdAt", "disabled": true },
+                { "key": "direcao", "value": "desc", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Buscar produto por slug",
+          "request": {
+            "method": "GET",
+            "auth": { "type": "noauth" },
+            "url": {
+              "raw": "{{baseUrl}}/produtos/slug/detergente-para-louca",
+              "host": ["{{baseUrl}}"],
+              "path": ["produtos", "slug", "detergente-para-louca"]
+            }
+          }
+        },
+        {
+          "name": "Buscar produto por id",
+          "request": {
+            "method": "GET",
+            "auth": { "type": "noauth" },
+            "url": {
+              "raw": "{{baseUrl}}/produtos/{{produtoId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["produtos", "{{produtoId}}"]
+            }
+          }
+        },
+        {
+          "name": "Criar produto (ADMIN)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/produtos", "host": ["{{baseUrl}}"], "path": ["produtos"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Detergente para Louça\",\n  \"descricao\": \"Detergente concentrado para louças, 500ml\",\n  \"preco\": 12.9,\n  \"estoque\": 100,\n  \"categoria\": \"limpeza\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Atualizar produto (ADMIN)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/produtos/{{produtoId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["produtos", "{{produtoId}}"]
+            },
+            "body": { "mode": "raw", "raw": "{\n  \"preco\": 13.9\n}" }
+          }
+        },
+        {
+          "name": "Ativar produto (ADMIN)",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{baseUrl}}/produtos/{{produtoId}}/ativar",
+              "host": ["{{baseUrl}}"],
+              "path": ["produtos", "{{produtoId}}", "ativar"]
+            }
+          }
+        },
+        {
+          "name": "Desativar produto (ADMIN)",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{baseUrl}}/produtos/{{produtoId}}/desativar",
+              "host": ["{{baseUrl}}"],
+              "path": ["produtos", "{{produtoId}}", "desativar"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Carrinho",
+      "item": [
+        {
+          "name": "Calcular carrinho",
+          "request": {
+            "method": "POST",
+            "auth": { "type": "noauth" },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/carrinho/calcular", "host": ["{{baseUrl}}"], "path": ["carrinho", "calcular"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"itens\": [\n    { \"produtoId\": \"{{produtoId}}\", \"quantidade\": 2 }\n  ]\n}"
+            },
+            "description": "Sempre recarrega preço e estoque do banco — nunca confia no que o cliente enviar."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Pedidos",
+      "item": [
+        {
+          "name": "Criar pedido",
+          "request": {
+            "method": "POST",
+            "auth": { "type": "noauth" },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/pedidos", "host": ["{{baseUrl}}"], "path": ["pedidos"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"itens\": [\n    { \"produtoId\": \"{{produtoId}}\", \"quantidade\": 2 }\n  ]\n}"
+            },
+            "description": "Público (checkout de convidado). Não reserva estoque — só a confirmação do pagamento decrementa de fato."
+          }
+        },
+        {
+          "name": "Buscar pedido por id (ADMIN)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/pedidos/{{pedidoId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["pedidos", "{{pedidoId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Pagamentos",
+      "item": [
+        {
+          "name": "Criar pagamento (Pix)",
+          "request": {
+            "method": "POST",
+            "auth": { "type": "noauth" },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/pagamentos", "host": ["{{baseUrl}}"], "path": ["pagamentos"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pedidoId\": \"{{pedidoId}}\",\n  \"metodo\": \"PIX\",\n  \"pagador\": {\n    \"email\": \"cliente@email.com\",\n    \"nome\": \"Maria Silva\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "Criar pagamento (Cartão de crédito)",
+          "request": {
+            "method": "POST",
+            "auth": { "type": "noauth" },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/pagamentos", "host": ["{{baseUrl}}"], "path": ["pagamentos"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pedidoId\": \"{{pedidoId}}\",\n  \"metodo\": \"CARTAO_CREDITO\",\n  \"pagador\": {\n    \"email\": \"cliente@email.com\",\n    \"nome\": \"Maria Silva\",\n    \"cpf\": \"12345678900\"\n  },\n  \"tokenCartao\": \"token-gerado-pelo-sdk-do-mercado-pago\",\n  \"parcelas\": 1,\n  \"metodoPagamentoId\": \"master\"\n}"
+            },
+            "description": "tokenCartao é gerado pelo SDK do Mercado Pago no frontend — o número do cartão nunca passa pelo nosso backend."
+          }
+        }
+      ]
+    }
+  ]
+}
