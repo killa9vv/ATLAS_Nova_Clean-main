@@ -1,4 +1,3 @@
-// Porta (interface) do repositório de pedidos, implementada em infrastructure com Prisma.
 import { NovoItemPedido, Pedido } from './pedido.entity';
 import { StatusPedido } from './status-pedido.enum';
 

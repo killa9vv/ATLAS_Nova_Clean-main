@@ -1,4 +1,3 @@
-// Endpoints HTTP de pedidos: criação e busca por id.
 import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { CriarPedidoUseCase } from '../application/criar-pedido.use-case';
 import { BuscarPedidoPorIdUseCase } from '../application/buscar-pedido-por-id.use-case';

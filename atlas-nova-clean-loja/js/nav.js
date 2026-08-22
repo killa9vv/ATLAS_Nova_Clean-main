@@ -1,6 +1,3 @@
-// Menu de navegação do cabeçalho: monta o mega menu (tipos de produto por
-// categoria + marcas em destaque) e cuida da abertura/fechamento no desktop
-// e no mobile.
 import { PRODUCT_TYPES, CATEGORIES, BRANDS } from './data/products.js';
 
 const TOP_BRANDS_COUNT = 8;

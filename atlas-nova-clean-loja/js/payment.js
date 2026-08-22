@@ -1,6 +1,3 @@
-// Cliente HTTP para o backend de pedidos/pagamentos e integração com o SDK
-// do Mercado Pago: monta o Payment Brick (Pix + cartão) e faz polling do
-// status do pedido para saber quando um pagamento Pix foi confirmado.
 import { API_BASE_URL, MERCADOPAGO_PUBLIC_KEY } from './config.js';
 
 let mp = null;

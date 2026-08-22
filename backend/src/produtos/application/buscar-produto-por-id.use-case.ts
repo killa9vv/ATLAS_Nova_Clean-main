@@ -1,4 +1,3 @@
-// Use case que busca um produto pelo id, lançando exceção de domínio se não existir.
 import { Injectable } from '@nestjs/common';
 import { Produto } from '../domain/produto.entity';
 import { ProdutoRepository } from '../domain/produto.repository';

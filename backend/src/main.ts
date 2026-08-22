@@ -1,4 +1,3 @@
-// Bootstrap da API: configura CORS, validação global de DTOs e o filtro de exceções de domínio.
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';

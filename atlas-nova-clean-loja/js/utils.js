@@ -1,5 +1,3 @@
-// Funções utilitárias de formatação e apresentação usadas pelos módulos de
-// renderização (preço em R$, ícone SVG por categoria, cor de fundo do card).
 import { CATEGORY_COLORS } from './data/products.js';
 
 export function money(n){

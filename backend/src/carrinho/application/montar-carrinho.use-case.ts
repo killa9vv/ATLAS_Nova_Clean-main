@@ -3,10 +3,7 @@ import { ProdutoRepository } from '../../produtos/domain/produto.repository';
 import { ProdutoNaoEncontradoException } from '../../produtos/domain/produtos.exceptions';
 import { Carrinho, ItemPrecificado } from '../domain/item-precificado';
 import { CarrinhoItemSolicitado } from '../domain/carrinho-item-solicitado';
-import {
-  CarrinhoVazioException,
-  EstoqueInsuficienteException,
-} from '../domain/carrinho.exceptions';
+import { CarrinhoVazioException, EstoqueInsuficienteException } from '../domain/carrinho.exceptions';
 
 /**
  * Valida os itens pedidos contra o catálogo de produtos (existência e estoque)

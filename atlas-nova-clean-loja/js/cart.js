@@ -1,5 +1,3 @@
-// Estado do carrinho de compras e suas operações básicas. O carrinho vive só
-// em memória (não é persistido) — a lista se perde ao recarregar a página.
 import { PRODUCTS } from './data/products.js';
 
 export const cart = {}; // id -> qty

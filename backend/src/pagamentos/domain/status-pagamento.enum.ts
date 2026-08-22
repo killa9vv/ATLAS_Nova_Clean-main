@@ -1,4 +1,3 @@
-// Status possíveis de um pagamento no domínio (independente do vocabulário do gateway).
 export enum StatusPagamento {
   PENDENTE = 'PENDENTE',
   EM_PROCESSAMENTO = 'EM_PROCESSAMENTO',

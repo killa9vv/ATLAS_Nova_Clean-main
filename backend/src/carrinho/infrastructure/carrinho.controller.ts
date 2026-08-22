@@ -1,4 +1,3 @@
-// Endpoint HTTP para calcular o carrinho (preview de preços e total) a partir dos itens solicitados.
 import { Body, Controller, Post } from '@nestjs/common';
 import { MontarCarrinhoUseCase } from '../application/montar-carrinho.use-case';
 import { CalcularCarrinhoDto } from './dto/calcular-carrinho.dto';

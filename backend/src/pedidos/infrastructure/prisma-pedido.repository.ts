@@ -1,14 +1,9 @@
-// Implementação Prisma da porta PedidoRepository.
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { ItemPedidoEntity, NovoItemPedido, Pedido } from '../domain/pedido.entity';
 import { PedidoRepository } from '../domain/pedido.repository';
 import { StatusPedido } from '../domain/status-pedido.enum';
-import type {
-  Pedido as PedidoPrisma,
-  ItemPedido as ItemPedidoPrisma,
-  StatusPedido as StatusPedidoPrisma,
-} from '@prisma/client';
+import type { Pedido as PedidoPrisma, ItemPedido as ItemPedidoPrisma, StatusPedido as StatusPedidoPrisma } from '@prisma/client';
 
 type PedidoComItens = PedidoPrisma & { itens: ItemPedidoPrisma[] };
 
@@ -54,13 +49,7 @@ export class PrismaPedidoRepository extends PedidoRepository {
 
   private paraDominio(pedido: PedidoComItens): Pedido {
     const itens = pedido.itens.map(
-      (item) =>
-        new ItemPedidoEntity(
-          item.produtoId,
-          item.nome,
-          item.quantidade,
-          Number(item.precoUnitario),
-        ),
+      (item) => new ItemPedidoEntity(item.produtoId, item.nome, item.quantidade, Number(item.precoUnitario)),
     );
 
     return new Pedido(

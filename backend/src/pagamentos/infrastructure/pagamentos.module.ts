@@ -1,5 +1,3 @@
-// Módulo Nest de pagamentos: liga as portas de domínio (repositório e gateway)
-// às implementações concretas (Prisma e Mercado Pago).
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { PedidosModule } from '../../pedidos/infrastructure/pedidos.module';

@@ -1,5 +1,3 @@
-// Tela de detalhe de um produto (com seleção de marca/variante), aberta e
-// fechada via hash da URL (#produto-<id>) para funcionar com o botão voltar.
 import { PRODUCT_TYPES, CATEGORY_INFO } from './data/products.js';
 import { cart } from './cart.js';
 import { money, iconFor } from './utils.js';

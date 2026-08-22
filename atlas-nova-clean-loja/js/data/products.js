@@ -1,6 +1,3 @@
-// Catálogo da loja: tipos de produto (com suas variantes por marca), além
-// das listas derivadas (PRODUCTS, BRANDS, etc.) usadas pelo resto do app.
-// Este arquivo é só dados — a lógica de exibição fica em render.js/brands.js.
 export const STORE_WHATSAPP = "5522997805258"; // TODO: trocar pelo número real da loja
 
 // Cada "tipo" é um produto genérico (ex: Detergente para Louça).

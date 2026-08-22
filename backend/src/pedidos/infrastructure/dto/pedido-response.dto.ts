@@ -1,4 +1,3 @@
-// DTO de saída do pedido, mapeado a partir da entidade de domínio.
 import { Pedido } from '../../domain/pedido.entity';
 import { StatusPedido } from '../../domain/status-pedido.enum';
 

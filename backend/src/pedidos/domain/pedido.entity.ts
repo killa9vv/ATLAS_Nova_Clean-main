@@ -1,4 +1,3 @@
-// Entidades de domínio do pedido: itens e o pedido em si, com seu status e total.
 import { StatusPedido } from './status-pedido.enum';
 
 export class ItemPedidoEntity {

@@ -1,4 +1,3 @@
-// Implementação Prisma da porta PagamentoRepository.
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import type {
@@ -42,11 +41,7 @@ export class PrismaPagamentoRepository extends PagamentoRepository {
     return pagamento ? this.paraDominio(pagamento) : null;
   }
 
-  async atualizarStatus(
-    id: string,
-    status: StatusPagamento,
-    gatewayPayload: unknown,
-  ): Promise<Pagamento> {
+  async atualizarStatus(id: string, status: StatusPagamento, gatewayPayload: unknown): Promise<Pagamento> {
     const pagamento = await this.prisma.pagamento.update({
       where: { id },
       data: {

@@ -16,15 +16,10 @@ E-commerce de produtos de limpeza e papelaria, com checkout via Pix e cartão pe
 
 ```
 .
-├── atlas-nova-clean-loja/   # Site estático original (referência durante a migração pro Next.js)
+├── atlas-nova-clean-loja/   # Vitrine e checkout (estático)
 │   ├── js/                  # Carrinho, catálogo, integração de pagamento
 │   ├── css/
 │   └── assets/
-├── frontend/                 # Vitrine e checkout em Next.js + Tailwind (em migração)
-│   └── src/
-│       ├── app/               # Rotas (App Router)
-│       ├── components/        # Layout e design system
-│       └── data/products.ts   # Catálogo — fonte usada pelo seed do backend
 └── backend/                 # API NestJS
     ├── src/
     │   ├── produtos/        # Catálogo
@@ -32,7 +27,7 @@ E-commerce de produtos de limpeza e papelaria, com checkout via Pix e cartão pe
     │   ├── pedidos/         # Criação e ciclo de vida do pedido
     │   ├── pagamentos/      # Integração Mercado Pago e webhook
     │   └── shared/          # Prisma e tratamento de exceções
-    └── prisma/              # Schema, migrations e ERD.md
+    └── prisma/              # Schema e migrations
 ```
 
 ## Arquitetura
@@ -82,7 +77,8 @@ npm test
 
 Documentado abertamente porque o projeto ainda não está pronto para receber pagamentos reais:
 
+- **O estoque não é decrementado.** Nenhum fluxo escreve em `Produto.estoque` — a verificação em `MontarCarrinhoUseCase` é apenas leitura. O mesmo item pode ser vendido indefinidamente.
+- **Sem transações.** Criação de pedido e validação de estoque acontecem em queries separadas, sem `$transaction`.
 - **A idempotência do webhook tem janela de corrida.** A checagem compara o status atual com o consultado; notificações concorrentes podem processar em duplicidade.
 - **A validação de assinatura do webhook é opcional.** Sem `MERCADOPAGO_WEBHOOK_SECRET`, a aplicação apenas registra um aviso e aceita a requisição.
-- **Não há transição de estados validada** para o pedido.
-- **Ainda não implementados**: cálculo de frete, autenticação, painel administrativo, e-mails transacionais e regras de cupom (o schema já existe em `backend/prisma/ERD.md`, a lógica de cada um ainda não).
+- **Não há transição de estados validada** para o pedido, nem cálculo de frete, autenticação, painel administrativo ou e-mails transacionais.

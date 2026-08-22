@@ -1,5 +1,3 @@
-// Carrossel de marcas da home e a tela de listagem de produtos por marca,
-// aberta e fechada via hash da URL (#marca-<nome>).
 import { BRANDS, PRODUCTS } from './data/products.js';
 import { cart } from './cart.js';
 import { money, iconFor, bgFor } from './utils.js';

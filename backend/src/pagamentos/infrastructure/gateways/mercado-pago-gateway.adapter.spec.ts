@@ -1,4 +1,3 @@
-// Testes do adapter do Mercado Pago: mapeamento de respostas e tradução de erros HTTP em exceções de domínio.
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { MercadoPagoGatewayAdapter } from './mercado-pago-gateway.adapter';
@@ -26,9 +25,7 @@ describe('MercadoPagoGatewayAdapter', () => {
     axiosMock.create.mockReturnValue(httpMock as any);
     axiosMock.isAxiosError.mockImplementation((erro: any) => Boolean(erro?.isAxiosError));
 
-    const configService = {
-      get: jest.fn().mockReturnValue('token-de-teste'),
-    } as unknown as ConfigService;
+    const configService = { get: jest.fn().mockReturnValue('token-de-teste') } as unknown as ConfigService;
     adapter = new MercadoPagoGatewayAdapter(configService);
   });
 
@@ -56,9 +53,7 @@ describe('MercadoPagoGatewayAdapter', () => {
     expect(httpMock.post).toHaveBeenCalledWith(
       '/v1/payments',
       expect.objectContaining({ payment_method_id: 'pix', external_reference: 'pedido-1' }),
-      expect.objectContaining({
-        headers: expect.objectContaining({ 'X-Idempotency-Key': expect.any(String) }),
-      }),
+      expect.objectContaining({ headers: expect.objectContaining({ 'X-Idempotency-Key': expect.any(String) }) }),
     );
     expect(resultado.gatewayTransactionId).toBe('123456789');
     expect(resultado.status).toBe(StatusPagamento.PENDENTE);
@@ -68,12 +63,7 @@ describe('MercadoPagoGatewayAdapter', () => {
 
   it('mapeia pagamento de cartão recusado pela operadora para status RECUSADO sem lançar exceção de infra', async () => {
     httpMock.post.mockResolvedValue({
-      data: {
-        id: 42,
-        status: 'rejected',
-        status_detail: 'cc_rejected_insufficient_amount',
-        transaction_amount: 100,
-      },
+      data: { id: 42, status: 'rejected', status_detail: 'cc_rejected_insufficient_amount', transaction_amount: 100 },
     });
 
     const resultado = await adapter.criarPagamentoCartao({
@@ -90,9 +80,7 @@ describe('MercadoPagoGatewayAdapter', () => {
   });
 
   it('consulta pagamento existente e mapeia status aprovado', async () => {
-    httpMock.get.mockResolvedValue({
-      data: { id: 999, status: 'approved', transaction_amount: 10 },
-    });
+    httpMock.get.mockResolvedValue({ data: { id: 999, status: 'approved', transaction_amount: 10 } });
 
     const resultado = await adapter.consultarPagamento('999');
 
@@ -101,11 +89,7 @@ describe('MercadoPagoGatewayAdapter', () => {
   });
 
   it('traduz erro 401 do gateway em CredenciaisInvalidasGatewayException', async () => {
-    httpMock.post.mockRejectedValue({
-      isAxiosError: true,
-      response: { status: 401 },
-      message: 'unauthorized',
-    });
+    httpMock.post.mockRejectedValue({ isAxiosError: true, response: { status: 401 }, message: 'unauthorized' });
 
     await expect(
       adapter.criarPagamentoPix({
@@ -135,11 +119,7 @@ describe('MercadoPagoGatewayAdapter', () => {
   });
 
   it('traduz timeout/erro de rede em GatewayIndisponivelException', async () => {
-    httpMock.post.mockRejectedValue({
-      isAxiosError: true,
-      code: 'ECONNABORTED',
-      message: 'timeout of 10000ms exceeded',
-    });
+    httpMock.post.mockRejectedValue({ isAxiosError: true, code: 'ECONNABORTED', message: 'timeout of 10000ms exceeded' });
 
     await expect(
       adapter.criarPagamentoPix({
@@ -152,15 +132,9 @@ describe('MercadoPagoGatewayAdapter', () => {
   });
 
   it('traduz erro 5xx do gateway em GatewayIndisponivelException', async () => {
-    httpMock.get.mockRejectedValue({
-      isAxiosError: true,
-      response: { status: 503 },
-      message: 'service unavailable',
-    });
+    httpMock.get.mockRejectedValue({ isAxiosError: true, response: { status: 503 }, message: 'service unavailable' });
 
-    await expect(adapter.consultarPagamento('1')).rejects.toBeInstanceOf(
-      GatewayIndisponivelException,
-    );
+    await expect(adapter.consultarPagamento('1')).rejects.toBeInstanceOf(GatewayIndisponivelException);
   });
 
   it('traduz erro 4xx de validação (token de cartão inválido) em PagamentoRecusadoException', async () => {

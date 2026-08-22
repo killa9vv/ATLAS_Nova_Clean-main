@@ -1,5 +1,3 @@
-// Efeito de revelar seções ao rolar a página, usando IntersectionObserver.
-// Desativado automaticamente se o usuário preferir movimento reduzido.
 export function initScrollReveal(){
   const targets = document.querySelectorAll('[data-reveal]');
   if(!targets.length) return;

@@ -1,5 +1,3 @@
-// Use case que processa notificações (webhook) do gateway de pagamento: consulta
-// o status real, atualiza o pagamento de forma idempotente e reconcilia o pedido.
 import { Injectable, Logger } from '@nestjs/common';
 import { PedidoRepository } from '../../pedidos/domain/pedido.repository';
 import { StatusPedido } from '../../pedidos/domain/status-pedido.enum';
@@ -36,8 +34,7 @@ export class ProcessarWebhookUseCase {
   ) {}
 
   async executar(gatewayTransactionId: string): Promise<ProcessarWebhookOutput> {
-    const pagamento =
-      await this.pagamentoRepository.buscarPorGatewayTransactionId(gatewayTransactionId);
+    const pagamento = await this.pagamentoRepository.buscarPorGatewayTransactionId(gatewayTransactionId);
     if (!pagamento) {
       throw new PagamentoNaoEncontradoException(gatewayTransactionId);
     }

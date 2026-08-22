@@ -4,5 +4,3 @@ coverage/
 .env
 *.log
 .pgdata/
-.pgdata-test/
-*.tsbuildinfo

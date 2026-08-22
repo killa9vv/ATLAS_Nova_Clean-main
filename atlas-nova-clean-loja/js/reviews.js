@@ -1,6 +1,3 @@
-// Avaliações de clientes: formulário de nova avaliação e listagem. Não há
-// backend para isso — tudo fica salvo no localStorage do próprio navegador,
-// então as avaliações não são compartilhadas entre visitantes diferentes.
 const STORAGE_KEY = 'atlas-nova-clean-reviews';
 
 function loadReviews(){
