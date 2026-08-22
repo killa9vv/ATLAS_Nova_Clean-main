@@ -10,6 +10,9 @@ datasource db {
 enum StatusPedido {
   CRIADO
   AGUARDANDO_PAGAMENTO
+  // Pedido feito via checkout do WhatsApp: registrado no banco, mas sem pagamento
+  // online iniciado — a venda se fecha na conversa, não por webhook de gateway.
+  AGUARDANDO_CONTATO
   PAGO
   CANCELADO
   ESTORNADO
@@ -125,11 +128,14 @@ model Produto {
   @@map("produtos")
 }
 
+// A imagem de ordem 0 é a principal, por convenção — não existe flag separada pra isso.
 model ImagemProduto {
-  id        String @id @default(uuid())
-  produtoId String @map("produto_id")
-  url       String
-  ordem     Int    @default(0)
+  id         String @id @default(uuid())
+  produtoId  String @map("produto_id")
+  url        String
+  // public_id do Cloudinary — necessário pra remover o asset de lá quando a imagem é excluída.
+  providerId String @map("provider_id")
+  ordem      Int    @default(0)
 
   produto Produto @relation(fields: [produtoId], references: [id])
 
