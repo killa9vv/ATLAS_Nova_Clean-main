@@ -9,6 +9,7 @@ import { PaymentGateway } from '../domain/payment-gateway.port';
 import { MercadoPagoGatewayAdapter } from './gateways/mercado-pago-gateway.adapter';
 import { CriarPagamentoUseCase } from '../application/criar-pagamento.use-case';
 import { ProcessarWebhookUseCase } from '../application/processar-webhook.use-case';
+import { ReconciliarPedidoService } from '../application/reconciliar-pedido.service';
 import { ReconciliarPagamentosPendentesUseCase } from '../application/reconciliar-pagamentos-pendentes.use-case';
 import { ReconciliacaoPagamentosScheduler } from './reconciliacao-pagamentos.scheduler';
 
@@ -20,6 +21,7 @@ import { ReconciliacaoPagamentosScheduler } from './reconciliacao-pagamentos.sch
     { provide: PaymentGateway, useClass: MercadoPagoGatewayAdapter },
     CriarPagamentoUseCase,
     ProcessarWebhookUseCase,
+    ReconciliarPedidoService,
     ReconciliarPagamentosPendentesUseCase,
     ReconciliacaoPagamentosScheduler,
   ],

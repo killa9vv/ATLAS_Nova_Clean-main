@@ -26,3 +26,7 @@ export function changeQty(id, delta) {
 export function removeItem(id) {
   delete cart[id];
 }
+
+export function clearCart() {
+  Object.keys(cart).forEach((id) => delete cart[id]);
+}

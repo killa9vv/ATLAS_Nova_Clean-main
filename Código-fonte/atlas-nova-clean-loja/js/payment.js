@@ -37,8 +37,10 @@ export async function criarPedido(itens, canal = 'site') {
   return chamarApi('/pedidos', { method: 'POST', body: JSON.stringify({ itens, canal }) });
 }
 
+// GET /pedidos/:id (completo) exige login de admin — o checkout de convidado usa
+// /status, que devolve só o que a tela de pagamento precisa (status e total).
 export async function buscarPedido(pedidoId) {
-  return chamarApi(`/pedidos/${pedidoId}`, { method: 'GET' });
+  return chamarApi(`/pedidos/${pedidoId}/status`, { method: 'GET' });
 }
 
 /**

@@ -1,4 +1,5 @@
 import { ProcessarWebhookUseCase } from './processar-webhook.use-case';
+import { ReconciliarPedidoService } from './reconciliar-pedido.service';
 import { EstoqueInsuficienteException } from '../../carrinho/domain/carrinho.exceptions';
 import { PagamentoRepository } from '../domain/pagamento.repository';
 import { PaymentGateway } from '../domain/payment-gateway.port';
@@ -76,12 +77,16 @@ describe('ProcessarWebhookUseCase (idempotência)', () => {
       executar: jest.fn((fn: (contexto: unknown) => Promise<unknown>) => fn(contextoFalso)),
     } as unknown as jest.Mocked<TransactionManager>;
 
-    useCase = new ProcessarWebhookUseCase(
-      pagamentoRepository,
+    const reconciliarPedidoService = new ReconciliarPedidoService(
       pedidoRepository,
       produtoRepository,
-      paymentGateway,
       transactionManager,
+    );
+
+    useCase = new ProcessarWebhookUseCase(
+      pagamentoRepository,
+      paymentGateway,
+      reconciliarPedidoService,
     );
   });
 

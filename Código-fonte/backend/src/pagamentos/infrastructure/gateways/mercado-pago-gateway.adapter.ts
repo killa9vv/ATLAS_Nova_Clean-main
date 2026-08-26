@@ -38,10 +38,12 @@ interface RespostaPagamentoMercadoPago {
 @Injectable()
 export class MercadoPagoGatewayAdapter extends PaymentGateway {
   private readonly http: AxiosInstance;
+  private readonly notificationUrl?: string;
 
   constructor(private readonly configService: ConfigService) {
     super();
     const accessToken = this.configService.get<string>('MERCADOPAGO_ACCESS_TOKEN');
+    this.notificationUrl = this.configService.get<string>('MERCADOPAGO_NOTIFICATION_URL') || undefined;
     this.http = axios.create({
       baseURL: MERCADO_PAGO_API_URL,
       timeout: 10_000,
@@ -58,6 +60,7 @@ export class MercadoPagoGatewayAdapter extends PaymentGateway {
           description: input.descricao,
           payment_method_id: 'pix',
           external_reference: input.referenciaExterna,
+          notification_url: this.notificationUrl,
           payer: this.montarPayer(input.pagador),
         },
         { headers: this.headerIdempotencia() },
@@ -77,6 +80,7 @@ export class MercadoPagoGatewayAdapter extends PaymentGateway {
           installments: input.parcelas,
           payment_method_id: input.metodoPagamentoId,
           external_reference: input.referenciaExterna,
+          notification_url: this.notificationUrl,
           payer: this.montarPayer(input.pagador),
         },
         { headers: this.headerIdempotencia() },

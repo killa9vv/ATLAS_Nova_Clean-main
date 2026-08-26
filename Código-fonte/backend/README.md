@@ -9,6 +9,7 @@ NestJS + Prisma + PostgreSQL. Módulos: `auth`, `produtos` (inclui imagens), `ca
 npm install
 cp .env.example .env   # preencha DATABASE_URL e as chaves do Mercado Pago
 npx prisma migrate deploy   # só na primeira vez, ou quando houver migration nova
+npx prisma db seed         # só na primeira vez — popula o catálogo (~126 produtos)
 npm run dev                 # sobe o Postgres local e a API juntos (Ctrl+C encerra os dois)
 ```
 
@@ -34,6 +35,71 @@ typecheck e as duas suítes acima em todo push/PR pra `main`.
 ## Variáveis de ambiente
 
 Ver `.env.example`.
+
+## Fluxo de teste do Mercado Pago (sandbox)
+
+Testar o Payment Brick ponta a ponta (Pix e cartão) sem envolver dinheiro real. Além do
+backend rodando (seção acima), precisa de:
+- A loja servida por HTTP (não `file://`): `npx serve Código-fonte/atlas-nova-clean-loja`.
+- [ngrok](https://ngrok.com/download) instalado e autenticado (`ngrok config add-authtoken SEU_TOKEN`,
+  token grátis em ngrok.com) — só é necessário pra testar **Pix**, ver o motivo no passo 5.
+
+1. **Credenciais TEST-**. No DevCenter (painel do Mercado Pago), dentro da sua
+   aplicação → "Contas de teste", crie duas: uma pra vender (dona da
+   aplicação, fornece as credenciais) e outra só pra comprar. Nunca misture
+   credenciais de contas de teste diferentes — dá o erro `Unauthorized use of
+   live credentials`. As credenciais da conta vendedora vão em:
+   - `MERCADOPAGO_ACCESS_TOKEN` no `.env` do backend (token `TEST-...`).
+   - `MERCADOPAGO_PUBLIC_KEY` em `atlas-nova-clean-loja/js/config.js` — ou,
+     sem editar o arquivo, definindo `window.ATLAS_MERCADOPAGO_PUBLIC_KEY`
+     numa tag `<script>` antes de `main.js` carregar.
+2. **Expor o webhook com ngrok**. O Mercado Pago só notifica uma URL pública
+   HTTPS — `localhost` não funciona.
+   ```bash
+   ngrok http 3000
+   ```
+   Copie a URL `https://xxxx.ngrok-free.app` que aparece, monte
+   `MERCADOPAGO_NOTIFICATION_URL=https://xxxx.ngrok-free.app/pagamentos/webhook`
+   no `.env` e reinicie `npm run start:dev` (o valor só é lido na subida da
+   aplicação). Como o endereço muda a cada `ngrok http` no plano gratuito,
+   repita esse passo sempre que reiniciar o túnel.
+3. **Segredo do webhook**. No DevCenter, aba "Webhooks" da aplicação,
+   cadastre a URL do passo anterior — o Mercado Pago mostra um segredo de
+   assinatura na hora de salvar. Copie pra `MERCADOPAGO_WEBHOOK_SECRET`. Sem
+   isso, a validação de assinatura fica desligada em desenvolvimento (só
+   loga um aviso); em produção (`NODE_ENV=production`) o webhook rejeita a
+   requisição.
+4. **Pagar como o comprador de teste**. Abra a loja, feche um pedido e, na
+   tela de pagamento, entre com o e-mail/senha da conta de teste compradora
+   quando o Brick pedir — ela tem saldo fictício. Para cartão, os "cartões de
+   teste" ficam na própria página da aplicação no DevCenter (têm campo próprio
+   pra isso, já que os números mudam periodicamente); o **nome do titular**
+   escolhido no formulário é o que decide o resultado (aprovado, recusado,
+   pendente, etc.) — vale conferir a lista de nomes na mesma página antes de
+   testar.
+5. **Cartão confirma na hora — Pix depende do webhook.** O Mercado Pago resolve
+   pagamento de cartão de forma síncrona: assim que o Brick chama `POST /pagamentos`,
+   o pedido já vira `PAGO` e o estoque já é baixado, sem precisar do ngrok. Pix nasce
+   `PENDENTE`; só vira `PAGO` quando a notificação assíncrona chega em
+   `POST /pagamentos/webhook` (dá pra acompanhar pelo log do `npm run dev`), por isso
+   só ele depende do túnel estar de pé e do `MERCADOPAGO_NOTIFICATION_URL` correto.
+   Pra conferir o status sem precisar de login, use `GET /pedidos/:id/status`
+   (endpoint público, é o que a própria loja consulta).
+
+### Problemas comuns
+
+- **Catálogo vazio / "Produto X não encontrado"**: o seed não rodou nesse banco —
+  `npx prisma db seed`.
+- **`pre-existing shared memory block is still in use`** ao rodar `npm run dev`: sobrou
+  um processo do Postgres embarcado de uma execução anterior que não fechou direito.
+  Descubra o PID na porta 5433 e finalize:
+  ```powershell
+  Get-NetTCPConnection -LocalPort 5433 | Select-Object OwningProcess
+  Stop-Process -Id <PID> -Force
+  ```
+- **PowerShell recusa rodar `npm` (`não pode ser carregado porque a execução de
+  scripts foi desabilitada`)**: ajuste a política de execução do seu usuário (não
+  precisa de admin) — `Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned`.
 
 ## Criando um módulo novo
 

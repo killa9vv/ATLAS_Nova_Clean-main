@@ -1,5 +1,6 @@
 import { STORE_WHATSAPP, PRODUCTS } from './data/products.js';
-import { cart, cartTotalPrice } from './cart.js';
+import { cart, cartTotalPrice, clearCart } from './cart.js';
+import { renderCart, renderAllGrids } from './render.js';
 import { money } from './utils.js';
 import {
   criarPedido,
@@ -194,6 +195,11 @@ async function iniciarPagamentoNoSite() {
       emailPagador: dados.email,
       onSubmit: async (formData) => {
         const resultado = await enviarPagamentoDoBrick(pedidoAtualId, formData);
+        // O Brick não some sozinho depois de um onSubmit bem-sucedido — ele espera a
+        // página navegar pra outro lugar (padrão do Mercado Pago). Como ficamos na
+        // mesma tela, desmontamos aqui pra não deixar o formulário travado por cima
+        // da mensagem de resultado.
+        await desmontarPaymentBrick();
         tratarResultadoPagamento(resultado, formData.payment_method_id === 'pix');
       },
       onErro: (erro) => {
@@ -207,6 +213,48 @@ async function iniciarPagamentoNoSite() {
     statusEl.innerHTML = `<div class="payment-status payment-status-erro">${erro.message}</div>`;
   }
 }
+
+const ICONE_APROVADO = `
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="20 6 9 17 4 12"></polyline>
+  </svg>`;
+
+const ICONE_RECUSADO = `
+  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="18" y1="6" x2="6" y2="18"></line>
+    <line x1="6" y1="6" x2="18" y2="18"></line>
+  </svg>`;
+
+function renderizarResultadoFinal(container, { aprovado, titulo, texto }) {
+  container.innerHTML = `
+    <div class="payment-result ${aprovado ? 'payment-result-ok' : 'payment-result-erro'}">
+      <div class="payment-result-icon">${aprovado ? ICONE_APROVADO : ICONE_RECUSADO}</div>
+      <h4>${titulo}</h4>
+      <p>${texto}</p>
+      ${aprovado ? '<button class="checkout-btn" id="btn-comprar-novamente" type="button">Comprar novamente</button>' : ''}
+    </div>
+  `;
+  if (aprovado) {
+    document
+      .getElementById('btn-comprar-novamente')
+      .addEventListener('click', finalizarComprarNovamente);
+  }
+}
+
+function finalizarComprarNovamente() {
+  clearCart();
+  renderCart();
+  renderAllGrids();
+  resetarEstadoPagamento();
+  document.getElementById('checkout-modal').classList.remove('open');
+}
+
+const TEXTO_STATUS = {
+  APROVADO: 'Já estamos preparando o seu pedido.',
+  RECUSADO: 'A operadora não autorizou a cobrança. Confira os dados do cartão ou tente outro meio de pagamento.',
+  CANCELADO: 'O pagamento foi cancelado.',
+  EXPIRADO: 'O tempo para pagar esse pedido expirou.',
+};
 
 function tratarResultadoPagamento(resultado, ehPix) {
   const statusEl = document.getElementById('pagamento-status');
@@ -223,15 +271,26 @@ function tratarResultadoPagamento(resultado, ehPix) {
       aoAtualizar: ({ status }) => {
         const pixStatusEl = document.getElementById('pix-status');
         if (!pixStatusEl) return;
-        if (status === 'PAGO')
-          pixStatusEl.textContent = '✓ Pagamento confirmado! Já estamos preparando seu pedido.';
-        else if (status === 'TIMEOUT')
+        if (status === 'PAGO') {
+          renderizarResultadoFinal(statusEl, {
+            aprovado: true,
+            titulo: 'Pagamento aprovado!',
+            texto: TEXTO_STATUS.APROVADO,
+          });
+        } else if (status === 'TIMEOUT') {
           pixStatusEl.textContent =
             'Ainda não recebemos a confirmação — se você já pagou, seu pedido será atualizado automaticamente assim que o banco confirmar.';
-        else pixStatusEl.textContent = `Pagamento ${status.toLowerCase()}.`;
+        } else {
+          pixStatusEl.textContent = `Pagamento ${status.toLowerCase()}.`;
+        }
       },
     });
   } else {
-    statusEl.innerHTML = `<div class="payment-status">Pagamento ${resultado.status.toLowerCase()}.</div>`;
+    const aprovado = resultado.status === 'APROVADO';
+    renderizarResultadoFinal(statusEl, {
+      aprovado,
+      titulo: aprovado ? 'Pagamento aprovado!' : 'Pagamento não concluído',
+      texto: TEXTO_STATUS[resultado.status] || `Status: ${resultado.status.toLowerCase()}.`,
+    });
   }
 }

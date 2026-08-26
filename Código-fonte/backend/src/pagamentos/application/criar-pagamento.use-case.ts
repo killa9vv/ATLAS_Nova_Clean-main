@@ -10,6 +10,7 @@ import { PaymentGateway, ResultadoPagamentoGateway } from '../domain/payment-gat
 import { StatusPagamento } from '../domain/status-pagamento.enum';
 import { PagamentoRecusadoException } from '../domain/pagamentos.exceptions';
 import { CriarPagamentoInput, CriarPagamentoOutput } from './dto/criar-pagamento-input';
+import { ReconciliarPedidoService } from './reconciliar-pedido.service';
 
 @Injectable()
 export class CriarPagamentoUseCase {
@@ -17,6 +18,7 @@ export class CriarPagamentoUseCase {
     private readonly pedidoRepository: PedidoRepository,
     private readonly pagamentoRepository: PagamentoRepository,
     private readonly paymentGateway: PaymentGateway,
+    private readonly reconciliarPedidoService: ReconciliarPedidoService,
   ) {}
 
   async executar(input: CriarPagamentoInput): Promise<CriarPagamentoOutput> {
@@ -56,6 +58,14 @@ export class CriarPagamentoUseCase {
       gatewayTransactionId: resultado.gatewayTransactionId,
       gatewayPayload: resultado.payloadBruto,
     });
+
+    // Cartão costuma resolver na hora (aprovado/recusado já na resposta síncrona do
+    // gateway) — diferente do Pix, que nasce PENDENTE e só muda de status quando o
+    // webhook chega depois. Sem isto, um cartão aprovado nunca dispararia a baixa de
+    // estoque nem marcaria o pedido como PAGO: o webhook que eventualmente chega só
+    // confirma um status que já está gravado desde a criação, então a checagem de
+    // idempotência do ProcessarWebhookUseCase o descarta sem reconciliar nada.
+    await this.reconciliarPedidoService.executar(pagamento);
 
     if (resultado.status === StatusPagamento.RECUSADO) {
       throw new PagamentoRecusadoException('a operadora recusou a transação.');
