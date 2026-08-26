@@ -14,20 +14,30 @@ E-commerce de produtos de limpeza e papelaria, com checkout via Pix e cartão pe
 
 ## Estrutura
 
+Organização do repositório para a disciplina, separando código-fonte de outros artefatos do
+projeto (documentação, banco de dados, protótipos, testes, apresentação):
+
 ```
 .
-├── atlas-nova-clean-loja/   # Vitrine e checkout (estático)
-│   ├── js/                  # Carrinho, catálogo, integração de pagamento
-│   ├── css/
-│   └── assets/
-└── backend/                 # API NestJS
-    ├── src/
-    │   ├── produtos/        # Catálogo
-    │   ├── carrinho/        # Precificação e validação de itens
-    │   ├── pedidos/         # Criação e ciclo de vida do pedido
-    │   ├── pagamentos/      # Integração Mercado Pago e webhook
-    │   └── shared/          # Prisma e tratamento de exceções
-    └── prisma/              # Schema e migrations
+├── Documentação/            # Atas, auditorias e documentação do projeto
+├── Código-fonte/
+│   ├── atlas-nova-clean-loja/   # Vitrine e checkout (estático)
+│   │   ├── js/                  # Carrinho, catálogo, integração de pagamento
+│   │   ├── css/
+│   │   └── assets/
+│   ├── backend/              # API NestJS
+│   │   ├── src/
+│   │   │   ├── produtos/     # Catálogo
+│   │   │   ├── carrinho/     # Precificação e validação de itens
+│   │   │   ├── pedidos/      # Criação e ciclo de vida do pedido
+│   │   │   ├── pagamentos/   # Integração Mercado Pago e webhook
+│   │   │   └── shared/       # Prisma e tratamento de exceções
+│   │   └── prisma/           # Schema e migrations
+│   └── frontend/             # Nova vitrine em desenvolvimento (Next.js)
+├── Banco de Dados/           # Referência ao schema/migrations (ver README próprio)
+├── Protótipos/                # Wireframes e mockups
+├── Testes/                    # Como e onde rodar os testes automatizados
+└── Apresentação/               # Slides e material de apresentação
 ```
 
 ## Arquitetura
@@ -50,7 +60,7 @@ Duas invariantes deliberadas:
 Requisitos: Node.js 20+, Docker (para o Postgres local).
 
 ```bash
-cd backend
+cd Código-fonte/backend
 npm install
 cp .env.example .env          # preencha DATABASE_URL e as chaves do Mercado Pago
 npx prisma migrate deploy
@@ -58,20 +68,23 @@ npm run prisma:seed           # popula o catálogo
 npm run dev                   # sobe Postgres e API juntos
 ```
 
-A vitrine é estática — sirva a pasta `atlas-nova-clean-loja/` com qualquer servidor HTTP:
+A vitrine é estática — sirva a pasta `Código-fonte/atlas-nova-clean-loja/` com qualquer servidor HTTP:
 
 ```bash
-npx serve atlas-nova-clean-loja
+npx serve Código-fonte/atlas-nova-clean-loja
 ```
 
-Instruções detalhadas e o checklist de produção do Mercado Pago estão em [`backend/README.md`](backend/README.md).
+Instruções detalhadas e o checklist de produção do Mercado Pago estão em
+[`Código-fonte/backend/README.md`](Código-fonte/backend/README.md).
 
 ## Testes
 
 ```bash
-cd backend
+cd Código-fonte/backend
 npm test
 ```
+
+Ver [`Testes/README.md`](Testes/README.md) para o panorama completo (unitários, e2e e frontend).
 
 ## Limitações conhecidas
 

@@ -1,0 +1,252 @@
+//// ------------------------------------------------------
+//// Gerado a partir de schema.prisma via prisma-dbml-generator.
+//// Não é regenerado automaticamente — depois de mudar o schema.prisma, rode:
+////   npm install --no-save prisma-dbml-generator
+////   (adicione temporariamente `generator dbml { provider = "prisma-dbml-generator" }`
+////    ao schema.prisma, rode `npx prisma generate`, copie prisma/dbml/schema.dbml
+////    pra cá por cima deste arquivo, remova o generator temporário e o pacote)
+//// Cole o conteúdo abaixo em https://dbdiagram.io pra visualizar.
+////
+//// O prisma-dbml-generator sempre emite `>` nas Ref, mesmo quando a FK é
+//// nullable — o dbdiagram.io acusa "MISMATCHED OPTIONAL REF CONSTRAINTS"
+//// nesses casos. Depois de regenerar, troque `>` por `>?` em toda Ref cujo
+//// lado FK seja opcional (hoje: carrinhos.clienteId, pedidos.clienteId).
+//// ------------------------------------------------------
+
+Table categorias {
+  id String [pk]
+  slug String [unique, not null]
+  nome String [not null]
+  produtoTipos produto_tipos [not null]
+}
+
+Table marcas {
+  id String [pk]
+  nome String [unique, not null]
+  produtos produtos [not null]
+}
+
+Table produto_tipos {
+  id String [pk]
+  categoriaId String [not null]
+  nome String [not null]
+  infoTecnica String
+  precaucoes String
+  categoria categorias [not null]
+  produtos produtos [not null]
+
+  indexes {
+    (categoriaId, nome) [unique]
+  }
+}
+
+Table produtos {
+  id String [pk]
+  produtoTipoId String [not null]
+  marcaId String [not null]
+  nome String [not null]
+  pack String [not null]
+  descricao String
+  preco Decimal [not null]
+  estoque Int [not null, default: 0]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  produtoTipo produto_tipos [not null]
+  marca marcas [not null]
+  itensPedido itens_pedido [not null]
+  itensCarrinho itens_carrinho [not null]
+  imagens imagens_produto [not null]
+  movimentacoesEstoque movimentacoes_estoque [not null]
+}
+
+Table imagens_produto {
+  id String [pk]
+  produtoId String [not null]
+  url String [not null]
+  ordem Int [not null, default: 0]
+  produto produtos [not null]
+}
+
+Table movimentacoes_estoque {
+  id String [pk]
+  produtoId String [not null]
+  tipo TipoMovimentacaoEstoque [not null]
+  quantidade Int [not null]
+  motivo String
+  createdAt DateTime [default: `now()`, not null]
+  produto produtos [not null]
+}
+
+Table usuarios {
+  id String [pk]
+  email String [unique, not null]
+  senhaHash String [not null]
+  nome String [not null]
+  papel PapelUsuario [not null, default: 'ADMIN']
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+}
+
+Table clientes {
+  id String [pk]
+  nome String [not null]
+  email String [unique]
+  telefone String
+  cpf String
+  createdAt DateTime [default: `now()`, not null]
+  enderecos enderecos [not null]
+  pedidos pedidos [not null]
+  carrinhos carrinhos [not null]
+}
+
+Table enderecos {
+  id String [pk]
+  clienteId String [not null]
+  cep String [not null]
+  logradouro String [not null]
+  numero String [not null]
+  complemento String
+  bairro String [not null]
+  cidade String [not null]
+  estado String [not null]
+  cliente clientes [not null]
+}
+
+Table cupons {
+  id String [pk]
+  codigo String [unique, not null]
+  tipoDesconto TipoDesconto [not null]
+  valor Decimal [not null]
+  ativo Boolean [not null, default: true]
+  validoAte DateTime
+  usoMaximo Int
+  usosCount Int [not null, default: 0]
+  createdAt DateTime [default: `now()`, not null]
+}
+
+Table carrinhos {
+  id String [pk]
+  clienteId String
+  sessionToken String [unique, not null]
+  expiraEm DateTime
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  cliente clientes
+  itens itens_carrinho [not null]
+}
+
+Table itens_carrinho {
+  id String [pk]
+  carrinhoId String [not null]
+  produtoId String [not null]
+  quantidade Int [not null]
+  createdAt DateTime [default: `now()`, not null]
+  carrinho carrinhos [not null]
+  produto produtos [not null]
+
+  indexes {
+    (carrinhoId, produtoId) [unique]
+  }
+}
+
+Table pedidos {
+  id String [pk]
+  clienteId String
+  status StatusPedido [not null, default: 'CRIADO']
+  total Decimal [not null]
+  desconto Decimal [not null, default: 0]
+  cupomCodigo String
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  cliente clientes
+  itens itens_pedido [not null]
+  pagamentos pagamentos [not null]
+}
+
+Table itens_pedido {
+  id String [pk]
+  pedidoId String [not null]
+  produtoId String [not null]
+  nome String [not null]
+  quantidade Int [not null]
+  precoUnitario Decimal [not null]
+  pedido pedidos [not null]
+  produto produtos [not null]
+}
+
+Table pagamentos {
+  id String [pk]
+  pedidoId String [not null]
+  metodo MetodoPagamento [not null]
+  status StatusPagamento [not null, default: 'PENDENTE']
+  valor Decimal [not null]
+  gatewayTransactionId String [unique]
+  gatewayPayload Json
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  pedido pedidos [not null]
+}
+
+Enum StatusPedido {
+  CRIADO
+  AGUARDANDO_PAGAMENTO
+  PAGO
+  CANCELADO
+  ESTORNADO
+}
+
+Enum StatusPagamento {
+  PENDENTE
+  EM_PROCESSAMENTO
+  APROVADO
+  RECUSADO
+  CANCELADO
+  ESTORNADO
+  EXPIRADO
+}
+
+Enum MetodoPagamento {
+  PIX
+  CARTAO_CREDITO
+}
+
+Enum PapelUsuario {
+  ADMIN
+}
+
+Enum TipoDesconto {
+  PERCENTUAL
+  VALOR_FIXO
+}
+
+Enum TipoMovimentacaoEstoque {
+  ENTRADA
+  SAIDA
+  AJUSTE
+}
+
+Ref: produto_tipos.categoriaId > categorias.id
+
+Ref: produtos.produtoTipoId > produto_tipos.id
+
+Ref: produtos.marcaId > marcas.id
+
+Ref: imagens_produto.produtoId > produtos.id
+
+Ref: movimentacoes_estoque.produtoId > produtos.id
+
+Ref: enderecos.clienteId > clientes.id
+
+Ref: carrinhos.clienteId >? clientes.id
+
+Ref: itens_carrinho.carrinhoId > carrinhos.id
+
+Ref: itens_carrinho.produtoId > produtos.id
+
+Ref: pedidos.clienteId >? clientes.id
+
+Ref: itens_pedido.pedidoId > pedidos.id
+
+Ref: itens_pedido.produtoId > produtos.id
+
+Ref: pagamentos.pedidoId > pedidos.id

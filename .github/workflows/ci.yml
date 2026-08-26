@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: backend
+        working-directory: Código-fonte/backend
     env:
       # Só pra satisfazer a validação de env (JWT_SECRET min. 16 chars) — nunca usado
       # pra assinar nada de verdade, o CI não expõe rotas autenticadas pra ninguém.
@@ -24,7 +24,7 @@ jobs:
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: backend/package-lock.json
+          cache-dependency-path: Código-fonte/backend/package-lock.json
 
       - name: Instalar dependências
         run: npm ci
@@ -46,7 +46,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: frontend
+        working-directory: Código-fonte/frontend
     steps:
       - uses: actions/checkout@v4
 
@@ -54,7 +54,7 @@ jobs:
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: frontend/package-lock.json
+          cache-dependency-path: Código-fonte/frontend/package-lock.json
 
       - name: Instalar dependências
         run: npm ci
