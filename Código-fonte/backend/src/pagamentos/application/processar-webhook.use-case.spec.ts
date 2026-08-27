@@ -225,13 +225,17 @@ describe('ProcessarWebhookUseCase (idempotência)', () => {
     const resultado = await useCase.executar('mp-123');
 
     expect(resultado).toEqual({ processado: true });
+    // atualizarStatus e incrementarEstoque recebem o MESMO contexto de transação —
+    // devolução de estoque em estorno é tão atômica quanto a baixa na confirmação.
     expect(pedidoRepository.atualizarStatus).toHaveBeenCalledWith(
       'pedido-1',
       StatusPedido.ESTORNADO,
+      contextoFalso,
     );
-    expect(produtoRepository.incrementarEstoque).toHaveBeenCalledWith([
-      { produtoId: 'produto-1', quantidade: 2 },
-    ]);
+    expect(produtoRepository.incrementarEstoque).toHaveBeenCalledWith(
+      [{ produtoId: 'produto-1', quantidade: 2 }],
+      contextoFalso,
+    );
   });
 
   it('não sobrescreve pedido já em status final quando o webhook sugere um status diferente (exige reconciliação manual)', async () => {

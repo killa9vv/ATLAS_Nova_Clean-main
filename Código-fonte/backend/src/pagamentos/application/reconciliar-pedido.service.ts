@@ -81,13 +81,21 @@ export class ReconciliarPedidoService {
     // pedido que nunca chegou a ser pago não tem o que devolver.
     const estoqueHaviaSidoReservado = pedido.status === StatusPedido.PAGO;
 
-    await this.pedidoRepository.atualizarStatus(pedido.id, novoStatusPedido);
+    if (!estoqueHaviaSidoReservado) {
+      await this.pedidoRepository.atualizarStatus(pedido.id, novoStatusPedido);
+      return;
+    }
 
-    if (estoqueHaviaSidoReservado) {
+    // Mesma exigência de atomicidade do confirmarPagamento: se o processo cair entre
+    // marcar o pedido e devolver o estoque, não pode sobrar um CANCELADO/ESTORNADO sem
+    // a devolução correspondente.
+    await this.transactionManager.executar(async (contexto) => {
+      await this.pedidoRepository.atualizarStatus(pedido.id, novoStatusPedido, contexto);
       await this.produtoRepository.incrementarEstoque(
         pedido.itens.map((item) => ({ produtoId: item.produtoId, quantidade: item.quantidade })),
+        contexto,
       );
-    }
+    });
   }
 
   /**
