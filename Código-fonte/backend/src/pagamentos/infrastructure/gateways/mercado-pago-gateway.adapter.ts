@@ -43,7 +43,8 @@ export class MercadoPagoGatewayAdapter extends PaymentGateway {
   constructor(private readonly configService: ConfigService) {
     super();
     const accessToken = this.configService.get<string>('MERCADOPAGO_ACCESS_TOKEN');
-    this.notificationUrl = this.configService.get<string>('MERCADOPAGO_NOTIFICATION_URL') || undefined;
+    this.notificationUrl =
+      this.configService.get<string>('MERCADOPAGO_NOTIFICATION_URL') || undefined;
     this.http = axios.create({
       baseURL: MERCADO_PAGO_API_URL,
       timeout: 10_000,
