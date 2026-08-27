@@ -18,9 +18,9 @@ jobs:
       # pra assinar nada de verdade, o CI não expõe rotas autenticadas pra ninguém.
       JWT_SECRET: ci-test-secret-not-for-production-use
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 20
           cache: npm
@@ -48,9 +48,9 @@ jobs:
       run:
         working-directory: Código-fonte/frontend
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 20
           cache: npm
