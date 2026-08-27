@@ -179,6 +179,10 @@ model Cliente {
   email     String?  @unique
   telefone  String?
   cpf       String?  @unique
+  // CNPJ cobre o público B2B (pequenos negócios, escritórios, prestadores de
+  // limpeza terceirizada) — cliente tem um ou outro, nunca os dois; a exclusividade
+  // é validada na aplicação (CriarClienteUseCase/AtualizarClienteUseCase), não no banco.
+  cnpj      String?  @unique
   createdAt DateTime @default(now()) @map("created_at")
 
   enderecos Endereco[]
@@ -188,6 +192,11 @@ model Cliente {
   @@map("clientes")
 }
 
+// Um endereço marcado `padrao = true` por cliente por vez — reforçado por um índice
+// único parcial (`WHERE padrao`) escrito à mão na migration, porque a DSL do Prisma
+// (nesta versão) não expressa índice parcial. EnderecoRepository.definirComoPadrao
+// já desmarca o antigo e marca o novo na mesma transação; o índice é a garantia de
+// banco contra corrida (duas requisições concorrentes marcando padrão ao mesmo tempo).
 model Endereco {
   id          String  @id @default(uuid())
   clienteId   String  @map("cliente_id")
@@ -198,6 +207,7 @@ model Endereco {
   bairro      String
   cidade      String
   estado      String
+  padrao      Boolean @default(false)
 
   cliente Cliente @relation(fields: [clienteId], references: [id])
 
