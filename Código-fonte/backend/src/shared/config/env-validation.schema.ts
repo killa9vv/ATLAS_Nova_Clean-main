@@ -24,4 +24,11 @@ export const envValidationSchema = Joi.object({
   CLOUDINARY_CLOUD_NAME: Joi.string().allow('').optional(),
   CLOUDINARY_API_KEY: Joi.string().allow('').optional(),
   CLOUDINARY_API_SECRET: Joi.string().allow('').optional(),
+  MELHOR_ENVIO_TOKEN: Joi.string().allow('').optional(),
+  MELHOR_ENVIO_BASE_URL: Joi.string().uri().optional(),
+  MELHOR_ENVIO_USER_AGENT: Joi.string().allow('').optional(),
+  CEP_ORIGEM: Joi.string()
+    .pattern(/^\d{8}$/)
+    .allow('')
+    .optional(),
 }).unknown(true); // não rejeita outras variáveis de ambiente do sistema (PATH, etc.)

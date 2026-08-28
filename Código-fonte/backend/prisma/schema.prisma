@@ -107,6 +107,14 @@ model Produto {
   categoria     String?
   preco         Decimal  @db.Decimal(10, 2)
   estoque       Int      @default(0)
+
+  // Dados físicos usados para cotação de frete.
+  // Opcionais para manter compatibilidade com produtos já cadastrados.
+  pesoKg        Decimal? @map("peso_kg") @db.Decimal(10, 3)
+  alturaCm      Decimal? @map("altura_cm") @db.Decimal(10, 2)
+  larguraCm     Decimal? @map("largura_cm") @db.Decimal(10, 2)
+  comprimentoCm Decimal? @map("comprimento_cm") @db.Decimal(10, 2)
+
   ativo         Boolean  @default(true)
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
@@ -264,6 +272,7 @@ model Pedido {
   status      StatusPedido @default(CRIADO)
   total       Decimal      @db.Decimal(10, 2)
   desconto    Decimal      @default(0) @db.Decimal(10, 2)
+  freteTotal  Decimal      @default(0) @map("frete_total") @db.Decimal(10, 2)
   cupomCodigo String?      @map("cupom_codigo")
   createdAt   DateTime     @default(now()) @map("created_at")
   updatedAt   DateTime     @updatedAt @map("updated_at")
@@ -284,6 +293,7 @@ model ItemPedido {
   nome          String
   quantidade    Int
   precoUnitario Decimal @map("preco_unitario") @db.Decimal(10, 2)
+  freteRateado  Decimal @default(0) @map("frete_rateado") @db.Decimal(10, 2)
 
   pedido  Pedido  @relation(fields: [pedidoId], references: [id])
   produto Produto @relation(fields: [produtoId], references: [id])

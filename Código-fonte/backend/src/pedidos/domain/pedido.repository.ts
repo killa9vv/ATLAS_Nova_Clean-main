@@ -15,6 +15,7 @@ export abstract class PedidoRepository {
     total: number,
     statusInicial?: StatusPedido,
     contexto?: unknown,
+    freteTotal?: number,
   ): Promise<Pedido>;
   abstract buscarPorId(id: string): Promise<Pedido | null>;
 

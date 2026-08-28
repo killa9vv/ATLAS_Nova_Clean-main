@@ -2,38 +2,54 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Pedido } from '../../domain/pedido.entity';
 import { StatusPedido } from '../../domain/status-pedido.enum';
 
-class ItemPedidoResponseDto {
-  @ApiProperty({ example: 'b3f1c2d4-5678-4abc-9def-0123456789ab' })
-  produtoId: string;
+export class ItemPedidoResponseDto {
+  @ApiProperty()
+  produtoId!: string;
 
-  @ApiProperty({ example: 'Detergente para Louça' })
-  nome: string;
+  @ApiProperty()
+  nome!: string;
 
-  @ApiProperty({ example: 2 })
-  quantidade: number;
+  @ApiProperty()
+  quantidade!: number;
 
-  @ApiProperty({ example: 12.9 })
-  precoUnitario: number;
+  @ApiProperty()
+  precoUnitario!: number;
+
+  @ApiProperty({
+    example: 5.25,
+    description: 'Parcela do frete atribuída a este item do pedido',
+  })
+  freteRateado!: number;
 }
 
 export class PedidoResponseDto {
-  @ApiProperty({ example: 'b3f1c2d4-5678-4abc-9def-0123456789ab' })
-  id: string;
+  @ApiProperty()
+  id!: string;
 
-  @ApiProperty({ enum: StatusPedido, example: StatusPedido.CRIADO })
-  status: StatusPedido;
+  @ApiProperty({ enum: StatusPedido })
+  status!: StatusPedido;
 
   @ApiProperty({ type: [ItemPedidoResponseDto] })
-  itens: ItemPedidoResponseDto[];
+  itens!: ItemPedidoResponseDto[];
 
-  @ApiProperty({ example: 25.8 })
-  total: number;
+  @ApiProperty({
+    example: 100,
+    description: 'Total dos produtos do pedido, sem o frete',
+  })
+  total!: number;
 
-  @ApiProperty({ example: '2026-08-22T18:30:00.000Z' })
-  createdAt: Date;
+  @ApiProperty({
+    example: 15.9,
+    description: 'Valor total do frete do pedido',
+  })
+  freteTotal!: number;
+
+  @ApiProperty()
+  createdAt!: Date;
 
   static fromDomain(pedido: Pedido): PedidoResponseDto {
     const dto = new PedidoResponseDto();
+
     dto.id = pedido.id;
     dto.status = pedido.status;
     dto.itens = pedido.itens.map((item) => ({
@@ -41,9 +57,12 @@ export class PedidoResponseDto {
       nome: item.nome,
       quantidade: item.quantidade,
       precoUnitario: item.precoUnitario,
+      freteRateado: item.freteRateado,
     }));
     dto.total = pedido.total;
+    dto.freteTotal = pedido.freteTotal;
     dto.createdAt = pedido.createdAt;
+
     return dto;
   }
 }
