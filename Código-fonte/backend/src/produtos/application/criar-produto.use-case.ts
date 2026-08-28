@@ -18,6 +18,10 @@ export class CriarProdutoUseCase {
       estoque: dto.estoque ?? 0,
       descricao: dto.descricao,
       categoria: dto.categoria,
+      pesoKg: dto.pesoKg,
+      alturaCm: dto.alturaCm,
+      larguraCm: dto.larguraCm,
+      comprimentoCm: dto.comprimentoCm,
     });
   }
 

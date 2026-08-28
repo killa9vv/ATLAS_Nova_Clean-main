@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { ArrayMinSize, IsIn, IsOptional, ValidateNested } from 'class-validator';
+import { ArrayMinSize, IsIn, IsOptional, IsString, Matches, ValidateNested } from 'class-validator';
 import { CarrinhoItemDto } from '../../../carrinho/infrastructure/dto/calcular-carrinho.dto';
 
 export class CriarPedidoDto {
@@ -8,7 +8,16 @@ export class CriarPedidoDto {
   @ValidateNested({ each: true })
   @Type(() => CarrinhoItemDto)
   @ArrayMinSize(1)
-  itens: CarrinhoItemDto[];
+  itens!: CarrinhoItemDto[];
+  @ApiProperty({
+    example: '01001000',
+    description: 'CEP de destino da entrega, com 8 dígitos',
+  })
+  @IsString()
+  @Matches(/^\d{8}$/, {
+    message: 'cepDestino deve conter exatamente 8 dígitos',
+  })
+  cepDestino!: string;
 
   @ApiPropertyOptional({
     enum: ['site', 'whatsapp'],

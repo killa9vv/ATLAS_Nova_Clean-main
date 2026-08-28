@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+﻿import { Injectable } from '@nestjs/common';
 import { PedidoRepository } from '../../pedidos/domain/pedido.repository';
 import {
   PedidoEmStatusInvalidoException,
@@ -28,14 +28,14 @@ export class CriarPagamentoUseCase {
     }
     if (!pedido.estaAguardandoPagamento()) {
       throw new PedidoEmStatusInvalidoException(
-        `Pedido ${pedido.id} está com status ${pedido.status} e não pode receber um novo pagamento.`,
+        `Pedido ${pedido.id} estÃ¡ com status ${pedido.status} e nÃ£o pode receber um novo pagamento.`,
       );
     }
 
     const descricao = `Pedido ${pedido.id} - Atlas Nova Clean`;
     const contexto = {
       referenciaExterna: pedido.id,
-      valor: pedido.total,
+      valor: pedido.total + pedido.freteTotal,
       descricao,
       pagador: input.pagador,
     };
@@ -53,22 +53,22 @@ export class CriarPagamentoUseCase {
     const pagamento = await this.pagamentoRepository.criar({
       pedidoId: pedido.id,
       metodo: input.metodo,
-      valor: pedido.total,
+      valor: pedido.total + pedido.freteTotal,
       status: resultado.status,
       gatewayTransactionId: resultado.gatewayTransactionId,
       gatewayPayload: resultado.payloadBruto,
     });
 
-    // Cartão costuma resolver na hora (aprovado/recusado já na resposta síncrona do
-    // gateway) — diferente do Pix, que nasce PENDENTE e só muda de status quando o
-    // webhook chega depois. Sem isto, um cartão aprovado nunca dispararia a baixa de
-    // estoque nem marcaria o pedido como PAGO: o webhook que eventualmente chega só
-    // confirma um status que já está gravado desde a criação, então a checagem de
-    // idempotência do ProcessarWebhookUseCase o descarta sem reconciliar nada.
+    // CartÃ£o costuma resolver na hora (aprovado/recusado jÃ¡ na resposta sÃ­ncrona do
+    // gateway) â€” diferente do Pix, que nasce PENDENTE e sÃ³ muda de status quando o
+    // webhook chega depois. Sem isto, um cartÃ£o aprovado nunca dispararia a baixa de
+    // estoque nem marcaria o pedido como PAGO: o webhook que eventualmente chega sÃ³
+    // confirma um status que jÃ¡ estÃ¡ gravado desde a criaÃ§Ã£o, entÃ£o a checagem de
+    // idempotÃªncia do ProcessarWebhookUseCase o descarta sem reconciliar nada.
     await this.reconciliarPedidoService.executar(pagamento);
 
     if (resultado.status === StatusPagamento.RECUSADO) {
-      throw new PagamentoRecusadoException('a operadora recusou a transação.');
+      throw new PagamentoRecusadoException('a operadora recusou a transaÃ§Ã£o.');
     }
 
     return {

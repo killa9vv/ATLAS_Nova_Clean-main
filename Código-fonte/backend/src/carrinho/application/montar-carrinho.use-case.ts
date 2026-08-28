@@ -45,7 +45,16 @@ export class MontarCarrinhoUseCase {
       if (!produto.possuiEstoqueDisponivel(quantidade)) {
         throw new EstoqueInsuficienteException(produto.nome);
       }
-      return new ItemPrecificado(produto.id, produto.nome, quantidade, produto.preco);
+      return new ItemPrecificado(
+        produto.id,
+        produto.nome,
+        quantidade,
+        produto.preco,
+        produto.pesoKg,
+        produto.alturaCm,
+        produto.larguraCm,
+        produto.comprimentoCm,
+      );
     });
 
     return new Carrinho(itens);
