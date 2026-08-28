@@ -1,16 +1,12 @@
-// Teste e2e do fluxo de criação de pedido contra um Postgres real. A criação do
-// pedido NÃO reserva estoque — só valida disponibilidade em leitura (via
-// MontarCarrinhoUseCase, fail-fast pra UX). O decremento de verdade, e a garantia de
-// exclusão mútua entre pedidos concorrentes pelo último item, acontecem na confirmação
-// do pagamento — ver a suíte de concorrência em test/pagamentos-webhook.e2e-spec.ts e a
-// decisão documentada no README raiz.
 import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { randomUUID } from 'crypto';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/shared/prisma/prisma.service';
 import { DomainExceptionFilter } from '../src/shared/exceptions/domain-exception.filter';
+import { ShippingProvider } from '../src/shipping/domain/shipping.types';
 
 describe('Pedidos (e2e)', () => {
   let app: INestApplication;
@@ -18,31 +14,72 @@ describe('Pedidos (e2e)', () => {
   let produtoTipoId: string;
   let marcaId: string;
 
+  const cepOrigem = '01001000';
+  const cepDestino = '20040002';
+
+  const shippingProviderFake: ShippingProvider = {
+    cotar: jest.fn().mockResolvedValue({
+      valor: 12,
+      prazoDias: 5,
+      servico: 'Frete E2E',
+    }),
+  };
+
   beforeAll(async () => {
+    const configServiceFake = {
+      get: jest.fn((chave: string) => {
+        if (chave === 'CEP_ORIGEM') {
+          return cepOrigem;
+        }
+
+        return undefined;
+      }),
+    };
+
     const moduleRef: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    })
+      .overrideProvider(ShippingProvider)
+      .useValue(shippingProviderFake)
+      .overrideProvider(ConfigService)
+      .useValue(configServiceFake)
+      .compile();
 
     app = moduleRef.createNestApplication();
-    // Replica o bootstrap real de src/main.ts, pra exercitar o mesmo comportamento
-    // de validação/erro que roda em produção.
+
     app.useGlobalPipes(
-      new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+      }),
     );
+
     app.useGlobalFilters(new DomainExceptionFilter());
     await app.init();
 
     prisma = moduleRef.get(PrismaService);
 
-    // Produto agora exige categoria/marca/tipo — cria essa base uma única vez
-    // e reutiliza em todo o arquivo, já que os testes só se importam com estoque.
     const categoria = await prisma.categoria.create({
-      data: { slug: `categoria-teste-${randomUUID()}`, nome: 'Categoria de teste' },
+      data: {
+        slug: `categoria-teste-${randomUUID()}`,
+        nome: 'Categoria de teste',
+      },
     });
-    const marca = await prisma.marca.create({ data: { nome: `Marca de teste ${randomUUID()}` } });
+
+    const marca = await prisma.marca.create({
+      data: {
+        nome: `Marca de teste ${randomUUID()}`,
+      },
+    });
+
     const produtoTipo = await prisma.produtoTipo.create({
-      data: { categoriaId: categoria.id, nome: `Tipo de teste ${randomUUID()}` },
+      data: {
+        categoriaId: categoria.id,
+        nome: `Tipo de teste ${randomUUID()}`,
+      },
     });
+
     produtoTipoId = produtoTipo.id;
     marcaId = marca.id;
   });
@@ -62,22 +99,42 @@ describe('Pedidos (e2e)', () => {
         estoque,
         produtoTipoId,
         marcaId,
+        pesoKg: 1,
+        alturaCm: 10,
+        larguraCm: 10,
+        comprimentoCm: 10,
       },
     });
   }
 
-  it('cria o pedido sem reservar estoque (o decremento só acontece na confirmação do pagamento)', async () => {
+  it('cria o pedido sem reservar estoque e persiste o frete rateado', async () => {
     const produto = await criarProdutoComEstoque(5);
 
     const resposta = await request(app.getHttpServer())
       .post('/pedidos')
-      .send({ itens: [{ produtoId: produto.id, quantidade: 2 }] })
+      .send({
+        itens: [{ produtoId: produto.id, quantidade: 2 }],
+        cepDestino,
+      })
       .expect(201);
 
     expect(resposta.body.itens).toHaveLength(1);
     expect(resposta.body.total).toBe(20);
+    expect(resposta.body.freteTotal).toBe(12);
+    expect(resposta.body.itens[0].freteRateado).toBe(12);
 
-    const produtoInalterado = await prisma.produto.findUniqueOrThrow({ where: { id: produto.id } });
+    const pedidoPersistido = await prisma.pedido.findUniqueOrThrow({
+      where: { id: resposta.body.id },
+      include: { itens: true },
+    });
+
+    expect(Number(pedidoPersistido.freteTotal)).toBe(12);
+    expect(Number(pedidoPersistido.itens[0].freteRateado)).toBe(12);
+
+    const produtoInalterado = await prisma.produto.findUniqueOrThrow({
+      where: { id: produto.id },
+    });
+
     expect(produtoInalterado.estoque).toBe(5);
   });
 
@@ -86,17 +143,40 @@ describe('Pedidos (e2e)', () => {
 
     const resposta = await request(app.getHttpServer())
       .post('/pedidos')
-      .send({ itens: [{ produtoId: produto.id, quantidade: 5 }] })
+      .send({
+        itens: [{ produtoId: produto.id, quantidade: 5 }],
+        cepDestino,
+      })
       .expect(409);
 
     expect(resposta.body.erro).toBe('ESTOQUE_INSUFICIENTE');
 
-    const produtoInalterado = await prisma.produto.findUniqueOrThrow({ where: { id: produto.id } });
+    const produtoInalterado = await prisma.produto.findUniqueOrThrow({
+      where: { id: produto.id },
+    });
+
     expect(produtoInalterado.estoque).toBe(1);
   });
 
   it('rejeita corpo inválido com 400 (pedido sem nenhum item)', async () => {
-    await request(app.getHttpServer()).post('/pedidos').send({ itens: [] }).expect(400);
+    await request(app.getHttpServer())
+      .post('/pedidos')
+      .send({
+        itens: [],
+        cepDestino,
+      })
+      .expect(400);
+  });
+
+  it('rejeita pedido sem CEP de destino com 400', async () => {
+    const produto = await criarProdutoComEstoque(5);
+
+    await request(app.getHttpServer())
+      .post('/pedidos')
+      .send({
+        itens: [{ produtoId: produto.id, quantidade: 1 }],
+      })
+      .expect(400);
   });
 
   it('registra o pedido em AGUARDANDO_CONTATO quando o canal é whatsapp', async () => {
@@ -104,40 +184,56 @@ describe('Pedidos (e2e)', () => {
 
     const resposta = await request(app.getHttpServer())
       .post('/pedidos')
-      .send({ itens: [{ produtoId: produto.id, quantidade: 1 }], canal: 'whatsapp' })
+      .send({
+        itens: [{ produtoId: produto.id, quantidade: 1 }],
+        canal: 'whatsapp',
+        cepDestino,
+      })
       .expect(201);
 
     expect(resposta.body.status).toBe('AGUARDANDO_CONTATO');
+    expect(resposta.body.freteTotal).toBe(12);
   });
 
-  it('sem canal informado, o pedido usa o default (CRIADO) — mesmo comportamento de antes', async () => {
+  it('sem canal informado, o pedido usa o default CRIADO', async () => {
     const produto = await criarProdutoComEstoque(5);
 
     const resposta = await request(app.getHttpServer())
       .post('/pedidos')
-      .send({ itens: [{ produtoId: produto.id, quantidade: 1 }] })
+      .send({
+        itens: [{ produtoId: produto.id, quantidade: 1 }],
+        cepDestino,
+      })
       .expect(201);
 
     expect(resposta.body.status).toBe('CRIADO');
+    expect(resposta.body.freteTotal).toBe(12);
   });
 
-  it('dois pedidos concorrentes pelo último item podem ser criados ao mesmo tempo — nada é reservado na criação', async () => {
+  it('dois pedidos concorrentes pelo último item podem ser criados ao mesmo tempo sem reservar estoque', async () => {
     const produto = await criarProdutoComEstoque(1);
 
     const [respostaA, respostaB] = await Promise.all([
       request(app.getHttpServer())
         .post('/pedidos')
-        .send({ itens: [{ produtoId: produto.id, quantidade: 1 }] }),
+        .send({
+          itens: [{ produtoId: produto.id, quantidade: 1 }],
+          cepDestino,
+        }),
       request(app.getHttpServer())
         .post('/pedidos')
-        .send({ itens: [{ produtoId: produto.id, quantidade: 1 }] }),
+        .send({
+          itens: [{ produtoId: produto.id, quantidade: 1 }],
+          cepDestino,
+        }),
     ]);
 
     expect([respostaA.status, respostaB.status]).toEqual([201, 201]);
 
-    // Estoque não muda: a exclusão mútua de verdade só é aplicada quando um dos dois
-    // pagamentos for confirmado (ver test/pagamentos-webhook.e2e-spec.ts).
-    const produtoFinal = await prisma.produto.findUniqueOrThrow({ where: { id: produto.id } });
+    const produtoFinal = await prisma.produto.findUniqueOrThrow({
+      where: { id: produto.id },
+    });
+
     expect(produtoFinal.estoque).toBe(1);
   });
 });
