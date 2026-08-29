@@ -2,19 +2,23 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { formatoCepValido } from '../../shared/cep.util';
 import { OpcaoFrete } from '../domain/frete.entity';
-import { ShippingQuoteProvider } from '../domain/shipping-quote.port';
+import { ItemCotacaoFrete, ShippingQuoteProvider } from '../domain/shipping-quote.port';
 import { CepInvalidoException } from '../domain/frete.exceptions';
 
 export interface CalcularFreteInput {
   cepDestino: string;
   quantidadeItens: number;
   valorDeclarado: number;
+  /** Itens do carrinho com dados físicos reais, quando disponíveis — repassado pro
+   * provider montar pacotes reais no Melhor Envio (ver ItemCotacaoFrete). */
+  itens?: ItemCotacaoFrete[];
 }
 
 export interface CalcularFreteOutput {
   /** Sempre traz ENTREGA (valor pode ser 0 por frete grátis) e RETIRADA (sempre 0) — quem
-   * decide entre as duas é o checkout, não este use case. Rateio entre itens do pedido
-   * fica a cargo do ShippingService (card "Rateio automático de frete por CEP"). */
+   * decide entre as duas é o checkout, não este use case. Rateio do valor de ENTREGA
+   * entre os itens do pedido é feito pelo checkout via ShippingAllocator, depois de
+   * decidir que tipoEntrega é ENTREGA (ver CriarPedidoUseCase). */
   opcoes: OpcaoFrete[];
 }
 
@@ -34,6 +38,7 @@ export class CalcularFreteUseCase {
       cepDestino: input.cepDestino,
       quantidadeItens: input.quantidadeItens,
       valorDeclarado: input.valorDeclarado,
+      itens: input.itens,
     });
 
     // Configurável via env (FRETE_GRATIS_ACIMA_DE) — nunca fixo no código. Ausente =

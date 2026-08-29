@@ -6,6 +6,7 @@ export class ItemPedidoEntity {
     public readonly nome: string,
     public readonly quantidade: number,
     public readonly precoUnitario: number,
+    public readonly freteRateado: number = 0,
   ) {}
 }
 
@@ -14,6 +15,7 @@ export interface NovoItemPedido {
   nome: string;
   quantidade: number;
   precoUnitario: number;
+  freteRateado?: number;
 }
 
 export type TipoEntrega = 'ENTREGA' | 'RETIRADA';

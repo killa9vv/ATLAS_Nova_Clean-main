@@ -28,6 +28,7 @@ export const envValidationSchema = Joi.object({
   // sem MELHOR_ENVIO_TOKEN/FRETE_CEP_ORIGEM, ShippingQuoteProviderComFallback cai
   // direto pra tabela regional, então a API sobe normalmente em dev sem essas chaves.
   MELHOR_ENVIO_TOKEN: Joi.string().allow('').optional(),
+  MELHOR_ENVIO_BASE_URL: Joi.string().uri().allow('').optional(),
   FRETE_CEP_ORIGEM: Joi.string().allow('').optional(),
   // Sem valor definido = regra de frete grátis desligada (nenhum pedido se qualifica).
   FRETE_GRATIS_ACIMA_DE: Joi.number().positive().optional(),

@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { MontarCarrinhoUseCase } from '../../carrinho/application/montar-carrinho.use-case';
 import { CarrinhoItemSolicitado } from '../../carrinho/domain/carrinho-item-solicitado';
 import { CalcularFreteUseCase } from '../../frete/application/calcular-frete.use-case';
+import { ShippingAllocator } from '../../frete/domain/shipping-allocator';
 import { PedidoRepository } from '../domain/pedido.repository';
 import {
   DadosEntregaPedido,
@@ -19,8 +20,15 @@ export interface EntregaSolicitada {
   endereco?: EnderecoEntregaPedido;
 }
 
+// Peso usado no rateio quando o produto não tem pesoKg cadastrado (catálogo legado,
+// coluna opcional) — mesmo piso mínimo usado pelo MelhorEnvioShippingQuoteProvider,
+// só pra o rateio nunca dividir pelo peso total zero.
+const PESO_PADRAO_RATEIO_KG = 0.3;
+
 @Injectable()
 export class CriarPedidoUseCase {
+  private readonly shippingAllocator = new ShippingAllocator();
+
   constructor(
     private readonly montarCarrinhoUseCase: MontarCarrinhoUseCase,
     private readonly calcularFreteUseCase: CalcularFreteUseCase,
@@ -34,25 +42,49 @@ export class CriarPedidoUseCase {
   ): Promise<Pedido> {
     const carrinho = await this.montarCarrinhoUseCase.executar(itensSolicitados);
 
-    const itens = carrinho.itens.map((item) => ({
-      produtoId: item.produtoId,
-      nome: item.nome,
-      quantidade: item.quantidade,
-      precoUnitario: item.precoUnitario,
-    }));
-
-    // RETIRADA nunca cobra frete. ENTREGA usa a mesma cotação do endpoint público
-    // de frete (POST /frete/cotacao) — reaproveitada aqui pra não duplicar a regra
-    // de frete grátis (FRETE_GRATIS_ACIMA_DE) nem a decisão API-vs-tabela regional.
+    // RETIRADA nunca cobra frete nem rateia nada entre os itens. ENTREGA usa a mesma
+    // cotação do endpoint público de frete (POST /frete/cotacao) — reaproveitada aqui
+    // pra não duplicar a regra de frete grátis (FRETE_GRATIS_ACIMA_DE) nem a decisão
+    // API-vs-tabela regional — e depois rateia o valor obtido entre os itens,
+    // proporcional ao peso (dados físicos reais do produto quando cadastrados; ver
+    // ShippingAllocator/PESO_PADRAO_RATEIO_KG pro fallback quando não estão).
     let valorFrete = 0;
+    let fretePorProduto = new Map<string, number>();
+
     if (entregaSolicitada.tipoEntrega === 'ENTREGA') {
       const cotacao = await this.calcularFreteUseCase.executar({
         cepDestino: entregaSolicitada.endereco!.cep,
         quantidadeItens: carrinho.itens.reduce((soma, item) => soma + item.quantidade, 0),
         valorDeclarado: carrinho.total,
+        itens: carrinho.itens.map((item) => ({
+          produtoId: item.produtoId,
+          quantidade: item.quantidade,
+          pesoKg: item.pesoKg,
+          alturaCm: item.alturaCm,
+          larguraCm: item.larguraCm,
+          comprimentoCm: item.comprimentoCm,
+        })),
       });
       valorFrete = cotacao.opcoes.find((opcao) => opcao.tipo === 'ENTREGA')!.valor;
+
+      const rateio = this.shippingAllocator.ratearPorPeso(
+        valorFrete,
+        carrinho.itens.map((item) => ({
+          produtoId: item.produtoId,
+          quantidade: item.quantidade,
+          pesoKg: item.pesoKg ?? PESO_PADRAO_RATEIO_KG,
+        })),
+      );
+      fretePorProduto = new Map(rateio.map((item) => [item.produtoId, item.freteRateado]));
     }
+
+    const itens = carrinho.itens.map((item) => ({
+      produtoId: item.produtoId,
+      nome: item.nome,
+      quantidade: item.quantidade,
+      precoUnitario: item.precoUnitario,
+      freteRateado: fretePorProduto.get(item.produtoId) ?? 0,
+    }));
 
     const entrega: DadosEntregaPedido = {
       tipoEntrega: entregaSolicitada.tipoEntrega,

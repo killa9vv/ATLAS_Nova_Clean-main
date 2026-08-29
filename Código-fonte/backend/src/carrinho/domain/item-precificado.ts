@@ -4,6 +4,10 @@ export class ItemPrecificado {
     public readonly nome: string,
     public readonly quantidade: number,
     public readonly precoUnitario: number,
+    public readonly pesoKg?: number,
+    public readonly alturaCm?: number,
+    public readonly larguraCm?: number,
+    public readonly comprimentoCm?: number,
   ) {}
 
   get subtotal(): number {

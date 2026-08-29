@@ -4,6 +4,12 @@
 // exclusão mútua entre pedidos concorrentes pelo último item, acontecem na confirmação
 // do pagamento — ver a suíte de concorrência em test/pagamentos-webhook.e2e-spec.ts e a
 // decisão documentada no README raiz.
+//
+// Sem MELHOR_ENVIO_TOKEN configurado nesta suíte, ShippingQuoteProviderComFallback cai
+// direto pra tabela regional (TabelaRegionalShippingQuoteProvider) — determinística por
+// prefixo de CEP, não depende de rede. Os produtos de teste têm dados físicos reais
+// (pesoKg etc.) só pra exercitar esse caminho no MelhorEnvioShippingQuoteProvider; a
+// tabela regional ignora esses dados (só olha o CEP).
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
@@ -17,6 +23,15 @@ describe('Pedidos (e2e)', () => {
   let prisma: PrismaService;
   let produtoTipoId: string;
   let marcaId: string;
+
+  const enderecoValido = {
+    cep: '28013-000',
+    logradouro: 'Rua do Sol',
+    numero: '123',
+    bairro: 'Centro',
+    cidade: 'Campos dos Goytacazes',
+    estado: 'RJ',
+  };
 
   beforeAll(async () => {
     const moduleRef: TestingModule = await Test.createTestingModule({
@@ -62,18 +77,13 @@ describe('Pedidos (e2e)', () => {
         estoque,
         produtoTipoId,
         marcaId,
+        pesoKg: 1,
+        alturaCm: 10,
+        larguraCm: 10,
+        comprimentoCm: 10,
       },
     });
   }
-
-  const enderecoValido = {
-    cep: '28013-000',
-    logradouro: 'Rua do Sol',
-    numero: '123',
-    bairro: 'Centro',
-    cidade: 'Campos dos Goytacazes',
-    estado: 'RJ',
-  };
 
   it('cria o pedido sem reservar estoque (o decremento só acontece na confirmação do pagamento)', async () => {
     const produto = await criarProdutoComEstoque(5);
@@ -182,6 +192,7 @@ describe('Pedidos (e2e)', () => {
       expect(resposta.body.tipoEntrega).toBe('RETIRADA');
       expect(resposta.body.valorFrete).toBe(0);
       expect(resposta.body.total).toBe(10);
+      expect(resposta.body.itens[0].freteRateado).toBe(0);
       expect(resposta.body.endereco).toBeUndefined();
     });
 
@@ -194,7 +205,7 @@ describe('Pedidos (e2e)', () => {
         .expect(400);
     });
 
-    it('ENTREGA com endereço válido cobra frete (tabela regional, sem Melhor Envio configurado) e soma ao total', async () => {
+    it('ENTREGA com endereço válido cobra frete (tabela regional, sem Melhor Envio configurado), soma ao total e rateia entre os itens', async () => {
       const produto = await criarProdutoComEstoque(5);
 
       const resposta = await request(app.getHttpServer())
@@ -213,6 +224,15 @@ describe('Pedidos (e2e)', () => {
       expect(resposta.body.valorFrete).toBe(12);
       expect(resposta.body.total).toBe(22);
       expect(resposta.body.endereco).toMatchObject(enderecoValido);
+      // Item único: 100% do frete rateado pra ele.
+      expect(resposta.body.itens[0].freteRateado).toBe(12);
+
+      const pedidoPersistido = await prisma.pedido.findUniqueOrThrow({
+        where: { id: resposta.body.id },
+        include: { itens: true },
+      });
+      expect(Number(pedidoPersistido.valorFrete)).toBe(12);
+      expect(Number(pedidoPersistido.itens[0].freteRateado)).toBe(12);
     });
   });
 });

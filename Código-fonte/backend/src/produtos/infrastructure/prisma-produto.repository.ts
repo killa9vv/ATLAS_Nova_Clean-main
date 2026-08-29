@@ -91,6 +91,10 @@ export class PrismaProdutoRepository extends ProdutoRepository {
         estoque: dados.estoque,
         descricao: dados.descricao,
         categoria: dados.categoria,
+        pesoKg: dados.pesoKg,
+        alturaCm: dados.alturaCm,
+        larguraCm: dados.larguraCm,
+        comprimentoCm: dados.comprimentoCm,
       },
     });
     return this.paraDominio(produto);
@@ -107,6 +111,10 @@ export class PrismaProdutoRepository extends ProdutoRepository {
         descricao: dados.descricao,
         categoria: dados.categoria,
         ativo: dados.ativo,
+        pesoKg: dados.pesoKg,
+        alturaCm: dados.alturaCm,
+        larguraCm: dados.larguraCm,
+        comprimentoCm: dados.comprimentoCm,
       },
     });
     return this.paraDominio(produto);
@@ -166,6 +174,10 @@ export class PrismaProdutoRepository extends ProdutoRepository {
       produto.categoria ?? undefined,
       produto.createdAt,
       produto.updatedAt,
+      produto.pesoKg !== null ? Number(produto.pesoKg) : undefined,
+      produto.alturaCm !== null ? Number(produto.alturaCm) : undefined,
+      produto.larguraCm !== null ? Number(produto.larguraCm) : undefined,
+      produto.comprimentoCm !== null ? Number(produto.comprimentoCm) : undefined,
     );
   }
 }

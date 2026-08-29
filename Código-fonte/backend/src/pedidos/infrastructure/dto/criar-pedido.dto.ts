@@ -17,7 +17,7 @@ export class CriarPedidoDto {
   @ValidateNested({ each: true })
   @Type(() => CarrinhoItemDto)
   @ArrayMinSize(1)
-  itens: CarrinhoItemDto[];
+  itens!: CarrinhoItemDto[];
 
   @ApiProperty({
     enum: ['ENTREGA', 'RETIRADA'],

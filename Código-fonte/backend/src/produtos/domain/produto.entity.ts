@@ -10,6 +10,10 @@ export class Produto {
     public readonly categoria?: string,
     public readonly createdAt?: Date,
     public readonly updatedAt?: Date,
+    public readonly pesoKg?: number,
+    public readonly alturaCm?: number,
+    public readonly larguraCm?: number,
+    public readonly comprimentoCm?: number,
   ) {}
 
   possuiEstoqueDisponivel(quantidade: number): boolean {
@@ -29,6 +33,10 @@ export class Produto {
       this.categoria,
       this.createdAt,
       this.updatedAt,
+      this.pesoKg,
+      this.alturaCm,
+      this.larguraCm,
+      this.comprimentoCm,
     );
   }
 
@@ -45,6 +53,10 @@ export class Produto {
       this.categoria,
       this.createdAt,
       this.updatedAt,
+      this.pesoKg,
+      this.alturaCm,
+      this.larguraCm,
+      this.comprimentoCm,
     );
   }
 }

@@ -33,6 +33,8 @@ export class CriarPagamentoUseCase {
     }
 
     const descricao = `Pedido ${pedido.id} - Atlas Nova Clean`;
+    // pedido.total já inclui o frete (itens + valorFrete — ver CriarPedidoUseCase),
+    // não soma de novo aqui.
     const contexto = {
       referenciaExterna: pedido.id,
       valor: pedido.total,

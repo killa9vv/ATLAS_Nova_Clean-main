@@ -18,7 +18,11 @@ import type {
 } from '@prisma/client';
 
 type PedidoComItens = PedidoPrisma & { itens: ItemPedidoPrisma[] };
-/** Cliente Prisma "normal" ou um client de transação (`tx` de `$transaction`) — mesma API pro que é usado aqui. */
+
+/**
+ * Cliente Prisma "normal" ou um client de transação (`tx` de `$transaction`)
+ * — mesma API para o que é usado aqui.
+ */
 type ClientePrisma = PrismaService | Prisma.TransactionClient;
 
 @Injectable()
@@ -35,6 +39,7 @@ export class PrismaPedidoRepository extends PedidoRepository {
     contexto?: unknown,
   ): Promise<Pedido> {
     const cliente = (contexto as ClientePrisma | undefined) ?? this.prisma;
+
     const pedido = await cliente.pedido.create({
       data: {
         total,
@@ -54,6 +59,7 @@ export class PrismaPedidoRepository extends PedidoRepository {
             nome: item.nome,
             quantidade: item.quantidade,
             precoUnitario: item.precoUnitario,
+            freteRateado: item.freteRateado ?? 0,
           })),
         },
       },
@@ -64,18 +70,27 @@ export class PrismaPedidoRepository extends PedidoRepository {
   }
 
   async buscarPorId(id: string): Promise<Pedido | null> {
-    const pedido = await this.prisma.pedido.findUnique({ where: { id }, include: { itens: true } });
+    const pedido = await this.prisma.pedido.findUnique({
+      where: { id },
+      include: { itens: true },
+    });
+
     if (!pedido) return null;
+
     return this.paraDominio(pedido);
   }
 
   async atualizarStatus(id: string, status: StatusPedido, contexto?: unknown): Promise<Pedido> {
     const cliente = (contexto as ClientePrisma | undefined) ?? this.prisma;
+
     const pedido = await cliente.pedido.update({
       where: { id },
-      data: { status: status as unknown as StatusPedidoPrisma },
+      data: {
+        status: status as unknown as StatusPedidoPrisma,
+      },
       include: { itens: true },
     });
+
     return this.paraDominio(pedido);
   }
 
@@ -87,6 +102,7 @@ export class PrismaPedidoRepository extends PedidoRepository {
           item.nome,
           item.quantidade,
           Number(item.precoUnitario),
+          Number(item.freteRateado),
         ),
     );
 

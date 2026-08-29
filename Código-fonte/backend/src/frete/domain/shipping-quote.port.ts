@@ -1,11 +1,27 @@
 import { CotacaoFrete } from './frete.entity';
 
+/** Dados físicos reais de um item do carrinho, quando o Produto os tem cadastrados
+ * (ver Produto.pesoKg/alturaCm/larguraCm/comprimentoCm) — permite ao MelhorEnvioShippingQuoteProvider
+ * montar pacotes reais em vez do pacote sintético padrão (ver DIMENSAO_PADRAO_CM). */
+export interface ItemCotacaoFrete {
+  produtoId: string;
+  quantidade: number;
+  pesoKg?: number;
+  alturaCm?: number;
+  larguraCm?: number;
+  comprimentoCm?: number;
+}
+
 export interface SolicitacaoCotacaoFrete {
   cepDestino: string;
-  /** Soma das quantidades de itens do carrinho — usada como proxy de peso/volume (ver trade-offs). */
+  /** Soma das quantidades de itens do carrinho — usada como proxy de peso/volume quando
+   * `itens` não traz dados físicos reais (ver trade-offs). */
   quantidadeItens: number;
   /** Valor total do carrinho — usado como valor declarado/segurado na cotação. */
   valorDeclarado: number;
+  /** Itens do carrinho com dados físicos reais, quando disponíveis. Opcional: produtos
+   * cadastrados antes dessas colunas existirem não têm essa informação. */
+  itens?: ItemCotacaoFrete[];
 }
 
 /**

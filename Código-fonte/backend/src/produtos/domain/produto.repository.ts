@@ -24,6 +24,10 @@ export interface DadosCriacaoProduto {
   estoque: number;
   descricao?: string;
   categoria?: string;
+  pesoKg?: number;
+  alturaCm?: number;
+  larguraCm?: number;
+  comprimentoCm?: number;
 }
 
 export interface DadosAtualizacaoProduto {
@@ -34,6 +38,10 @@ export interface DadosAtualizacaoProduto {
   descricao?: string;
   categoria?: string;
   ativo?: boolean;
+  pesoKg?: number;
+  alturaCm?: number;
+  larguraCm?: number;
+  comprimentoCm?: number;
 }
 
 export interface ItemParaDecrementarEstoque {
