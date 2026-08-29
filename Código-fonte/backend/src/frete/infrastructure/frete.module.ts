@@ -19,7 +19,9 @@ import { MELHOR_ENVIO_PROVIDER, TABELA_REGIONAL_PROVIDER } from './gateways/ship
   ],
   // ShippingQuoteProvider exportado pro futuro ShippingService (card "Rateio
   // automático de frete por CEP") poder injetar e reaproveitar a mesma cotação
-  // com fallback, sem duplicar a lógica de decisão API-vs-tabela.
-  exports: [ShippingQuoteProvider],
+  // com fallback, sem duplicar a lógica de decisão API-vs-tabela. CalcularFreteUseCase
+  // exportado pro checkout (PedidosModule) reaproveitar a mesma regra de frete
+  // grátis/opções ENTREGA-RETIRADA usada pelo endpoint público de cotação.
+  exports: [ShippingQuoteProvider, CalcularFreteUseCase],
 })
 export class FreteModule {}

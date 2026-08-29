@@ -1,12 +1,19 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../shared/prisma/prisma.service';
-import { ItemPedidoEntity, NovoItemPedido, Pedido } from '../domain/pedido.entity';
+import {
+  DadosEntregaPedido,
+  ItemPedidoEntity,
+  NovoItemPedido,
+  Pedido,
+  TipoEntrega,
+} from '../domain/pedido.entity';
 import { PedidoRepository } from '../domain/pedido.repository';
 import { StatusPedido } from '../domain/status-pedido.enum';
 import type {
   Pedido as PedidoPrisma,
   ItemPedido as ItemPedidoPrisma,
   StatusPedido as StatusPedidoPrisma,
+  TipoEntrega as TipoEntregaPrisma,
   Prisma,
 } from '@prisma/client';
 
@@ -23,6 +30,7 @@ export class PrismaPedidoRepository extends PedidoRepository {
   async criar(
     itens: NovoItemPedido[],
     total: number,
+    entrega: DadosEntregaPedido,
     statusInicial?: StatusPedido,
     contexto?: unknown,
   ): Promise<Pedido> {
@@ -31,6 +39,15 @@ export class PrismaPedidoRepository extends PedidoRepository {
       data: {
         total,
         status: statusInicial as unknown as StatusPedidoPrisma | undefined,
+        tipoEntrega: entrega.tipoEntrega as unknown as TipoEntregaPrisma,
+        valorFrete: entrega.valorFrete,
+        enderecoCep: entrega.endereco?.cep,
+        enderecoLogradouro: entrega.endereco?.logradouro,
+        enderecoNumero: entrega.endereco?.numero,
+        enderecoComplemento: entrega.endereco?.complemento,
+        enderecoBairro: entrega.endereco?.bairro,
+        enderecoCidade: entrega.endereco?.cidade,
+        enderecoEstado: entrega.endereco?.estado,
         itens: {
           create: itens.map((item) => ({
             produtoId: item.produtoId,
@@ -73,13 +90,28 @@ export class PrismaPedidoRepository extends PedidoRepository {
         ),
     );
 
+    const endereco = pedido.enderecoCep
+      ? {
+          cep: pedido.enderecoCep,
+          logradouro: pedido.enderecoLogradouro!,
+          numero: pedido.enderecoNumero!,
+          bairro: pedido.enderecoBairro!,
+          cidade: pedido.enderecoCidade!,
+          estado: pedido.enderecoEstado!,
+          complemento: pedido.enderecoComplemento ?? undefined,
+        }
+      : undefined;
+
     return new Pedido(
       pedido.id,
       pedido.status as unknown as StatusPedido,
       itens,
       Number(pedido.total),
+      pedido.tipoEntrega as unknown as TipoEntrega,
+      Number(pedido.valorFrete),
       pedido.createdAt,
       pedido.updatedAt,
+      endereco,
     );
   }
 }

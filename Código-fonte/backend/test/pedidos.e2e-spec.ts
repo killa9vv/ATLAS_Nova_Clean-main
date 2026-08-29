@@ -66,12 +66,21 @@ describe('Pedidos (e2e)', () => {
     });
   }
 
+  const enderecoValido = {
+    cep: '28013-000',
+    logradouro: 'Rua do Sol',
+    numero: '123',
+    bairro: 'Centro',
+    cidade: 'Campos dos Goytacazes',
+    estado: 'RJ',
+  };
+
   it('cria o pedido sem reservar estoque (o decremento só acontece na confirmação do pagamento)', async () => {
     const produto = await criarProdutoComEstoque(5);
 
     const resposta = await request(app.getHttpServer())
       .post('/pedidos')
-      .send({ itens: [{ produtoId: produto.id, quantidade: 2 }] })
+      .send({ itens: [{ produtoId: produto.id, quantidade: 2 }], tipoEntrega: 'RETIRADA' })
       .expect(201);
 
     expect(resposta.body.itens).toHaveLength(1);
@@ -86,7 +95,7 @@ describe('Pedidos (e2e)', () => {
 
     const resposta = await request(app.getHttpServer())
       .post('/pedidos')
-      .send({ itens: [{ produtoId: produto.id, quantidade: 5 }] })
+      .send({ itens: [{ produtoId: produto.id, quantidade: 5 }], tipoEntrega: 'RETIRADA' })
       .expect(409);
 
     expect(resposta.body.erro).toBe('ESTOQUE_INSUFICIENTE');
@@ -96,7 +105,19 @@ describe('Pedidos (e2e)', () => {
   });
 
   it('rejeita corpo inválido com 400 (pedido sem nenhum item)', async () => {
-    await request(app.getHttpServer()).post('/pedidos').send({ itens: [] }).expect(400);
+    await request(app.getHttpServer())
+      .post('/pedidos')
+      .send({ itens: [], tipoEntrega: 'RETIRADA' })
+      .expect(400);
+  });
+
+  it('rejeita corpo inválido com 400 (sem tipoEntrega)', async () => {
+    const produto = await criarProdutoComEstoque(5);
+
+    await request(app.getHttpServer())
+      .post('/pedidos')
+      .send({ itens: [{ produtoId: produto.id, quantidade: 1 }] })
+      .expect(400);
   });
 
   it('registra o pedido em AGUARDANDO_CONTATO quando o canal é whatsapp', async () => {
@@ -104,7 +125,11 @@ describe('Pedidos (e2e)', () => {
 
     const resposta = await request(app.getHttpServer())
       .post('/pedidos')
-      .send({ itens: [{ produtoId: produto.id, quantidade: 1 }], canal: 'whatsapp' })
+      .send({
+        itens: [{ produtoId: produto.id, quantidade: 1 }],
+        tipoEntrega: 'RETIRADA',
+        canal: 'whatsapp',
+      })
       .expect(201);
 
     expect(resposta.body.status).toBe('AGUARDANDO_CONTATO');
@@ -115,7 +140,7 @@ describe('Pedidos (e2e)', () => {
 
     const resposta = await request(app.getHttpServer())
       .post('/pedidos')
-      .send({ itens: [{ produtoId: produto.id, quantidade: 1 }] })
+      .send({ itens: [{ produtoId: produto.id, quantidade: 1 }], tipoEntrega: 'RETIRADA' })
       .expect(201);
 
     expect(resposta.body.status).toBe('CRIADO');
@@ -127,10 +152,10 @@ describe('Pedidos (e2e)', () => {
     const [respostaA, respostaB] = await Promise.all([
       request(app.getHttpServer())
         .post('/pedidos')
-        .send({ itens: [{ produtoId: produto.id, quantidade: 1 }] }),
+        .send({ itens: [{ produtoId: produto.id, quantidade: 1 }], tipoEntrega: 'RETIRADA' }),
       request(app.getHttpServer())
         .post('/pedidos')
-        .send({ itens: [{ produtoId: produto.id, quantidade: 1 }] }),
+        .send({ itens: [{ produtoId: produto.id, quantidade: 1 }], tipoEntrega: 'RETIRADA' }),
     ]);
 
     expect([respostaA.status, respostaB.status]).toEqual([201, 201]);
@@ -139,5 +164,55 @@ describe('Pedidos (e2e)', () => {
     // pagamentos for confirmado (ver test/pagamentos-webhook.e2e-spec.ts).
     const produtoFinal = await prisma.produto.findUniqueOrThrow({ where: { id: produto.id } });
     expect(produtoFinal.estoque).toBe(1);
+  });
+
+  describe('tipo de entrega', () => {
+    it('RETIRADA: não cobra frete e não grava endereço, mesmo se um for enviado', async () => {
+      const produto = await criarProdutoComEstoque(5);
+
+      const resposta = await request(app.getHttpServer())
+        .post('/pedidos')
+        .send({
+          itens: [{ produtoId: produto.id, quantidade: 1 }],
+          tipoEntrega: 'RETIRADA',
+          endereco: enderecoValido,
+        })
+        .expect(201);
+
+      expect(resposta.body.tipoEntrega).toBe('RETIRADA');
+      expect(resposta.body.valorFrete).toBe(0);
+      expect(resposta.body.total).toBe(10);
+      expect(resposta.body.endereco).toBeUndefined();
+    });
+
+    it('ENTREGA sem endereço é rejeitado com 400', async () => {
+      const produto = await criarProdutoComEstoque(5);
+
+      await request(app.getHttpServer())
+        .post('/pedidos')
+        .send({ itens: [{ produtoId: produto.id, quantidade: 1 }], tipoEntrega: 'ENTREGA' })
+        .expect(400);
+    });
+
+    it('ENTREGA com endereço válido cobra frete (tabela regional, sem Melhor Envio configurado) e soma ao total', async () => {
+      const produto = await criarProdutoComEstoque(5);
+
+      const resposta = await request(app.getHttpServer())
+        .post('/pedidos')
+        .send({
+          itens: [{ produtoId: produto.id, quantidade: 1 }],
+          tipoEntrega: 'ENTREGA',
+          endereco: enderecoValido,
+        })
+        .expect(201);
+
+      expect(resposta.body.tipoEntrega).toBe('ENTREGA');
+      // CEP 28013-000 cai na faixa local da tabela regional (ver
+      // tabela-regional.adapter.ts) — valor 12, sem MELHOR_ENVIO_TOKEN configurado
+      // nesta suíte de testes.
+      expect(resposta.body.valorFrete).toBe(12);
+      expect(resposta.body.total).toBe(22);
+      expect(resposta.body.endereco).toMatchObject(enderecoValido);
+    });
   });
 });

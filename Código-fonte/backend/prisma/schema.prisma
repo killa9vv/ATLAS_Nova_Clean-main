@@ -18,6 +18,11 @@ enum StatusPedido {
   ESTORNADO
 }
 
+enum TipoEntrega {
+  ENTREGA
+  RETIRADA
+}
+
 enum StatusPagamento {
   PENDENTE
   EM_PROCESSAMENTO
@@ -277,6 +282,20 @@ model Pedido {
   cupomCodigo String?      @map("cupom_codigo")
   createdAt   DateTime     @default(now()) @map("created_at")
   updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  // Entrega: RETIRADA não usa nenhum dos campos de endereço abaixo (fica tudo null,
+  // valorFrete 0). Endereço é gravado como snapshot (não uma FK pra Endereco) pelo
+  // mesmo motivo de nome/precoUnitario em ItemPedido: o pedido não pode mudar se o
+  // cliente editar ou apagar o endereço cadastrado depois.
+  tipoEntrega         TipoEntrega @default(ENTREGA) @map("tipo_entrega")
+  valorFrete          Decimal     @default(0) @map("valor_frete") @db.Decimal(10, 2)
+  enderecoCep         String?     @map("endereco_cep")
+  enderecoLogradouro  String?     @map("endereco_logradouro")
+  enderecoNumero      String?     @map("endereco_numero")
+  enderecoComplemento String?     @map("endereco_complemento")
+  enderecoBairro      String?     @map("endereco_bairro")
+  enderecoCidade      String?     @map("endereco_cidade")
+  enderecoEstado      String?     @map("endereco_estado")
 
   cliente    Cliente?     @relation(fields: [clienteId], references: [id])
   cupom      Cupom?       @relation(fields: [cupomCodigo], references: [codigo])

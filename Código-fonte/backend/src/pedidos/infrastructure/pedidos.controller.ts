@@ -23,7 +23,11 @@ export class PedidosController {
   // login para clientes, só para staff (Usuario/ADMIN).
   @Post()
   async criar(@Body() dto: CriarPedidoDto): Promise<PedidoResponseDto> {
-    const pedido = await this.criarPedidoUseCase.executar(dto.itens, dto.canal);
+    const pedido = await this.criarPedidoUseCase.executar(
+      dto.itens,
+      { tipoEntrega: dto.tipoEntrega, endereco: dto.endereco },
+      dto.canal,
+    );
     return PedidoResponseDto.fromDomain(pedido);
   }
 
