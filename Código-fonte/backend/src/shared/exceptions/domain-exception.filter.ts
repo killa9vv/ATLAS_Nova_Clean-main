@@ -25,6 +25,11 @@ export class DomainExceptionFilter implements ExceptionFilter {
     MARCA_COM_PRODUTOS_VINCULADOS: 409,
     MARCA_DUPLICADA: 409,
     IMAGEM_PRODUTO_NAO_ENCONTRADA: 404,
+    CLIENTE_NAO_ENCONTRADO: 404,
+    DOCUMENTO_INVALIDO: 400,
+    ENDERECO_NAO_ENCONTRADO: 404,
+    CEP_INVALIDO: 400,
+    CEP_NAO_ENCONTRADO: 404,
   };
 
   private readonly logger = new Logger(DomainExceptionFilter.name);

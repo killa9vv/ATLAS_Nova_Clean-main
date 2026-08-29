@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Pedido } from '../../domain/pedido.entity';
 import { StatusPedido } from '../../domain/status-pedido.enum';
 
@@ -22,6 +22,29 @@ export class ItemPedidoResponseDto {
   freteRateado!: number;
 }
 
+class EnderecoEntregaResponseDto {
+  @ApiProperty({ example: '28013-000' })
+  cep: string;
+
+  @ApiProperty({ example: 'Rua do Sol' })
+  logradouro: string;
+
+  @ApiProperty({ example: '123' })
+  numero: string;
+
+  @ApiPropertyOptional({ example: 'Apto 201' })
+  complemento?: string;
+
+  @ApiProperty({ example: 'Centro' })
+  bairro: string;
+
+  @ApiProperty({ example: 'Campos dos Goytacazes' })
+  cidade: string;
+
+  @ApiProperty({ example: 'RJ' })
+  estado: string;
+}
+
 export class PedidoResponseDto {
   @ApiProperty()
   id!: string;
@@ -32,19 +55,19 @@ export class PedidoResponseDto {
   @ApiProperty({ type: [ItemPedidoResponseDto] })
   itens!: ItemPedidoResponseDto[];
 
-  @ApiProperty({
-    example: 100,
-    description: 'Total dos produtos do pedido, sem o frete',
-  })
+  @ApiProperty({ example: 25.8, description: 'Total dos itens + valorFrete.' })
   total!: number;
 
-  @ApiProperty({
-    example: 15.9,
-    description: 'Valor total do frete do pedido',
-  })
-  freteTotal!: number;
+  @ApiProperty({ enum: ['ENTREGA', 'RETIRADA'], example: 'ENTREGA' })
+  tipoEntrega!: 'ENTREGA' | 'RETIRADA';
 
-  @ApiProperty()
+  @ApiProperty({ example: 12, description: '0 quando tipoEntrega é RETIRADA.' })
+  valorFrete!: number;
+
+  @ApiPropertyOptional({ type: EnderecoEntregaResponseDto })
+  endereco?: EnderecoEntregaResponseDto;
+
+  @ApiProperty({ example: '2026-08-22T18:30:00.000Z' })
   createdAt!: Date;
 
   static fromDomain(pedido: Pedido): PedidoResponseDto {
@@ -60,7 +83,9 @@ export class PedidoResponseDto {
       freteRateado: item.freteRateado,
     }));
     dto.total = pedido.total;
-    dto.freteTotal = pedido.freteTotal;
+    dto.tipoEntrega = pedido.tipoEntrega;
+    dto.valorFrete = pedido.valorFrete;
+    dto.endereco = pedido.endereco;
     dto.createdAt = pedido.createdAt;
 
     return dto;

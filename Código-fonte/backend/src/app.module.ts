@@ -12,6 +12,8 @@ import { CarrinhoModule } from './carrinho/infrastructure/carrinho.module';
 import { PedidosModule } from './pedidos/infrastructure/pedidos.module';
 import { PagamentosModule } from './pagamentos/infrastructure/pagamentos.module';
 import { AuthModule } from './auth/infrastructure/auth.module';
+import { ClientesModule } from './clientes/infrastructure/clientes.module';
+import { FreteModule } from './frete/infrastructure/frete.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -32,6 +34,8 @@ import { AuthModule } from './auth/infrastructure/auth.module';
     PedidosModule,
     PagamentosModule,
     AuthModule,
+    ClientesModule,
+    FreteModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

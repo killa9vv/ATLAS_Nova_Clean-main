@@ -9,6 +9,9 @@ export interface ShippingAllocation {
   freteRateado: number;
 }
 
+/** Rateia o valor total de frete entre os itens do pedido, proporcional ao peso
+ * (quantidade × pesoKg) de cada um — usado só quando tipoEntrega é ENTREGA;
+ * RETIRADA nunca chama isso (não há frete pra ratear). */
 export class ShippingAllocator {
   ratearPorPeso(freteTotal: number, itens: ShippingAllocationItem[]): ShippingAllocation[] {
     if (freteTotal < 0) {
@@ -26,6 +29,8 @@ export class ShippingAllocator {
       throw new Error('O peso total do pedido deve ser maior que zero.');
     }
 
+    // Distribui em centavos, e não em ponto flutuante direto, pra nunca sobrar/faltar
+    // centavo por arredondamento — o resto de arredondamento cai sempre no último item.
     const freteCentavos = Math.round(freteTotal * 100);
     let centavosDistribuidos = 0;
 

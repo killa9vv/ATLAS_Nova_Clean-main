@@ -1,4 +1,3 @@
-/// <reference types="jest" />
 import { ShippingAllocator } from './shipping-allocator';
 
 describe('ShippingAllocator', () => {

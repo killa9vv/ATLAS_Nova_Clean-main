@@ -1,24 +1,24 @@
 1. Requisitos Funcionais (RF)
 
-ID	Requisito	Descrição
-RF01	Cadastro de usuário	O sistema deve permitir que o cliente crie uma conta informando seus dados pessoais e de acesso.
-RF02	Autenticação	O sistema deve permitir que o usuário realize login e logout.
-RF03	Recuperação de senha	O sistema deve permitir a recuperação da senha por meio do e-mail cadastrado.
-RF04	Gerenciamento de perfil	O cliente deve poder consultar e alterar seus dados cadastrais.
-RF05	Cadastro de produtos	O sistema deve permitir o cadastro de produtos de limpeza e papelaria.
-RF06	Consulta de produtos	O sistema deve permitir visualizar nome, descrição, preço, categoria, imagem e disponibilidade dos produtos.
-RF07	Busca de produtos	O sistema deve permitir pesquisar produtos por nome ou palavra-chave.
-RF08	Filtragem de produtos	O sistema deve permitir filtrar produtos por categoria e outros critérios disponíveis.
-RF09	Carrinho de compras	O sistema deve permitir adicionar, remover e alterar a quantidade de produtos no carrinho.
-RF10	Cálculo do pedido	O sistema deve calcular o subtotal dos produtos e o valor total da compra.
-RF11	Checkout	O sistema deve permitir que o cliente informe/confirme os dados necessários para finalizar o pedido.
-RF12	Pagamento via Pix	O sistema deve permitir o pagamento do pedido por Pix através do Mercado Pago.
-RF13	Pagamento via cartão	O sistema deve permitir o pagamento do pedido por cartão através do Mercado Pago.
-RF14	Validação do pagamento	O sistema deve receber e registrar o status do pagamento realizado pelo Mercado Pago.
-RF15	Criação do pedido	Após a confirmação da compra, o sistema deve registrar o pedido e seus respectivos itens.
-RF16	Consulta de pedidos	O cliente deve poder consultar seus pedidos e respectivos status.
-RF17	Controle de estoque	O sistema deve controlar a quantidade disponível de cada produto.
-RF18	Atualização do estoque	O sistema deve atualizar o estoque conforme as operações de entrada e saída de produtos.
+ID	Requisito			Descrição
+RF01	Cadastro de usuário		O sistema deve permitir que o cliente crie uma conta informando seus dados pessoais e de acesso.
+RF02	Autenticação			O sistema deve permitir que o usuário realize login e logout.
+RF03	Recuperação de senha		O sistema deve permitir a recuperação da senha por meio do e-mail cadastrado.
+RF04	Gerenciamento de perfil		O cliente deve poder consultar e alterar seus dados cadastrais.
+RF05	Cadastro de produtos		O sistema deve permitir o cadastro de produtos de limpeza e papelaria.
+RF06	Consulta de produtos		O sistema deve permitir visualizar nome, descrição, preço, categoria, imagem e disponibilidade dos produtos.
+RF07	Busca de produtos		O sistema deve permitir pesquisar produtos por nome ou palavra-chave.
+RF08	Filtragem de produtos		O sistema deve permitir filtrar produtos por categoria e outros critérios disponíveis.
+RF09	Carrinho de compras		O sistema deve permitir adicionar, remover e alterar a quantidade de produtos no carrinho.
+RF10	Cálculo do pedido		O sistema deve calcular o subtotal dos produtos e o valor total da compra.
+RF11	Checkout			O sistema deve permitir que o cliente informe/confirme os dados necessários para finalizar o pedido.
+RF12	Pagamento via Pix		O sistema deve permitir o pagamento do pedido por Pix através do Mercado Pago.
+RF13	Pagamento via cartão		O sistema deve permitir o pagamento do pedido por cartão através do Mercado Pago.
+RF14	Validação do pagamento		O sistema deve receber e registrar o status do pagamento realizado pelo Mercado Pago.
+RF15	Criação do pedido		Após a confirmação da compra, o sistema deve registrar o pedido e seus respectivos itens.
+RF16	Consulta de pedidos		O cliente deve poder consultar seus pedidos e respectivos status.
+RF17	Controle de estoque		O sistema deve controlar a quantidade disponível de cada produto.
+RF18	Atualização do estoque		O sistema deve atualizar o estoque conforme as operações de entrada e saída de produtos.
 RF19	Controle de disponibilidade	O sistema deve impedir a compra de produtos sem estoque disponível.
 RF20	Gerenciamento administrativo	O administrador deve poder gerenciar produtos, categorias, preços e estoque.
 
@@ -26,19 +26,19 @@ RF20	Gerenciamento administrativo	O administrador deve poder gerenciar produtos,
 
 2. Requisitos Não Funcionais (RNF)
 
-ID	Requisito	Descrição
-RNF01	Segurança	O sistema deve proteger os dados dos usuários e utilizar autenticação segura.
-RNF02	Senhas	As senhas dos usuários não devem ser armazenadas em formato de texto puro.
-RNF03	Integração	O sistema deve utilizar a API do Mercado Pago para processamento dos pagamentos.
-RNF04	Disponibilidade	O sistema deve estar disponível para utilização durante o período de funcionamento da plataforma.
-RNF05	Desempenho	As operações de consulta de produtos, carrinho e checkout devem apresentar tempo de resposta adequado.
-RNF06	Usabilidade	A interface deve ser simples e intuitiva para facilitar a navegação e realização das compras.
-RNF07	Responsividade	O sistema deve ser acessível em diferentes tamanhos de tela, incluindo computadores e dispositivos móveis.
+ID	Requisito		Descrição
+RNF01	Segurança		O sistema deve proteger os dados dos usuários e utilizar autenticação segura.
+RNF02	Senhas			As senhas dos usuários não devem ser armazenadas em formato de texto puro.
+RNF03	Integração		O sistema deve utilizar a API do Mercado Pago para processamento dos pagamentos.
+RNF04	Disponibilidade		O sistema deve estar disponível para utilização durante o período de funcionamento da plataforma.
+RNF05	Desempenho		As operações de consulta de produtos, carrinho e checkout devem apresentar tempo de resposta adequado.
+RNF06	Usabilidade		A interface deve ser simples e intuitiva para facilitar a navegação e realização das compras.
+RNF07	Responsividade		O sistema deve ser acessível em diferentes tamanhos de tela, incluindo computadores e dispositivos móveis.
 RNF08	Integridade dos dados	O sistema deve garantir a consistência dos dados de usuários, produtos, pedidos, pagamentos e estoque.
-RNF09	Privacidade	Os dados pessoais dos clientes devem ser tratados de acordo com as normas de proteção de dados aplicáveis.
+RNF09	Privacidade		Os dados pessoais dos clientes devem ser tratados de acordo com as normas de proteção de dados aplicáveis.
 RNF10	Manutenibilidade	O sistema deve possuir uma estrutura que facilite futuras alterações e inclusão de novas funcionalidades.
-RNF11	Banco de dados	As informações do sistema devem ser armazenadas de forma estruturada e consistente em banco de dados.
-RNF12	Auditoria	Operações relevantes, como alterações de estoque e status de pedidos/pagamentos, devem ser registradas quando necessário.
+RNF11	Banco de dados		As informações do sistema devem ser armazenadas de forma estruturada e consistente em banco de dados.
+RNF12	Auditoria		Operações relevantes, como alterações de estoque e status de pedidos/pagamentos, devem ser registradas quando necessário.
 
 ⸻
 

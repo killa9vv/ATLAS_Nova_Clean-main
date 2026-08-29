@@ -24,11 +24,12 @@ export const envValidationSchema = Joi.object({
   CLOUDINARY_CLOUD_NAME: Joi.string().allow('').optional(),
   CLOUDINARY_API_KEY: Joi.string().allow('').optional(),
   CLOUDINARY_API_SECRET: Joi.string().allow('').optional(),
+  // Frete: opcionais de propósito (mesmo padrão do Mercado Pago/Cloudinary acima) —
+  // sem MELHOR_ENVIO_TOKEN/FRETE_CEP_ORIGEM, ShippingQuoteProviderComFallback cai
+  // direto pra tabela regional, então a API sobe normalmente em dev sem essas chaves.
   MELHOR_ENVIO_TOKEN: Joi.string().allow('').optional(),
-  MELHOR_ENVIO_BASE_URL: Joi.string().uri().optional(),
-  MELHOR_ENVIO_USER_AGENT: Joi.string().allow('').optional(),
-  CEP_ORIGEM: Joi.string()
-    .pattern(/^\d{8}$/)
-    .allow('')
-    .optional(),
+  MELHOR_ENVIO_BASE_URL: Joi.string().uri().allow('').optional(),
+  FRETE_CEP_ORIGEM: Joi.string().allow('').optional(),
+  // Sem valor definido = regra de frete grátis desligada (nenhum pedido se qualifica).
+  FRETE_GRATIS_ACIMA_DE: Joi.number().positive().optional(),
 }).unknown(true); // não rejeita outras variáveis de ambiente do sistema (PATH, etc.)
