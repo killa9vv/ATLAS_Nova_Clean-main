@@ -244,6 +244,23 @@ model Cupom {
   @@map("cupons")
 }
 
+// Sem consumo pelo storefront ainda (isso é escopo do cartão "Home / vitrine") —
+// por enquanto só gestão via painel admin. imagemUrl é uma URL colada pelo admin,
+// não upload (diferente de ImagemProduto/Cloudinary): banner é 1 imagem só, e não
+// existe pedido explícito de upload pra banner no cartão do painel administrativo.
+model Banner {
+  id        String   @id @default(uuid())
+  titulo    String
+  imagemUrl String?  @map("imagem_url")
+  linkUrl   String?  @map("link_url")
+  ordem     Int      @default(0)
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("banners")
+}
+
 // Carrinho persistido por sessão (sessionToken guardado no cliente — cookie/
 // localStorage —, sem exigir login), opcionalmente ligado a um Cliente quando
 // conhecido. Diferente de ItemPedido, ItemCarrinho NÃO guarda snapshot de
