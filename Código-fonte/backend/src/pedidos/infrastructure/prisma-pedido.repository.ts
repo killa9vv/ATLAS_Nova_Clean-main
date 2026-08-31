@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import {
+  ContatoPedido,
   DadosEntregaPedido,
   ItemPedidoEntity,
   NovoItemPedido,
@@ -35,6 +36,8 @@ export class PrismaPedidoRepository extends PedidoRepository {
     itens: NovoItemPedido[],
     total: number,
     entrega: DadosEntregaPedido,
+    contato: ContatoPedido,
+    clienteId?: string,
     statusInicial?: StatusPedido,
     contexto?: unknown,
   ): Promise<Pedido> {
@@ -44,6 +47,10 @@ export class PrismaPedidoRepository extends PedidoRepository {
       data: {
         total,
         status: statusInicial as unknown as StatusPedidoPrisma | undefined,
+        clienteId,
+        contatoNome: contato.nome,
+        contatoEmail: contato.email,
+        contatoTelefone: contato.telefone,
         tipoEntrega: entrega.tipoEntrega as unknown as TipoEntregaPrisma,
         valorFrete: entrega.valorFrete,
         enderecoCep: entrega.endereco?.cep,
@@ -137,6 +144,14 @@ export class PrismaPedidoRepository extends PedidoRepository {
         }
       : undefined;
 
+    // Fallback pra pedidos criados antes dessa coluna existir (contatoNome null) —
+    // nunca deveria acontecer pra pedidos novos, o DTO de criação exige `nome`.
+    const contato: ContatoPedido = {
+      nome: pedido.contatoNome ?? '',
+      email: pedido.contatoEmail ?? undefined,
+      telefone: pedido.contatoTelefone ?? undefined,
+    };
+
     return new Pedido(
       pedido.id,
       pedido.status as unknown as StatusPedido,
@@ -148,6 +163,8 @@ export class PrismaPedidoRepository extends PedidoRepository {
       pedido.updatedAt,
       endereco,
       pedido.codigoRastreio ?? undefined,
+      contato,
+      pedido.clienteId ?? undefined,
     );
   }
 }

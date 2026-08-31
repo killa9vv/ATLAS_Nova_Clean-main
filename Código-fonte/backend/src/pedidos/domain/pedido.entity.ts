@@ -41,6 +41,15 @@ export interface DadosEntregaPedido {
   endereco?: EnderecoEntregaPedido;
 }
 
+/** Snapshot do contato de quem comprou, pelo mesmo motivo de EnderecoEntregaPedido:
+ * o pedido não pode mudar se o cliente editar o cadastro depois. `nome` é sempre
+ * exigido pelo DTO de criação — não há checkout anônimo sem identificar o comprador. */
+export interface ContatoPedido {
+  nome: string;
+  email?: string;
+  telefone?: string;
+}
+
 export class Pedido {
   constructor(
     public readonly id: string,
@@ -53,6 +62,8 @@ export class Pedido {
     public readonly updatedAt: Date,
     public readonly endereco?: EnderecoEntregaPedido,
     public readonly codigoRastreio?: string,
+    public readonly contato?: ContatoPedido,
+    public readonly clienteId?: string,
   ) {}
 
   estaAguardandoPagamento(): boolean {

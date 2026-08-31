@@ -46,6 +46,8 @@ export class PedidosController {
     const pedido = await this.criarPedidoUseCase.executar(
       dto.itens,
       { tipoEntrega: dto.tipoEntrega, endereco: dto.endereco },
+      dto.contato,
+      dto.clienteId,
       dto.canal,
     );
     return PedidoResponseDto.fromDomain(pedido);

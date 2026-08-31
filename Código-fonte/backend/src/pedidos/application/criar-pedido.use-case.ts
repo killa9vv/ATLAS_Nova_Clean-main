@@ -3,8 +3,11 @@ import { MontarCarrinhoUseCase } from '../../carrinho/application/montar-carrinh
 import { CarrinhoItemSolicitado } from '../../carrinho/domain/carrinho-item-solicitado';
 import { CalcularFreteUseCase } from '../../frete/application/calcular-frete.use-case';
 import { ShippingAllocator } from '../../frete/domain/shipping-allocator';
+import { ClienteRepository } from '../../clientes/domain/cliente.repository';
+import { ClienteNaoEncontradoException } from '../../clientes/domain/clientes.exceptions';
 import { PedidoRepository } from '../domain/pedido.repository';
 import {
+  ContatoPedido,
   DadosEntregaPedido,
   EnderecoEntregaPedido,
   Pedido,
@@ -33,13 +36,22 @@ export class CriarPedidoUseCase {
     private readonly montarCarrinhoUseCase: MontarCarrinhoUseCase,
     private readonly calcularFreteUseCase: CalcularFreteUseCase,
     private readonly pedidoRepository: PedidoRepository,
+    private readonly clienteRepository: ClienteRepository,
   ) {}
 
   async executar(
     itensSolicitados: CarrinhoItemSolicitado[],
     entregaSolicitada: EntregaSolicitada,
+    contato: ContatoPedido,
+    clienteId?: string,
     canal: CanalCheckout = 'site',
   ): Promise<Pedido> {
+    // Fail-fast: valida o cliente antes de montar o carrinho, pra não gastar uma
+    // consulta de estoque/preço num pedido que vai falhar de qualquer jeito.
+    if (clienteId && !(await this.clienteRepository.buscarPorId(clienteId))) {
+      throw new ClienteNaoEncontradoException(clienteId);
+    }
+
     const carrinho = await this.montarCarrinhoUseCase.executar(itensSolicitados);
 
     // RETIRADA nunca cobra frete nem rateia nada entre os itens. ENTREGA usa a mesma
@@ -104,6 +116,13 @@ export class CriarPedidoUseCase {
     // AGUARDANDO_CONTATO, pra existir um registro no banco antes do redirect pro wa.me.
     const statusInicial = canal === 'whatsapp' ? StatusPedido.AGUARDANDO_CONTATO : undefined;
 
-    return this.pedidoRepository.criar(itens, carrinho.total + valorFrete, entrega, statusInicial);
+    return this.pedidoRepository.criar(
+      itens,
+      carrinho.total + valorFrete,
+      entrega,
+      contato,
+      clienteId,
+      statusInicial,
+    );
   }
 }

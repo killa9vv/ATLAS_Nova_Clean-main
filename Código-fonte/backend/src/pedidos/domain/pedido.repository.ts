@@ -1,8 +1,12 @@
-import { DadosEntregaPedido, NovoItemPedido, Pedido } from './pedido.entity';
+import { ContatoPedido, DadosEntregaPedido, NovoItemPedido, Pedido } from './pedido.entity';
 import { StatusPedido } from './status-pedido.enum';
 
 export abstract class PedidoRepository {
   /**
+   * `contato` é sempre exigido pela aplicação (garantido pelo DTO) — não há checkout
+   * sem identificar o comprador. `clienteId`, quando informado, já foi validado pelo
+   * use case (cliente existe) antes de chegar aqui.
+   *
    * `statusInicial`, quando omitido, usa o default do banco (`CRIADO`). Existe pro
    * checkout do WhatsApp, que registra o pedido direto em `AGUARDANDO_CONTATO`.
    *
@@ -14,6 +18,8 @@ export abstract class PedidoRepository {
     itens: NovoItemPedido[],
     total: number,
     entrega: DadosEntregaPedido,
+    contato: ContatoPedido,
+    clienteId?: string,
     statusInicial?: StatusPedido,
     contexto?: unknown,
   ): Promise<Pedido>;
