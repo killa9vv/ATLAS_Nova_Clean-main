@@ -5,7 +5,7 @@ import { ToastProvider } from '@/components/ui/Toast';
 import { Header } from '@/components/layout/Header';
 import { Ticker } from '@/components/layout/Ticker';
 import { Footer } from '@/components/layout/Footer';
-import './globals.css';
+import '../globals.css';
 
 export const metadata: Metadata = {
   title: 'Atlas Nova Clean — Limpeza, Descartáveis e Papelaria em Campos dos Goytacazes',
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: LayoutProps<'/'>) {
+export default function LojaLayout({ children }: LayoutProps<'/'>) {
   return (
     <html lang="pt-BR" className={`${fontVariables} antialiased`}>
       <body>

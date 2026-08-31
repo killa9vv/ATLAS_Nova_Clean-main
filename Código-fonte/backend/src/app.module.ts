@@ -14,6 +14,8 @@ import { PagamentosModule } from './pagamentos/infrastructure/pagamentos.module'
 import { AuthModule } from './auth/infrastructure/auth.module';
 import { ClientesModule } from './clientes/infrastructure/clientes.module';
 import { FreteModule } from './frete/infrastructure/frete.module';
+import { CuponsModule } from './cupons/infrastructure/cupons.module';
+import { BannersModule } from './banners/infrastructure/banners.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -36,6 +38,8 @@ import { FreteModule } from './frete/infrastructure/frete.module';
     AuthModule,
     ClientesModule,
     FreteModule,
+    CuponsModule,
+    BannersModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

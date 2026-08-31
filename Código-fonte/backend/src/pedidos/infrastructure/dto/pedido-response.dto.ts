@@ -67,6 +67,9 @@ export class PedidoResponseDto {
   @ApiPropertyOptional({ type: EnderecoEntregaResponseDto })
   endereco?: EnderecoEntregaResponseDto;
 
+  @ApiPropertyOptional({ example: 'BR123456789BR' })
+  codigoRastreio?: string;
+
   @ApiProperty({ example: '2026-08-22T18:30:00.000Z' })
   createdAt!: Date;
 
@@ -86,6 +89,7 @@ export class PedidoResponseDto {
     dto.tipoEntrega = pedido.tipoEntrega;
     dto.valorFrete = pedido.valorFrete;
     dto.endereco = pedido.endereco;
+    dto.codigoRastreio = pedido.codigoRastreio;
     dto.createdAt = pedido.createdAt;
 
     return dto;

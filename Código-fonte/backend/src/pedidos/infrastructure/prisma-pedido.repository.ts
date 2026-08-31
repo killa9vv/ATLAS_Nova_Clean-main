@@ -80,6 +80,15 @@ export class PrismaPedidoRepository extends PedidoRepository {
     return this.paraDominio(pedido);
   }
 
+  async listarTodos(): Promise<Pedido[]> {
+    const pedidos = await this.prisma.pedido.findMany({
+      include: { itens: true },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return pedidos.map((pedido) => this.paraDominio(pedido));
+  }
+
   async atualizarStatus(id: string, status: StatusPedido, contexto?: unknown): Promise<Pedido> {
     const cliente = (contexto as ClientePrisma | undefined) ?? this.prisma;
 
@@ -88,6 +97,16 @@ export class PrismaPedidoRepository extends PedidoRepository {
       data: {
         status: status as unknown as StatusPedidoPrisma,
       },
+      include: { itens: true },
+    });
+
+    return this.paraDominio(pedido);
+  }
+
+  async atualizarRastreio(id: string, codigoRastreio: string | null): Promise<Pedido> {
+    const pedido = await this.prisma.pedido.update({
+      where: { id },
+      data: { codigoRastreio },
       include: { itens: true },
     });
 
@@ -128,6 +147,7 @@ export class PrismaPedidoRepository extends PedidoRepository {
       pedido.createdAt,
       pedido.updatedAt,
       endereco,
+      pedido.codigoRastreio ?? undefined,
     );
   }
 }

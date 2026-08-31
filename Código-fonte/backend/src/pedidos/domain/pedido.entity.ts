@@ -52,6 +52,7 @@ export class Pedido {
     public readonly createdAt: Date,
     public readonly updatedAt: Date,
     public readonly endereco?: EnderecoEntregaPedido,
+    public readonly codigoRastreio?: string,
   ) {}
 
   estaAguardandoPagamento(): boolean {

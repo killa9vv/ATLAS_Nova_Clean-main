@@ -11,6 +11,7 @@
 // (pesoKg etc.) só pra exercitar esse caminho no MelhorEnvioShippingQuoteProvider; a
 // tabela regional ignora esses dados (só olha o CEP).
 import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { randomUUID } from 'crypto';
@@ -23,6 +24,7 @@ describe('Pedidos (e2e)', () => {
   let prisma: PrismaService;
   let produtoTipoId: string;
   let marcaId: string;
+  let tokenAdmin: string;
 
   const enderecoValido = {
     cep: '28013-000',
@@ -48,6 +50,8 @@ describe('Pedidos (e2e)', () => {
     await app.init();
 
     prisma = moduleRef.get(PrismaService);
+    const jwtService = moduleRef.get(JwtService);
+    tokenAdmin = jwtService.sign({ sub: randomUUID(), email: 'admin@teste.com', papel: 'ADMIN' });
 
     // Produto agora exige categoria/marca/tipo — cria essa base uma única vez
     // e reutiliza em todo o arquivo, já que os testes só se importam com estoque.
@@ -233,6 +237,175 @@ describe('Pedidos (e2e)', () => {
       });
       expect(Number(pedidoPersistido.valorFrete)).toBe(12);
       expect(Number(pedidoPersistido.itens[0].freteRateado)).toBe(12);
+    });
+  });
+
+  describe('GET /pedidos (admin)', () => {
+    it('rejeita sem token (401)', async () => {
+      await request(app.getHttpServer()).get('/pedidos').expect(401);
+    });
+
+    it('lista os pedidos existentes, mais recentes primeiro, pra quem tem token de admin', async () => {
+      const produto = await criarProdutoComEstoque(5);
+
+      await request(app.getHttpServer())
+        .post('/pedidos')
+        .send({ itens: [{ produtoId: produto.id, quantidade: 1 }], tipoEntrega: 'RETIRADA' })
+        .expect(201);
+
+      const resposta = await request(app.getHttpServer())
+        .get('/pedidos')
+        .set('Authorization', `Bearer ${tokenAdmin}`)
+        .expect(200);
+
+      expect(Array.isArray(resposta.body)).toBe(true);
+      expect(resposta.body.length).toBeGreaterThan(0);
+
+      const datas = resposta.body.map((p: { createdAt: string }) =>
+        new Date(p.createdAt).getTime(),
+      );
+      const datasOrdenadas = [...datas].sort((a, b) => b - a);
+      expect(datas).toEqual(datasOrdenadas);
+    });
+  });
+
+  describe('PATCH /pedidos/:id/status (admin)', () => {
+    it('rejeita sem token (401)', async () => {
+      const produto = await criarProdutoComEstoque(5);
+      const criacao = await request(app.getHttpServer())
+        .post('/pedidos')
+        .send({ itens: [{ produtoId: produto.id, quantidade: 1 }], tipoEntrega: 'RETIRADA' });
+
+      await request(app.getHttpServer())
+        .patch(`/pedidos/${criacao.body.id}/status`)
+        .send({ status: 'CANCELADO' })
+        .expect(401);
+    });
+
+    it('cancela um pedido AGUARDANDO_CONTATO sem mexer no estoque', async () => {
+      const produto = await criarProdutoComEstoque(5);
+      const criacao = await request(app.getHttpServer())
+        .post('/pedidos')
+        .send({
+          itens: [{ produtoId: produto.id, quantidade: 1 }],
+          tipoEntrega: 'RETIRADA',
+          canal: 'whatsapp',
+        });
+      expect(criacao.body.status).toBe('AGUARDANDO_CONTATO');
+
+      const resposta = await request(app.getHttpServer())
+        .patch(`/pedidos/${criacao.body.id}/status`)
+        .set('Authorization', `Bearer ${tokenAdmin}`)
+        .send({ status: 'CANCELADO' })
+        .expect(200);
+
+      expect(resposta.body.status).toBe('CANCELADO');
+      const produtoInalterado = await prisma.produto.findUniqueOrThrow({
+        where: { id: produto.id },
+      });
+      expect(produtoInalterado.estoque).toBe(5);
+    });
+
+    it('confirma manualmente um pedido de WhatsApp como PAGO e decrementa o estoque', async () => {
+      const produto = await criarProdutoComEstoque(3);
+      const criacao = await request(app.getHttpServer())
+        .post('/pedidos')
+        .send({
+          itens: [{ produtoId: produto.id, quantidade: 2 }],
+          tipoEntrega: 'RETIRADA',
+          canal: 'whatsapp',
+        });
+
+      const resposta = await request(app.getHttpServer())
+        .patch(`/pedidos/${criacao.body.id}/status`)
+        .set('Authorization', `Bearer ${tokenAdmin}`)
+        .send({ status: 'PAGO' })
+        .expect(200);
+
+      expect(resposta.body.status).toBe('PAGO');
+      const produtoAtualizado = await prisma.produto.findUniqueOrThrow({
+        where: { id: produto.id },
+      });
+      expect(produtoAtualizado.estoque).toBe(1);
+    });
+
+    it('rejeita marcar um pedido CRIADO como PAGO na mão (409) — só via pagamento online', async () => {
+      const produto = await criarProdutoComEstoque(5);
+      const criacao = await request(app.getHttpServer())
+        .post('/pedidos')
+        .send({ itens: [{ produtoId: produto.id, quantidade: 1 }], tipoEntrega: 'RETIRADA' });
+      expect(criacao.body.status).toBe('CRIADO');
+
+      const resposta = await request(app.getHttpServer())
+        .patch(`/pedidos/${criacao.body.id}/status`)
+        .set('Authorization', `Bearer ${tokenAdmin}`)
+        .send({ status: 'PAGO' })
+        .expect(409);
+
+      expect(resposta.body.erro).toBe('PEDIDO_EM_STATUS_INVALIDO');
+    });
+
+    it('estorna um pedido PAGO e devolve o estoque', async () => {
+      const produto = await criarProdutoComEstoque(3);
+      const criacao = await request(app.getHttpServer())
+        .post('/pedidos')
+        .send({
+          itens: [{ produtoId: produto.id, quantidade: 2 }],
+          tipoEntrega: 'RETIRADA',
+          canal: 'whatsapp',
+        });
+      await request(app.getHttpServer())
+        .patch(`/pedidos/${criacao.body.id}/status`)
+        .set('Authorization', `Bearer ${tokenAdmin}`)
+        .send({ status: 'PAGO' })
+        .expect(200);
+
+      const resposta = await request(app.getHttpServer())
+        .patch(`/pedidos/${criacao.body.id}/status`)
+        .set('Authorization', `Bearer ${tokenAdmin}`)
+        .send({ status: 'ESTORNADO' })
+        .expect(200);
+
+      expect(resposta.body.status).toBe('ESTORNADO');
+      const produtoDevolvido = await prisma.produto.findUniqueOrThrow({
+        where: { id: produto.id },
+      });
+      expect(produtoDevolvido.estoque).toBe(3);
+    });
+  });
+
+  describe('PATCH /pedidos/:id/rastreio (admin)', () => {
+    it('rejeita sem token (401)', async () => {
+      const produto = await criarProdutoComEstoque(5);
+      const criacao = await request(app.getHttpServer())
+        .post('/pedidos')
+        .send({ itens: [{ produtoId: produto.id, quantidade: 1 }], tipoEntrega: 'RETIRADA' });
+
+      await request(app.getHttpServer())
+        .patch(`/pedidos/${criacao.body.id}/rastreio`)
+        .send({ codigoRastreio: 'BR123' })
+        .expect(401);
+    });
+
+    it('grava e depois limpa o código de rastreio', async () => {
+      const produto = await criarProdutoComEstoque(5);
+      const criacao = await request(app.getHttpServer())
+        .post('/pedidos')
+        .send({ itens: [{ produtoId: produto.id, quantidade: 1 }], tipoEntrega: 'RETIRADA' });
+
+      const comRastreio = await request(app.getHttpServer())
+        .patch(`/pedidos/${criacao.body.id}/rastreio`)
+        .set('Authorization', `Bearer ${tokenAdmin}`)
+        .send({ codigoRastreio: 'BR123456789BR' })
+        .expect(200);
+      expect(comRastreio.body.codigoRastreio).toBe('BR123456789BR');
+
+      const semRastreio = await request(app.getHttpServer())
+        .patch(`/pedidos/${criacao.body.id}/rastreio`)
+        .set('Authorization', `Bearer ${tokenAdmin}`)
+        .send({})
+        .expect(200);
+      expect(semRastreio.body.codigoRastreio).toBeUndefined();
     });
   });
 });

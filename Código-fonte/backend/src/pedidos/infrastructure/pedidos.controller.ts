@@ -1,8 +1,13 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CriarPedidoUseCase } from '../application/criar-pedido.use-case';
 import { BuscarPedidoPorIdUseCase } from '../application/buscar-pedido-por-id.use-case';
+import { ListarPedidosUseCase } from '../application/listar-pedidos.use-case';
+import { AtualizarStatusPedidoUseCase } from '../application/atualizar-status-pedido.use-case';
+import { AtualizarRastreioPedidoUseCase } from '../application/atualizar-rastreio-pedido.use-case';
 import { CriarPedidoDto } from './dto/criar-pedido.dto';
+import { AtualizarStatusPedidoDto } from './dto/atualizar-status-pedido.dto';
+import { AtualizarRastreioPedidoDto } from './dto/atualizar-rastreio-pedido.dto';
 import { PedidoResponseDto } from './dto/pedido-response.dto';
 import { PedidoStatusResponseDto } from './dto/pedido-status-response.dto';
 import { JwtAuthGuard } from '../../auth/infrastructure/guards/jwt-auth.guard';
@@ -16,7 +21,22 @@ export class PedidosController {
   constructor(
     private readonly criarPedidoUseCase: CriarPedidoUseCase,
     private readonly buscarPedidoPorIdUseCase: BuscarPedidoPorIdUseCase,
+    private readonly listarPedidosUseCase: ListarPedidosUseCase,
+    private readonly atualizarStatusPedidoUseCase: AtualizarStatusPedidoUseCase,
+    private readonly atualizarRastreioPedidoUseCase: AtualizarRastreioPedidoUseCase,
   ) {}
+
+  // Admin-only — painel administrativo (dashboard, gestão de pedidos). Mesma
+  // restrição de buscarPorId abaixo: sem login de cliente, não dá pra saber
+  // "dono" de cada pedido, então listar tudo fica restrito a staff.
+  @Get()
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(PapelUsuario.ADMIN)
+  async listar(): Promise<PedidoResponseDto[]> {
+    const pedidos = await this.listarPedidosUseCase.executar();
+    return pedidos.map(PedidoResponseDto.fromDomain);
+  }
 
   // Público de propósito: checkout de convidado, sem exigir login de cliente
   // (Pedido.clienteId é opcional — ver schema.prisma). Não há hoje sistema de
@@ -54,5 +74,34 @@ export class PedidosController {
   async buscarStatus(@Param('id') id: string): Promise<PedidoStatusResponseDto> {
     const pedido = await this.buscarPedidoPorIdUseCase.executar(id);
     return PedidoStatusResponseDto.fromDomain(pedido);
+  }
+
+  // Admin-only — só algumas transições são aceitas (ver AtualizarStatusPedidoUseCase);
+  // fora delas o use case lança PedidoEmStatusInvalidoException (409).
+  @Patch(':id/status')
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(PapelUsuario.ADMIN)
+  async atualizarStatus(
+    @Param('id') id: string,
+    @Body() dto: AtualizarStatusPedidoDto,
+  ): Promise<PedidoResponseDto> {
+    const pedido = await this.atualizarStatusPedidoUseCase.executar(id, dto.status);
+    return PedidoResponseDto.fromDomain(pedido);
+  }
+
+  @Patch(':id/rastreio')
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(PapelUsuario.ADMIN)
+  async atualizarRastreio(
+    @Param('id') id: string,
+    @Body() dto: AtualizarRastreioPedidoDto,
+  ): Promise<PedidoResponseDto> {
+    const pedido = await this.atualizarRastreioPedidoUseCase.executar(
+      id,
+      dto.codigoRastreio ?? null,
+    );
+    return PedidoResponseDto.fromDomain(pedido);
   }
 }
