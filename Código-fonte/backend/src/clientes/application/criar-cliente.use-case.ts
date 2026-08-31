@@ -19,6 +19,17 @@ export class CriarClienteUseCase {
   async executar(input: CriarClienteInput): Promise<Cliente> {
     validarDocumentos(input.cpf, input.cnpj);
 
+    // "Criar" aqui é efetivamente um upsert por e-mail: o checkout público (guest
+    // marcando "salvar meus dados") chama esse endpoint de novo a cada compra, sempre
+    // com o mesmo e-mail — sem isso, a segunda compra do mesmo cliente quebraria com
+    // violação de unique constraint em vez de simplesmente reaproveitar o cadastro.
+    if (input.email) {
+      const existente = await this.clienteRepository.buscarPorEmail(input.email);
+      if (existente) {
+        return existente;
+      }
+    }
+
     return this.clienteRepository.criar({
       nome: input.nome,
       email: input.email,

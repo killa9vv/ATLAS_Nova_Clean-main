@@ -15,6 +15,7 @@ function criarClienteMock(): jest.Mocked<ClienteRepository> {
   return {
     criar: jest.fn(),
     buscarPorId: jest.fn(),
+    buscarPorEmail: jest.fn().mockResolvedValue(null),
     atualizar: jest.fn(),
     listarTodos: jest.fn(),
   } as unknown as jest.Mocked<ClienteRepository>;
@@ -78,6 +79,28 @@ describe('CriarClienteUseCase', () => {
     await useCase.executar({ nome: 'Convidado' });
 
     expect(clienteRepository.criar).toHaveBeenCalled();
+  });
+
+  it('reaproveita o cliente existente quando o e-mail já está cadastrado, sem tentar criar de novo', async () => {
+    const existente = new Cliente('cli-4', 'Maria', 'maria@example.com');
+    clienteRepository.buscarPorEmail.mockResolvedValue(existente);
+
+    const resultado = await useCase.executar({ nome: 'Maria', email: 'maria@example.com' });
+
+    expect(resultado).toBe(existente);
+    expect(clienteRepository.criar).not.toHaveBeenCalled();
+  });
+
+  it('cria normalmente quando o e-mail informado ainda não está cadastrado', async () => {
+    clienteRepository.buscarPorEmail.mockResolvedValue(null);
+    clienteRepository.criar.mockResolvedValue(new Cliente('cli-5', 'Maria', 'nova@example.com'));
+
+    await useCase.executar({ nome: 'Maria', email: 'nova@example.com' });
+
+    expect(clienteRepository.buscarPorEmail).toHaveBeenCalledWith('nova@example.com');
+    expect(clienteRepository.criar).toHaveBeenCalledWith(
+      expect.objectContaining({ email: 'nova@example.com' }),
+    );
   });
 });
 

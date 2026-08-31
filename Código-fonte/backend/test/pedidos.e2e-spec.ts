@@ -35,6 +35,12 @@ describe('Pedidos (e2e)', () => {
     estado: 'RJ',
   };
 
+  const contatoValido = {
+    nome: 'Maria da Silva',
+    email: 'maria@example.com',
+    telefone: '(22) 99999-8888',
+  };
+
   beforeAll(async () => {
     const moduleRef: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
@@ -94,11 +100,16 @@ describe('Pedidos (e2e)', () => {
 
     const resposta = await request(app.getHttpServer())
       .post('/pedidos')
-      .send({ itens: [{ produtoId: produto.id, quantidade: 2 }], tipoEntrega: 'RETIRADA' })
+      .send({
+        itens: [{ produtoId: produto.id, quantidade: 2 }],
+        tipoEntrega: 'RETIRADA',
+        contato: contatoValido,
+      })
       .expect(201);
 
     expect(resposta.body.itens).toHaveLength(1);
     expect(resposta.body.total).toBe(20);
+    expect(resposta.body.contato).toMatchObject(contatoValido);
 
     const produtoInalterado = await prisma.produto.findUniqueOrThrow({ where: { id: produto.id } });
     expect(produtoInalterado.estoque).toBe(5);
@@ -109,7 +120,11 @@ describe('Pedidos (e2e)', () => {
 
     const resposta = await request(app.getHttpServer())
       .post('/pedidos')
-      .send({ itens: [{ produtoId: produto.id, quantidade: 5 }], tipoEntrega: 'RETIRADA' })
+      .send({
+        itens: [{ produtoId: produto.id, quantidade: 5 }],
+        tipoEntrega: 'RETIRADA',
+        contato: contatoValido,
+      })
       .expect(409);
 
     expect(resposta.body.erro).toBe('ESTOQUE_INSUFICIENTE');
@@ -121,7 +136,7 @@ describe('Pedidos (e2e)', () => {
   it('rejeita corpo inválido com 400 (pedido sem nenhum item)', async () => {
     await request(app.getHttpServer())
       .post('/pedidos')
-      .send({ itens: [], tipoEntrega: 'RETIRADA' })
+      .send({ itens: [], tipoEntrega: 'RETIRADA', contato: contatoValido })
       .expect(400);
   });
 
@@ -130,7 +145,16 @@ describe('Pedidos (e2e)', () => {
 
     await request(app.getHttpServer())
       .post('/pedidos')
-      .send({ itens: [{ produtoId: produto.id, quantidade: 1 }] })
+      .send({ itens: [{ produtoId: produto.id, quantidade: 1 }], contato: contatoValido })
+      .expect(400);
+  });
+
+  it('rejeita corpo inválido com 400 (sem contato)', async () => {
+    const produto = await criarProdutoComEstoque(5);
+
+    await request(app.getHttpServer())
+      .post('/pedidos')
+      .send({ itens: [{ produtoId: produto.id, quantidade: 1 }], tipoEntrega: 'RETIRADA' })
       .expect(400);
   });
 
@@ -142,6 +166,7 @@ describe('Pedidos (e2e)', () => {
       .send({
         itens: [{ produtoId: produto.id, quantidade: 1 }],
         tipoEntrega: 'RETIRADA',
+        contato: contatoValido,
         canal: 'whatsapp',
       })
       .expect(201);
@@ -154,7 +179,11 @@ describe('Pedidos (e2e)', () => {
 
     const resposta = await request(app.getHttpServer())
       .post('/pedidos')
-      .send({ itens: [{ produtoId: produto.id, quantidade: 1 }], tipoEntrega: 'RETIRADA' })
+      .send({
+        itens: [{ produtoId: produto.id, quantidade: 1 }],
+        tipoEntrega: 'RETIRADA',
+        contato: contatoValido,
+      })
       .expect(201);
 
     expect(resposta.body.status).toBe('CRIADO');
@@ -166,10 +195,18 @@ describe('Pedidos (e2e)', () => {
     const [respostaA, respostaB] = await Promise.all([
       request(app.getHttpServer())
         .post('/pedidos')
-        .send({ itens: [{ produtoId: produto.id, quantidade: 1 }], tipoEntrega: 'RETIRADA' }),
+        .send({
+          itens: [{ produtoId: produto.id, quantidade: 1 }],
+          tipoEntrega: 'RETIRADA',
+          contato: contatoValido,
+        }),
       request(app.getHttpServer())
         .post('/pedidos')
-        .send({ itens: [{ produtoId: produto.id, quantidade: 1 }], tipoEntrega: 'RETIRADA' }),
+        .send({
+          itens: [{ produtoId: produto.id, quantidade: 1 }],
+          tipoEntrega: 'RETIRADA',
+          contato: contatoValido,
+        }),
     ]);
 
     expect([respostaA.status, respostaB.status]).toEqual([201, 201]);
@@ -190,6 +227,7 @@ describe('Pedidos (e2e)', () => {
           itens: [{ produtoId: produto.id, quantidade: 1 }],
           tipoEntrega: 'RETIRADA',
           endereco: enderecoValido,
+          contato: contatoValido,
         })
         .expect(201);
 
@@ -205,7 +243,11 @@ describe('Pedidos (e2e)', () => {
 
       await request(app.getHttpServer())
         .post('/pedidos')
-        .send({ itens: [{ produtoId: produto.id, quantidade: 1 }], tipoEntrega: 'ENTREGA' })
+        .send({
+          itens: [{ produtoId: produto.id, quantidade: 1 }],
+          tipoEntrega: 'ENTREGA',
+          contato: contatoValido,
+        })
         .expect(400);
     });
 
@@ -218,6 +260,7 @@ describe('Pedidos (e2e)', () => {
           itens: [{ produtoId: produto.id, quantidade: 1 }],
           tipoEntrega: 'ENTREGA',
           endereco: enderecoValido,
+          contato: contatoValido,
         })
         .expect(201);
 
@@ -240,6 +283,66 @@ describe('Pedidos (e2e)', () => {
     });
   });
 
+  describe('identificação do comprador', () => {
+    it('vincula o pedido a um cliente cadastrado quando clienteId é informado', async () => {
+      const produto = await criarProdutoComEstoque(5);
+      const cliente = await prisma.cliente.create({
+        data: { nome: 'Cliente de teste', email: `cliente-${randomUUID()}@teste.com` },
+      });
+
+      const criacao = await request(app.getHttpServer())
+        .post('/pedidos')
+        .send({
+          itens: [{ produtoId: produto.id, quantidade: 1 }],
+          tipoEntrega: 'RETIRADA',
+          contato: contatoValido,
+          clienteId: cliente.id,
+        })
+        .expect(201);
+
+      const resposta = await request(app.getHttpServer())
+        .get(`/pedidos/${criacao.body.id}`)
+        .set('Authorization', `Bearer ${tokenAdmin}`)
+        .expect(200);
+
+      expect(resposta.body.clienteId).toBe(cliente.id);
+    });
+
+    it('rejeita clienteId de um cliente inexistente (404)', async () => {
+      const produto = await criarProdutoComEstoque(5);
+
+      const resposta = await request(app.getHttpServer())
+        .post('/pedidos')
+        .send({
+          itens: [{ produtoId: produto.id, quantidade: 1 }],
+          tipoEntrega: 'RETIRADA',
+          contato: contatoValido,
+          clienteId: randomUUID(),
+        })
+        .expect(404);
+
+      expect(resposta.body.erro).toBe('CLIENTE_NAO_ENCONTRADO');
+    });
+
+    it('GET /pedidos/:id/status (público) nunca expõe contato nem clienteId', async () => {
+      const produto = await criarProdutoComEstoque(5);
+      const criacao = await request(app.getHttpServer())
+        .post('/pedidos')
+        .send({
+          itens: [{ produtoId: produto.id, quantidade: 1 }],
+          tipoEntrega: 'RETIRADA',
+          contato: contatoValido,
+        });
+
+      const resposta = await request(app.getHttpServer())
+        .get(`/pedidos/${criacao.body.id}/status`)
+        .expect(200);
+
+      expect(resposta.body.contato).toBeUndefined();
+      expect(resposta.body.clienteId).toBeUndefined();
+    });
+  });
+
   describe('GET /pedidos (admin)', () => {
     it('rejeita sem token (401)', async () => {
       await request(app.getHttpServer()).get('/pedidos').expect(401);
@@ -250,7 +353,11 @@ describe('Pedidos (e2e)', () => {
 
       await request(app.getHttpServer())
         .post('/pedidos')
-        .send({ itens: [{ produtoId: produto.id, quantidade: 1 }], tipoEntrega: 'RETIRADA' })
+        .send({
+          itens: [{ produtoId: produto.id, quantidade: 1 }],
+          tipoEntrega: 'RETIRADA',
+          contato: contatoValido,
+        })
         .expect(201);
 
       const resposta = await request(app.getHttpServer())
@@ -274,7 +381,11 @@ describe('Pedidos (e2e)', () => {
       const produto = await criarProdutoComEstoque(5);
       const criacao = await request(app.getHttpServer())
         .post('/pedidos')
-        .send({ itens: [{ produtoId: produto.id, quantidade: 1 }], tipoEntrega: 'RETIRADA' });
+        .send({
+          itens: [{ produtoId: produto.id, quantidade: 1 }],
+          tipoEntrega: 'RETIRADA',
+          contato: contatoValido,
+        });
 
       await request(app.getHttpServer())
         .patch(`/pedidos/${criacao.body.id}/status`)
@@ -289,6 +400,7 @@ describe('Pedidos (e2e)', () => {
         .send({
           itens: [{ produtoId: produto.id, quantidade: 1 }],
           tipoEntrega: 'RETIRADA',
+          contato: contatoValido,
           canal: 'whatsapp',
         });
       expect(criacao.body.status).toBe('AGUARDANDO_CONTATO');
@@ -313,6 +425,7 @@ describe('Pedidos (e2e)', () => {
         .send({
           itens: [{ produtoId: produto.id, quantidade: 2 }],
           tipoEntrega: 'RETIRADA',
+          contato: contatoValido,
           canal: 'whatsapp',
         });
 
@@ -333,7 +446,11 @@ describe('Pedidos (e2e)', () => {
       const produto = await criarProdutoComEstoque(5);
       const criacao = await request(app.getHttpServer())
         .post('/pedidos')
-        .send({ itens: [{ produtoId: produto.id, quantidade: 1 }], tipoEntrega: 'RETIRADA' });
+        .send({
+          itens: [{ produtoId: produto.id, quantidade: 1 }],
+          tipoEntrega: 'RETIRADA',
+          contato: contatoValido,
+        });
       expect(criacao.body.status).toBe('CRIADO');
 
       const resposta = await request(app.getHttpServer())
@@ -352,6 +469,7 @@ describe('Pedidos (e2e)', () => {
         .send({
           itens: [{ produtoId: produto.id, quantidade: 2 }],
           tipoEntrega: 'RETIRADA',
+          contato: contatoValido,
           canal: 'whatsapp',
         });
       await request(app.getHttpServer())
@@ -379,7 +497,11 @@ describe('Pedidos (e2e)', () => {
       const produto = await criarProdutoComEstoque(5);
       const criacao = await request(app.getHttpServer())
         .post('/pedidos')
-        .send({ itens: [{ produtoId: produto.id, quantidade: 1 }], tipoEntrega: 'RETIRADA' });
+        .send({
+          itens: [{ produtoId: produto.id, quantidade: 1 }],
+          tipoEntrega: 'RETIRADA',
+          contato: contatoValido,
+        });
 
       await request(app.getHttpServer())
         .patch(`/pedidos/${criacao.body.id}/rastreio`)
@@ -391,7 +513,11 @@ describe('Pedidos (e2e)', () => {
       const produto = await criarProdutoComEstoque(5);
       const criacao = await request(app.getHttpServer())
         .post('/pedidos')
-        .send({ itens: [{ produtoId: produto.id, quantidade: 1 }], tipoEntrega: 'RETIRADA' });
+        .send({
+          itens: [{ produtoId: produto.id, quantidade: 1 }],
+          tipoEntrega: 'RETIRADA',
+          contato: contatoValido,
+        });
 
       const comRastreio = await request(app.getHttpServer())
         .patch(`/pedidos/${criacao.body.id}/rastreio`)

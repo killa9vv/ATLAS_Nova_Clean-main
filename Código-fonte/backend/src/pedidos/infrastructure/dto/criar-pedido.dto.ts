@@ -5,12 +5,14 @@ import {
   IsDefined,
   IsIn,
   IsOptional,
+  IsUUID,
   ValidateIf,
   ValidateNested,
 } from 'class-validator';
 import { CarrinhoItemDto } from '../../../carrinho/infrastructure/dto/calcular-carrinho.dto';
 import { TipoEntrega } from '../../domain/pedido.entity';
 import { EnderecoEntregaDto } from './endereco-entrega.dto';
+import { ContatoPedidoDto } from './contato-pedido.dto';
 
 export class CriarPedidoDto {
   @ApiProperty({ type: [CarrinhoItemDto] })
@@ -36,6 +38,20 @@ export class CriarPedidoDto {
   @ValidateNested()
   @Type(() => EnderecoEntregaDto)
   endereco?: EnderecoEntregaDto;
+
+  @ApiProperty({ type: ContatoPedidoDto })
+  @IsDefined()
+  @ValidateNested()
+  @Type(() => ContatoPedidoDto)
+  contato!: ContatoPedidoDto;
+
+  @ApiPropertyOptional({
+    description:
+      'Vincula o pedido a um cliente cadastrado (opcional — "salvar meus dados" no checkout).',
+  })
+  @IsOptional()
+  @IsUUID()
+  clienteId?: string;
 
   @ApiPropertyOptional({
     enum: ['site', 'whatsapp'],

@@ -170,6 +170,20 @@ describe('Clientes e Endereços (e2e)', () => {
     expect(resposta.body.erro).toBe('DOCUMENTO_INVALIDO');
   });
 
+  it('reaproveita o cadastro existente em vez de quebrar quando o e-mail já está cadastrado (checkout "salvar meus dados" chamando POST /clientes de novo)', async () => {
+    const primeira = await request(app.getHttpServer())
+      .post('/clientes')
+      .send({ nome: 'Maria da Silva', email: 'maria.reuso@teste.com' })
+      .expect(201);
+
+    const segunda = await request(app.getHttpServer())
+      .post('/clientes')
+      .send({ nome: 'Maria da Silva', email: 'maria.reuso@teste.com' })
+      .expect(201);
+
+    expect(segunda.body.id).toBe(primeira.body.id);
+  });
+
   it('não permite atualizar/excluir/definir padrão de endereço de outro cliente', async () => {
     const clienteA = await criarCliente();
     const clienteB = await criarCliente();

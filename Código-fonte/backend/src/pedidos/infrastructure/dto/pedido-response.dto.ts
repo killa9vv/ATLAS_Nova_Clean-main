@@ -22,6 +22,17 @@ export class ItemPedidoResponseDto {
   freteRateado!: number;
 }
 
+class ContatoPedidoResponseDto {
+  @ApiProperty({ example: 'Maria da Silva' })
+  nome: string;
+
+  @ApiPropertyOptional({ example: 'maria@example.com' })
+  email?: string;
+
+  @ApiPropertyOptional({ example: '(22) 99999-8888' })
+  telefone?: string;
+}
+
 class EnderecoEntregaResponseDto {
   @ApiProperty({ example: '28013-000' })
   cep: string;
@@ -70,6 +81,15 @@ export class PedidoResponseDto {
   @ApiPropertyOptional({ example: 'BR123456789BR' })
   codigoRastreio?: string;
 
+  @ApiProperty({ type: ContatoPedidoResponseDto })
+  contato!: ContatoPedidoResponseDto;
+
+  @ApiPropertyOptional({
+    example: 'b3f1c2d4-5678-4abc-9def-0123456789ab',
+    description: 'Presente quando o comprador optou por salvar os dados no checkout.',
+  })
+  clienteId?: string;
+
   @ApiProperty({ example: '2026-08-22T18:30:00.000Z' })
   createdAt!: Date;
 
@@ -90,6 +110,8 @@ export class PedidoResponseDto {
     dto.valorFrete = pedido.valorFrete;
     dto.endereco = pedido.endereco;
     dto.codigoRastreio = pedido.codigoRastreio;
+    dto.contato = pedido.contato ?? { nome: '' };
+    dto.clienteId = pedido.clienteId;
     dto.createdAt = pedido.createdAt;
 
     return dto;

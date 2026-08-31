@@ -10,14 +10,18 @@ import { CarrinhoVazioException } from '../../carrinho/domain/carrinho.exception
 import { Carrinho, ItemPrecificado } from '../../carrinho/domain/item-precificado';
 import { CalcularFreteUseCase } from '../../frete/application/calcular-frete.use-case';
 import { OpcaoFrete } from '../../frete/domain/frete.entity';
+import { ClienteRepository } from '../../clientes/domain/cliente.repository';
+import { ClienteNaoEncontradoException } from '../../clientes/domain/clientes.exceptions';
+import { Cliente } from '../../clientes/domain/cliente.entity';
 import { PedidoRepository } from '../domain/pedido.repository';
-import { Pedido } from '../domain/pedido.entity';
+import { ContatoPedido, Pedido } from '../domain/pedido.entity';
 import { StatusPedido } from '../domain/status-pedido.enum';
 
 describe('CriarPedidoUseCase', () => {
   let montarCarrinhoUseCase: jest.Mocked<MontarCarrinhoUseCase>;
   let calcularFreteUseCase: jest.Mocked<CalcularFreteUseCase>;
   let pedidoRepository: jest.Mocked<PedidoRepository>;
+  let clienteRepository: jest.Mocked<ClienteRepository>;
   let useCase: CriarPedidoUseCase;
 
   const carrinho = new Carrinho([new ItemPrecificado('produto-1', 'Detergente', 2, 10)]);
@@ -28,6 +32,11 @@ describe('CriarPedidoUseCase', () => {
     bairro: 'Centro',
     cidade: 'Campos dos Goytacazes',
     estado: 'RJ',
+  };
+  const contato: ContatoPedido = {
+    nome: 'Maria da Silva',
+    email: 'maria@example.com',
+    telefone: '(22) 99999-8888',
   };
 
   beforeEach(() => {
@@ -60,13 +69,22 @@ describe('CriarPedidoUseCase', () => {
       atualizarStatus: jest.fn(),
     } as unknown as jest.Mocked<PedidoRepository>;
 
-    useCase = new CriarPedidoUseCase(montarCarrinhoUseCase, calcularFreteUseCase, pedidoRepository);
+    clienteRepository = {
+      buscarPorId: jest.fn(),
+    } as unknown as jest.Mocked<ClienteRepository>;
+
+    useCase = new CriarPedidoUseCase(
+      montarCarrinhoUseCase,
+      calcularFreteUseCase,
+      pedidoRepository,
+      clienteRepository,
+    );
   });
 
   it('não cria o pedido quando o carrinho é inválido (ex: vazio)', async () => {
     montarCarrinhoUseCase.executar.mockRejectedValue(new CarrinhoVazioException());
 
-    await expect(useCase.executar([], { tipoEntrega: 'RETIRADA' })).rejects.toBeInstanceOf(
+    await expect(useCase.executar([], { tipoEntrega: 'RETIRADA' }, contato)).rejects.toBeInstanceOf(
       CarrinhoVazioException,
     );
     expect(pedidoRepository.criar).not.toHaveBeenCalled();
@@ -74,9 +92,11 @@ describe('CriarPedidoUseCase', () => {
   });
 
   it('RETIRADA: persiste o pedido sem frete, sem ratear e sem consultar CalcularFreteUseCase', async () => {
-    await useCase.executar([{ produtoId: 'produto-1', quantidade: 2 }], {
-      tipoEntrega: 'RETIRADA',
-    });
+    await useCase.executar(
+      [{ produtoId: 'produto-1', quantidade: 2 }],
+      { tipoEntrega: 'RETIRADA' },
+      contato,
+    );
 
     expect(calcularFreteUseCase.executar).not.toHaveBeenCalled();
     expect(pedidoRepository.criar).toHaveBeenCalledWith(
@@ -91,15 +111,18 @@ describe('CriarPedidoUseCase', () => {
       ],
       carrinho.total,
       { tipoEntrega: 'RETIRADA', valorFrete: 0, endereco: undefined },
+      contato,
+      undefined,
       undefined,
     );
   });
 
   it('ENTREGA (item único): soma o valor cotado ao total, grava o endereço e passa dados físicos reais pro CalcularFreteUseCase', async () => {
-    await useCase.executar([{ produtoId: 'produto-1', quantidade: 2 }], {
-      tipoEntrega: 'ENTREGA',
-      endereco,
-    });
+    await useCase.executar(
+      [{ produtoId: 'produto-1', quantidade: 2 }],
+      { tipoEntrega: 'ENTREGA', endereco },
+      contato,
+    );
 
     expect(calcularFreteUseCase.executar).toHaveBeenCalledWith({
       cepDestino: endereco.cep,
@@ -129,6 +152,8 @@ describe('CriarPedidoUseCase', () => {
       ],
       carrinho.total + 12,
       { tipoEntrega: 'ENTREGA', valorFrete: 12, endereco },
+      contato,
+      undefined,
       undefined,
     );
   });
@@ -149,6 +174,7 @@ describe('CriarPedidoUseCase', () => {
         { produtoId: 'produto-2', quantidade: 1 },
       ],
       { tipoEntrega: 'ENTREGA', endereco },
+      contato,
     );
 
     expect(pedidoRepository.criar).toHaveBeenCalledWith(
@@ -158,6 +184,8 @@ describe('CriarPedidoUseCase', () => {
       ],
       30 + 30,
       { tipoEntrega: 'ENTREGA', valorFrete: 30, endereco },
+      contato,
+      undefined,
       undefined,
     );
   });
@@ -180,6 +208,7 @@ describe('CriarPedidoUseCase', () => {
         { produtoId: 'produto-2', quantidade: 1 },
       ],
       { tipoEntrega: 'ENTREGA', endereco },
+      contato,
     );
 
     expect(pedidoRepository.criar).toHaveBeenCalledWith(
@@ -189,6 +218,8 @@ describe('CriarPedidoUseCase', () => {
       ],
       expect.any(Number),
       expect.objectContaining({ tipoEntrega: 'ENTREGA', valorFrete: 20 }),
+      contato,
+      undefined,
       undefined,
     );
   });
@@ -197,6 +228,8 @@ describe('CriarPedidoUseCase', () => {
     await useCase.executar(
       [{ produtoId: 'produto-1', quantidade: 2 }],
       { tipoEntrega: 'RETIRADA' },
+      contato,
+      undefined,
       'whatsapp',
     );
 
@@ -212,7 +245,46 @@ describe('CriarPedidoUseCase', () => {
       ],
       carrinho.total,
       { tipoEntrega: 'RETIRADA', valorFrete: 0, endereco: undefined },
+      contato,
+      undefined,
       StatusPedido.AGUARDANDO_CONTATO,
     );
+  });
+
+  it('vincula clienteId ao pedido quando informado e o cliente existe', async () => {
+    clienteRepository.buscarPorId.mockResolvedValue(new Cliente('cliente-1', 'Maria da Silva'));
+
+    await useCase.executar(
+      [{ produtoId: 'produto-1', quantidade: 2 }],
+      { tipoEntrega: 'RETIRADA' },
+      contato,
+      'cliente-1',
+    );
+
+    expect(clienteRepository.buscarPorId).toHaveBeenCalledWith('cliente-1');
+    expect(pedidoRepository.criar).toHaveBeenCalledWith(
+      expect.any(Array),
+      expect.any(Number),
+      expect.any(Object),
+      contato,
+      'cliente-1',
+      undefined,
+    );
+  });
+
+  it('lança ClienteNaoEncontradoException e não monta o carrinho quando clienteId não existe', async () => {
+    clienteRepository.buscarPorId.mockResolvedValue(null);
+
+    await expect(
+      useCase.executar(
+        [{ produtoId: 'produto-1', quantidade: 2 }],
+        { tipoEntrega: 'RETIRADA' },
+        contato,
+        'cliente-inexistente',
+      ),
+    ).rejects.toBeInstanceOf(ClienteNaoEncontradoException);
+
+    expect(montarCarrinhoUseCase.executar).not.toHaveBeenCalled();
+    expect(pedidoRepository.criar).not.toHaveBeenCalled();
   });
 });

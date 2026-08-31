@@ -32,6 +32,11 @@ export class PrismaClienteRepository extends ClienteRepository {
     return cliente ? this.paraDominio(cliente) : null;
   }
 
+  async buscarPorEmail(email: string): Promise<Cliente | null> {
+    const cliente = await this.prisma.cliente.findUnique({ where: { email } });
+    return cliente ? this.paraDominio(cliente) : null;
+  }
+
   async atualizar(id: string, dados: DadosAtualizacaoCliente): Promise<Cliente> {
     const cliente = await this.prisma.cliente.update({
       where: { id },

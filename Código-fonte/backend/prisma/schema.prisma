@@ -326,6 +326,13 @@ model Pedido {
   // automaticamente pelo checkout/pagamento.
   codigoRastreio String? @map("codigo_rastreio")
 
+  // Contato de quem comprou, também como snapshot inline (mesmo motivo do endereço
+  // acima) — nullable no banco só porque pedidos anteriores a essa coluna não têm
+  // esse dado; a partir daqui o DTO de criação exige `nome` sempre.
+  contatoNome     String? @map("contato_nome")
+  contatoEmail    String? @map("contato_email")
+  contatoTelefone String? @map("contato_telefone")
+
   cliente    Cliente?     @relation(fields: [clienteId], references: [id])
   cupom      Cupom?       @relation(fields: [cupomCodigo], references: [codigo])
   itens      ItemPedido[]
