@@ -19,6 +19,7 @@ export interface DadosAtualizacaoCliente {
 export abstract class ClienteRepository {
   abstract criar(dados: DadosCriacaoCliente): Promise<Cliente>;
   abstract buscarPorId(id: string): Promise<Cliente | null>;
+  abstract buscarPorEmail(email: string): Promise<Cliente | null>;
   abstract atualizar(id: string, dados: DadosAtualizacaoCliente): Promise<Cliente>;
   /** Admin-only — ver ClientesController. */
   abstract listarTodos(): Promise<Cliente[]>;
