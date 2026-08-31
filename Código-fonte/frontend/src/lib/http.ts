@@ -23,13 +23,17 @@ interface OpcoesRequisicao extends Omit<RequestInit, 'body'> {
  */
 export async function apiFetch<T>(caminho: string, opcoes: OpcoesRequisicao = {}): Promise<T> {
   const { body, headers, ...resto } = opcoes;
+  // FormData (upload de arquivo, ex: imagem de produto) vai direto, sem
+  // JSON.stringify e sem Content-Type manual — o browser define o boundary do
+  // multipart sozinho; declarar Content-Type na mão quebra o parsing no backend.
+  const ehFormData = typeof FormData !== 'undefined' && body instanceof FormData;
 
   let resposta: Response;
   try {
     resposta = await fetch(`${API_BASE_URL}${caminho}`, {
       ...resto,
-      headers: { 'Content-Type': 'application/json', ...headers },
-      body: body === undefined ? undefined : JSON.stringify(body),
+      headers: ehFormData ? headers : { 'Content-Type': 'application/json', ...headers },
+      body: body === undefined ? undefined : ehFormData ? (body as FormData) : JSON.stringify(body),
     });
   } catch {
     throw new ApiError(
@@ -42,8 +46,12 @@ export async function apiFetch<T>(caminho: string, opcoes: OpcoesRequisicao = {}
   const corpo = await resposta.json().catch(() => null);
 
   if (!resposta.ok) {
+    // "mensagem": DomainExceptionFilter (exceções de domínio, ex: EstoqueInsuficienteException).
+    // "message": formato nativo do Nest (ex: UnauthorizedException do login, que não é uma
+    // DomainException e por isso não passa pelo filtro acima).
+    const corpoErro = corpo as { mensagem?: string; message?: string } | null;
     const mensagem =
-      (corpo as { mensagem?: string } | null)?.mensagem ?? 'Não foi possível concluir a operação.';
+      corpoErro?.mensagem ?? corpoErro?.message ?? 'Não foi possível concluir a operação.';
     throw new ApiError(mensagem, resposta.status, corpo);
   }
 
