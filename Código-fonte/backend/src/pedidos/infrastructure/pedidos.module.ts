@@ -4,6 +4,9 @@ import { ProdutosModule } from '../../produtos/infrastructure/produtos.module';
 import { FreteModule } from '../../frete/infrastructure/frete.module';
 import { CriarPedidoUseCase } from '../application/criar-pedido.use-case';
 import { BuscarPedidoPorIdUseCase } from '../application/buscar-pedido-por-id.use-case';
+import { ListarPedidosUseCase } from '../application/listar-pedidos.use-case';
+import { AtualizarStatusPedidoUseCase } from '../application/atualizar-status-pedido.use-case';
+import { AtualizarRastreioPedidoUseCase } from '../application/atualizar-rastreio-pedido.use-case';
 import { PedidoRepository } from '../domain/pedido.repository';
 import { PedidosController } from './pedidos.controller';
 import { PrismaPedidoRepository } from './prisma-pedido.repository';
@@ -18,6 +21,9 @@ import { PrismaPedidoRepository } from './prisma-pedido.repository';
     },
     CriarPedidoUseCase,
     BuscarPedidoPorIdUseCase,
+    ListarPedidosUseCase,
+    AtualizarStatusPedidoUseCase,
+    AtualizarRastreioPedidoUseCase,
   ],
   exports: [PedidoRepository],
 })

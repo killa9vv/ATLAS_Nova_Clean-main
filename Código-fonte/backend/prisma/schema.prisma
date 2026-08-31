@@ -305,6 +305,10 @@ model Pedido {
   enderecoCidade      String?     @map("endereco_cidade")
   enderecoEstado      String?     @map("endereco_estado")
 
+  // Preenchido pelo admin depois do envio (ver PedidosController) — nunca setado
+  // automaticamente pelo checkout/pagamento.
+  codigoRastreio String? @map("codigo_rastreio")
+
   cliente    Cliente?     @relation(fields: [clienteId], references: [id])
   cupom      Cupom?       @relation(fields: [cupomCodigo], references: [codigo])
   itens      ItemPedido[]
