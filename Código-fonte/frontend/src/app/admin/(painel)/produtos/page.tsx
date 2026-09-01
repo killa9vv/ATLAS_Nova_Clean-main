@@ -72,6 +72,7 @@ export default function ProdutosAdminPage() {
           <thead>
             <tr className="bg-sky text-left text-[11px] uppercase tracking-wide text-navy">
               <th className="px-3.5 py-2.5">Nome</th>
+              <th className="px-3.5 py-2.5">Marca</th>
               <th className="px-3.5 py-2.5">Categoria</th>
               <th className="px-3.5 py-2.5">Preço</th>
               <th className="px-3.5 py-2.5">Estoque</th>
@@ -82,14 +83,14 @@ export default function ProdutosAdminPage() {
           <tbody>
             {produtosQuery.isLoading && (
               <tr>
-                <td colSpan={6} className="px-3.5 py-6 text-center text-muted">
+                <td colSpan={7} className="px-3.5 py-6 text-center text-muted">
                   Carregando…
                 </td>
               </tr>
             )}
             {!produtosQuery.isLoading && produtos.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-3.5 py-6 text-center text-muted">
+                <td colSpan={7} className="px-3.5 py-6 text-center text-muted">
                   Nenhum produto encontrado.
                 </td>
               </tr>
@@ -97,6 +98,10 @@ export default function ProdutosAdminPage() {
             {produtos.map((produto) => (
               <tr key={produto.id} className="border-t border-line">
                 <td className="px-3.5 py-2.5 font-medium text-ink">{produto.nome}</td>
+                <td className="px-3.5 py-2.5 text-muted">
+                  {produto.marca?.nome ?? '—'}
+                  {produto.pack ? ` · ${produto.pack}` : ''}
+                </td>
                 <td className="px-3.5 py-2.5 text-muted">{produto.categoria || '—'}</td>
                 <td className="px-3.5 py-2.5">{formatarMoeda(produto.preco)}</td>
                 <td className="px-3.5 py-2.5">{produto.estoque}</td>

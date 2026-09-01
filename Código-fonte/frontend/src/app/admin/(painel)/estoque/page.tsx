@@ -17,7 +17,15 @@ const LIMITE = 200;
 function ItemEstoque({
   produto,
 }: {
-  produto: { id: string; nome: string; categoria?: string; estoque: number; ativo: boolean };
+  produto: {
+    id: string;
+    nome: string;
+    categoria?: string;
+    estoque: number;
+    ativo: boolean;
+    pack?: string;
+    marca?: { nome: string };
+  };
 }) {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
@@ -53,6 +61,10 @@ function ItemEstoque({
   return (
     <tr className="border-t border-line">
       <td className="px-3.5 py-2.5 font-medium text-ink">{produto.nome}</td>
+      <td className="px-3.5 py-2.5 text-muted">
+        {produto.marca?.nome ?? '—'}
+        {produto.pack ? ` · ${produto.pack}` : ''}
+      </td>
       <td className="px-3.5 py-2.5 text-muted">{produto.categoria || '—'}</td>
       <td className="px-3.5 py-2.5">
         <Badge variant={produto.ativo ? 'green' : 'sky'}>
@@ -110,6 +122,7 @@ export default function EstoqueAdminPage() {
           <thead>
             <tr className="bg-sky text-left text-[11px] uppercase tracking-wide text-navy">
               <th className="px-3.5 py-2.5">Nome</th>
+              <th className="px-3.5 py-2.5">Marca</th>
               <th className="px-3.5 py-2.5">Categoria</th>
               <th className="px-3.5 py-2.5">Status</th>
               <th className="px-3.5 py-2.5">Estoque</th>
@@ -118,14 +131,14 @@ export default function EstoqueAdminPage() {
           <tbody>
             {produtosQuery.isLoading && (
               <tr>
-                <td colSpan={4} className="px-3.5 py-6 text-center text-muted">
+                <td colSpan={5} className="px-3.5 py-6 text-center text-muted">
                   Carregando…
                 </td>
               </tr>
             )}
             {!produtosQuery.isLoading && produtosOrdenados.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-3.5 py-6 text-center text-muted">
+                <td colSpan={5} className="px-3.5 py-6 text-center text-muted">
                   Nenhum produto encontrado.
                 </td>
               </tr>

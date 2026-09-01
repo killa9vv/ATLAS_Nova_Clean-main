@@ -73,7 +73,11 @@ export function ImagensModal({ produto, onClose }: ImagensModalProps) {
     <Modal
       open={!!produto}
       onClose={onClose}
-      title={produto ? `Imagens — ${produto.nome}` : undefined}
+      title={
+        produto
+          ? `Imagens — ${produto.nome}${produto.marca?.nome ? ` (${produto.marca.nome}${produto.pack ? ` · ${produto.pack}` : ''})` : ''}`
+          : undefined
+      }
     >
       {produto && (
         <div className="flex flex-col gap-4">

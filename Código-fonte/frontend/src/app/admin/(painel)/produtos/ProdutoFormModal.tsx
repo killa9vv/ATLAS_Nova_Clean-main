@@ -37,7 +37,15 @@ export function ProdutoFormModal({ produto, aberto, onClose }: ProdutoFormModalP
   const editando = !!produto;
 
   return (
-    <Modal open={aberto} onClose={onClose} title={editando ? 'Editar produto' : 'Novo produto'}>
+    <Modal
+      open={aberto}
+      onClose={onClose}
+      title={
+        editando
+          ? `Editar produto${produto?.marca?.nome ? ` — ${produto.marca.nome}${produto.pack ? ` · ${produto.pack}` : ''}` : ''}`
+          : 'Novo produto'
+      }
+    >
       {/* key força remontar o form (estado fresco) ao trocar de produto/criação —
           evita useEffect+setState só pra sincronizar com a prop `produto`. */}
       {aberto && <ProdutoForm key={produto?.id ?? 'novo'} produto={produto} onSalvo={onClose} />}

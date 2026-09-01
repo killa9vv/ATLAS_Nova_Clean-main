@@ -1,5 +1,11 @@
 import { adminApi } from '@/lib/admin-api';
 
+export interface MarcaDoProdutoAdmin {
+  id: string;
+  nome: string;
+  imagemUrl?: string;
+}
+
 export interface ProdutoAdmin {
   id: string;
   nome: string;
@@ -13,6 +19,11 @@ export interface ProdutoAdmin {
   alturaCm?: number;
   larguraCm?: number;
   comprimentoCm?: number;
+  // "Nome" é o tipo genérico do produto (ex: "Pasta Catálogo com Elástico") — quando
+  // o mesmo tipo tem mais de uma marca/embalagem, essas duas linhas ficam idênticas
+  // na tabela sem isso. O backend já devolve os dois campos, só faltava aqui.
+  pack?: string;
+  marca?: MarcaDoProdutoAdmin;
 }
 
 export interface ProdutoPaginadoAdmin {
