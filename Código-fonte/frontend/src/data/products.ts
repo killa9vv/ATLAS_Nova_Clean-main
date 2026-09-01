@@ -1,7 +1,6 @@
-// Catálogo da loja: tipos de produto (com suas variantes por marca), além
-// das listas derivadas (PRODUCTS, BRANDS, etc.) usadas pelo resto do app.
-// Porte tipado de atlas-nova-clean-loja/js/data/products.js — este arquivo é
-// só dados, a lógica de exibição fica com os componentes que o consomem.
+// Catálogo original da loja, hoje só usado por MegaMenu.tsx (navegação) e como
+// fallback de texto (CATEGORY_INFO) na tela de detalhe — o catálogo real vem da API
+// (src/lib/produtos.ts) desde a migração pro Postgres.
 
 export type Category = 'limpeza' | 'descartaveis' | 'papelaria';
 
@@ -21,7 +20,7 @@ export interface ProductType {
   variants: ProductVariant[];
 }
 
-// Lista plana (1 linha por variante/marca) — usada pelo carrinho, busca e filtros de marca.
+// Lista plana (1 linha por variante/marca) — usada internamente pra derivar BRANDS.
 export interface ProductListItem {
   id: string;
   cat: Category;
@@ -36,8 +35,6 @@ export interface BrandSummary {
   brand: string;
   count: number;
 }
-
-export const STORE_WHATSAPP = '5522997805258'; // TODO: trocar pelo número real da loja
 
 // Cada "tipo" é um produto genérico (ex: Detergente para Louça).
 // Quando o mesmo tipo existe em mais de uma marca, todas entram em `variants`
@@ -413,7 +410,7 @@ export const PRODUCT_TYPES: ProductType[] = [
   },
 ];
 
-export const PRODUCTS: ProductListItem[] = PRODUCT_TYPES.flatMap((t) =>
+const PRODUCTS: ProductListItem[] = PRODUCT_TYPES.flatMap((t) =>
   t.variants.map((v) => ({
     id: v.id,
     cat: t.cat,
@@ -424,12 +421,6 @@ export const PRODUCTS: ProductListItem[] = PRODUCT_TYPES.flatMap((t) =>
     typeId: t.id,
   })),
 );
-
-export const CATEGORY_COLORS: Record<Category, [string, string, string]> = {
-  limpeza: ['#EAF4FF', '#DCEBFF', '#E3F0FF'],
-  descartaveis: ['#FFF3E0', '#FFEAD1', '#FFF0DE'],
-  papelaria: ['#EAF7EF', '#E1F3E8', '#E7F5EC'],
-};
 
 export const CATEGORIES: Category[] = ['limpeza', 'descartaveis', 'papelaria'];
 

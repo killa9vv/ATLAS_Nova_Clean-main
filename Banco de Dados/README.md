@@ -11,7 +11,7 @@ dentro do código-fonte. Se mexer no schema, atualize lá, não aqui:
 - [ERD](../Código-fonte/backend/prisma/ERD.md) — diagrama entidade-relacionamento.
 - [schema.dbml](../Código-fonte/backend/prisma/schema.dbml) — versão DBML do schema (visualizável em [dbdiagram.io](https://dbdiagram.io)).
 - [Migrations](../Código-fonte/backend/prisma/migrations/) — histórico incremental de mudanças no banco, em ordem cronológica (não copiado aqui — são ~8 pastas com SQL gerado, consulte direto no código-fonte).
-- [Seed](../Código-fonte/backend/prisma/seed.ts) — script que popula o catálogo inicial.
+- [Seed](../Código-fonte/backend/scripts/importar-catalogo.mjs) — script que popula o catálogo inicial.
 
 ## Principais entidades
 

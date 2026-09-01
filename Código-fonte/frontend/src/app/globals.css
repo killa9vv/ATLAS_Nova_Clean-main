@@ -32,8 +32,6 @@
   --animate-blob-float: blob-float 16s ease-in-out infinite;
   --animate-card-in: cardIn 0.4s ease both;
   --animate-fab-pulse: fab-pulse 2.2s ease-out infinite;
-  --animate-cart-bump: cartBump 0.35s ease;
-  --animate-brand-scroll: brand-scroll 48s linear infinite;
 
   /* Breakpoint exato do styles.css original pra troca entre nav mobile
      (hambúrguer) e nav desktop (barra horizontal + mega-menu por hover).
@@ -80,25 +78,6 @@
   100% {
     transform: scale(1.6);
     opacity: 0;
-  }
-}
-@keyframes cartBump {
-  0% {
-    transform: scale(1);
-  }
-  35% {
-    transform: scale(1.35);
-  }
-  100% {
-    transform: scale(1);
-  }
-}
-@keyframes brand-scroll {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-50%);
   }
 }
 
