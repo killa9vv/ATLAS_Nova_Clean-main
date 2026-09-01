@@ -1,6 +1,25 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Produto } from '../../domain/produto.entity';
 
+class MarcaDoProdutoResponseDto {
+  @ApiProperty({ example: 'b3f1c2d4-5678-4abc-9def-0123456789ab' })
+  id!: string;
+
+  @ApiProperty({ example: 'Ypê' })
+  nome!: string;
+
+  @ApiPropertyOptional({ example: '/brands/ype.png' })
+  imagemUrl?: string;
+}
+
+class ProdutoTipoDoProdutoResponseDto {
+  @ApiProperty({ example: 't-detergente-louca' })
+  slug!: string;
+
+  @ApiProperty({ example: 'Detergente para Louça' })
+  nome!: string;
+}
+
 export class ProdutoResponseDto {
   @ApiProperty({
     example: 'b3f1c2d4-5678-4abc-9def-0123456789ab',
@@ -42,6 +61,15 @@ export class ProdutoResponseDto {
   @ApiPropertyOptional({ example: 20 })
   comprimentoCm?: number;
 
+  @ApiPropertyOptional({ example: 'Neutro · 500ml' })
+  pack?: string;
+
+  @ApiPropertyOptional({ type: MarcaDoProdutoResponseDto })
+  marca?: MarcaDoProdutoResponseDto;
+
+  @ApiPropertyOptional({ type: ProdutoTipoDoProdutoResponseDto })
+  produtoTipo?: ProdutoTipoDoProdutoResponseDto;
+
   static fromDomain(produto: Produto): ProdutoResponseDto {
     const dto = new ProdutoResponseDto();
 
@@ -57,6 +85,9 @@ export class ProdutoResponseDto {
     dto.alturaCm = produto.alturaCm;
     dto.larguraCm = produto.larguraCm;
     dto.comprimentoCm = produto.comprimentoCm;
+    dto.pack = produto.pack;
+    dto.marca = produto.marca;
+    dto.produtoTipo = produto.produtoTipo;
 
     return dto;
   }

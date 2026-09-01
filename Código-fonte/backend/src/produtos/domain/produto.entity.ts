@@ -1,3 +1,17 @@
+/** Snapshot mínimo da marca vinculada — só o que a vitrine precisa exibir. */
+export interface MarcaDoProduto {
+  id: string;
+  nome: string;
+  imagemUrl?: string;
+}
+
+/** Snapshot mínimo do tipo genérico vinculado — usado pra agrupar variantes do
+ * mesmo produto (ex: "Detergente para Louça") e linkar pra página de detalhe. */
+export interface ProdutoTipoDoProduto {
+  slug: string;
+  nome: string;
+}
+
 export class Produto {
   constructor(
     public readonly id: string,
@@ -14,6 +28,9 @@ export class Produto {
     public readonly alturaCm?: number,
     public readonly larguraCm?: number,
     public readonly comprimentoCm?: number,
+    public readonly pack?: string,
+    public readonly marca?: MarcaDoProduto,
+    public readonly produtoTipo?: ProdutoTipoDoProduto,
   ) {}
 
   possuiEstoqueDisponivel(quantidade: number): boolean {
@@ -37,6 +54,9 @@ export class Produto {
       this.alturaCm,
       this.larguraCm,
       this.comprimentoCm,
+      this.pack,
+      this.marca,
+      this.produtoTipo,
     );
   }
 
@@ -57,6 +77,9 @@ export class Produto {
       this.alturaCm,
       this.larguraCm,
       this.comprimentoCm,
+      this.pack,
+      this.marca,
+      this.produtoTipo,
     );
   }
 }

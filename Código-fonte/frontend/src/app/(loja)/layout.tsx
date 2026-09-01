@@ -6,6 +6,8 @@ import { CartProvider } from '@/lib/cart-context';
 import { Header } from '@/components/layout/Header';
 import { Ticker } from '@/components/layout/Ticker';
 import { Footer } from '@/components/layout/Footer';
+import { CartDrawer } from '@/components/layout/CartDrawer';
+import { WhatsAppFab } from '@/components/loja/WhatsAppFab';
 import '../globals.css';
 
 export const metadata: Metadata = {
@@ -27,6 +29,8 @@ export default function LojaLayout({ children }: LayoutProps<'/'>) {
               <Ticker />
               {children}
               <Footer variant="full" />
+              <WhatsAppFab />
+              <CartDrawer />
             </CartProvider>
           </ToastProvider>
         </QueryProvider>

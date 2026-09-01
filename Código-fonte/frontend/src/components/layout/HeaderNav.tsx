@@ -2,7 +2,6 @@
 
 import { useState, type MouseEvent } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { MegaMenu } from './MegaMenu';
 import { CartButton } from './CartButton';
 import { useCart } from '@/lib/cart-context';
@@ -12,8 +11,7 @@ const NAV_LINK_CLASS =
 
 export function HeaderNav() {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const router = useRouter();
-  const { quantidadeTotal } = useCart();
+  const { quantidadeTotal, abrirDrawer } = useCart();
 
   // Delegação igual à do main.js original: clicar em qualquer link de
   // navegação de verdade fecha o menu mobile; o próprio gatilho do
@@ -81,7 +79,7 @@ export function HeaderNav() {
           />
         </button>
 
-        <CartButton count={quantidadeTotal} onClick={() => router.push('/carrinho')} />
+        <CartButton count={quantidadeTotal} onClick={abrirDrawer} />
       </div>
     </>
   );

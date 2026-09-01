@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Marca } from '../../domain/marca.entity';
 
 export class MarcaResponseDto {
@@ -8,10 +8,14 @@ export class MarcaResponseDto {
   @ApiProperty({ example: 'Ypê' })
   nome: string;
 
+  @ApiPropertyOptional({ example: '/brands/ype.png' })
+  imagemUrl?: string;
+
   static fromDomain(marca: Marca): MarcaResponseDto {
     const dto = new MarcaResponseDto();
     dto.id = marca.id;
     dto.nome = marca.nome;
+    dto.imagemUrl = marca.imagemUrl;
     return dto;
   }
 }

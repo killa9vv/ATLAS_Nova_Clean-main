@@ -45,6 +45,6 @@ export class PrismaMarcaRepository extends MarcaRepository {
   }
 
   private paraDominio(marca: MarcaPrisma): Marca {
-    return new Marca(marca.id, marca.nome);
+    return new Marca(marca.id, marca.nome, marca.imagemUrl ?? undefined);
   }
 }
