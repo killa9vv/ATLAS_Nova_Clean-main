@@ -21,6 +21,11 @@ interface CartContextValue {
   remover: (produtoId: string) => void;
   atualizarQuantidade: (produtoId: string, quantidade: number) => void;
   limpar: () => void;
+  /** Drawer lateral (mesmo padrão do site antigo: botão do header abre uma prévia
+   * do carrinho na lateral, em vez de navegar direto pra uma página cheia). */
+  drawerAberto: boolean;
+  abrirDrawer: () => void;
+  fecharDrawer: () => void;
 }
 
 const CHAVE_LOCALSTORAGE = 'atlas-carrinho';
@@ -54,6 +59,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   // por cima do que já estava salvo.
   const [itens, setItens] = useState<ItemCarrinho[]>([]);
   const [hidratado, setHidratado] = useState(false);
+  const [drawerAberto, setDrawerAberto] = useState(false);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -102,7 +108,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   return (
     <CartContext.Provider
-      value={{ itens, hidratado, quantidadeTotal, adicionar, remover, atualizarQuantidade, limpar }}
+      value={{
+        itens,
+        hidratado,
+        quantidadeTotal,
+        adicionar,
+        remover,
+        atualizarQuantidade,
+        limpar,
+        drawerAberto,
+        abrirDrawer: () => setDrawerAberto(true),
+        fecharDrawer: () => setDrawerAberto(false),
+      }}
     >
       {children}
     </CartContext.Provider>

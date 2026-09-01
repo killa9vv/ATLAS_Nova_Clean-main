@@ -66,8 +66,11 @@ model Categoria {
 }
 
 model Marca {
-  id   String @id @default(uuid())
-  nome String @unique
+  id        String  @id @default(uuid())
+  nome      String  @unique
+  // Logo servido como asset estático do frontend (public/brands/*.png) — uma marca
+  // tem um logo só, não precisa de tabela relacionada tipo ImagemProduto.
+  imagemUrl String? @map("imagem_url")
 
   produtos Produto[]
 
@@ -80,6 +83,11 @@ model ProdutoTipo {
   id          String  @id @default(uuid())
   categoriaId String  @map("categoria_id")
   nome        String
+  // Slug estável usado pela página de detalhe de produto (/produtos/[slug] no
+  // frontend) — quando importado do catálogo antigo, bate com o id original
+  // (ex: "t-detergente-louca"). Opcional pra não quebrar tipos já existentes
+  // sem slug; controllers/telas que dependem dele tratam null como "sem detalhe".
+  slug        String? @unique
   // Texto técnico/precauções padrão do tipo — sobreposição por variante (existe
   // no catálogo do frontend como ProductVariant.info/precautions) não tem campo
   // aqui: nenhum dado real usa isso hoje, fica pra quando existir de verdade.
@@ -374,4 +382,18 @@ model Pagamento {
 
   @@index([pedidoId])
   @@map("pagamentos")
+}
+
+// Avaliação da loja (não de um produto específico — o site antigo também tinha
+// avaliações gerais sobre a experiência de compra, não por item). Criação é pública
+// de propósito: checkout de convidado, sem login de cliente — mesma lógica já usada
+// em Pedido/Cliente.
+model Resenha {
+  id         String   @id @default(uuid())
+  nome       String
+  nota       Int
+  comentario String
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("resenhas")
 }

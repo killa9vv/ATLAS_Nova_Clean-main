@@ -15,9 +15,6 @@
       "Código-fonte/backend/node_modules/.bin/eslint --fix",
       "Código-fonte/backend/node_modules/.bin/prettier --write"
     ],
-    "Código-fonte/atlas-nova-clean-loja/**/*.{js,css,html}": [
-      "Código-fonte/backend/node_modules/.bin/prettier --write"
-    ],
     "Código-fonte/frontend/**/*.{ts,tsx}": [
       "Código-fonte/frontend/node_modules/.bin/eslint --config Código-fonte/frontend/eslint.config.mjs --fix",
       "Código-fonte/frontend/node_modules/.bin/prettier --write"

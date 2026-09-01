@@ -1,7 +1,8 @@
 # Atlas Nova Clean — Backend
 
 NestJS + Prisma + PostgreSQL. Módulos: `auth`, `produtos` (inclui imagens), `categorias`, `marcas`,
-`carrinho`, `pedidos`, `pagamentos` (Mercado Pago, com job de reconciliação).
+`carrinho`, `pedidos`, `pagamentos` (Mercado Pago, com job de reconciliação), `clientes` (endereços),
+`frete`, `cupons`, `banners`, `resenhas`.
 
 ## Rodando localmente
 
@@ -40,7 +41,8 @@ Ver `.env.example`.
 
 Testar o Payment Brick ponta a ponta (Pix e cartão) sem envolver dinheiro real. Além do
 backend rodando (seção acima), precisa de:
-- A loja servida por HTTP (não `file://`): `npx serve Código-fonte/atlas-nova-clean-loja`.
+- O frontend rodando (`npm run dev` em `Código-fonte/frontend`) — o checkout com o
+  Payment Brick fica em `/checkout`.
 - [ngrok](https://ngrok.com/download) instalado e autenticado (`ngrok config add-authtoken SEU_TOKEN`,
   token grátis em ngrok.com) — só é necessário pra testar **Pix**, ver o motivo no passo 5.
 
@@ -50,9 +52,8 @@ backend rodando (seção acima), precisa de:
    credenciais de contas de teste diferentes — dá o erro `Unauthorized use of
    live credentials`. As credenciais da conta vendedora vão em:
    - `MERCADOPAGO_ACCESS_TOKEN` no `.env` do backend (token `TEST-...`).
-   - `MERCADOPAGO_PUBLIC_KEY` em `atlas-nova-clean-loja/js/config.js` — ou,
-     sem editar o arquivo, definindo `window.ATLAS_MERCADOPAGO_PUBLIC_KEY`
-     numa tag `<script>` antes de `main.js` carregar.
+   - `NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY` no `.env.local` do frontend
+     (`Código-fonte/frontend`).
 2. **Expor o webhook com ngrok**. O Mercado Pago só notifica uma URL pública
    HTTPS — `localhost` não funciona.
    ```bash
@@ -167,8 +168,8 @@ integridade referencial antes de excluir). Passo a passo:
 1. Verificar identidade da conta Mercado Pago (CPF/CNPJ).
 2. Cadastrar chave Pix ou dados bancários pra receber os pagamentos.
 3. Ativar e usar as credenciais de **produção** da conta real (não as de conta
-   de teste) — `MERCADOPAGO_ACCESS_TOKEN` no backend e `MERCADOPAGO_PUBLIC_KEY`
-   no `js/config.js` do frontend.
+   de teste) — `MERCADOPAGO_ACCESS_TOKEN` no backend e
+   `NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY` no `.env.local` do frontend.
 4. Hospedar o backend com HTTPS público (obrigatório pro webhook funcionar).
 5. Se o Mercado Pago pedir homologação da integração, o próprio painel avisa
    ao tentar ativar as credenciais de produção — com o Payment Brick (já

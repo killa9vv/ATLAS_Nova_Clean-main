@@ -11,10 +11,22 @@ import {
   ResultadoPaginado,
 } from '../domain/produto.repository';
 import { EstoqueInsuficienteException } from '../../carrinho/domain/carrinho.exceptions';
-import type { Produto as ProdutoPrisma, Prisma } from '@prisma/client';
+import type {
+  Produto as ProdutoPrisma,
+  Marca as MarcaPrisma,
+  ProdutoTipo as ProdutoTipoPrisma,
+  Prisma,
+} from '@prisma/client';
 
 /** Cliente Prisma "normal" ou um client de transação (`tx` de `$transaction`) — mesma API pros métodos usados aqui. */
 type ClientePrisma = PrismaService | Prisma.TransactionClient;
+
+type ProdutoComRelacoes = ProdutoPrisma & {
+  marca: MarcaPrisma | null;
+  produtoTipo: ProdutoTipoPrisma | null;
+};
+
+const INCLUDE_RELACOES = { marca: true, produtoTipo: true } as const;
 
 @Injectable()
 export class PrismaProdutoRepository extends ProdutoRepository {
@@ -23,7 +35,7 @@ export class PrismaProdutoRepository extends ProdutoRepository {
   }
 
   async listarTodos(): Promise<Produto[]> {
-    const produtos = await this.prisma.produto.findMany();
+    const produtos = await this.prisma.produto.findMany({ include: INCLUDE_RELACOES });
     return produtos.map((produto) => this.paraDominio(produto));
   }
 
@@ -55,6 +67,7 @@ export class PrismaProdutoRepository extends ProdutoRepository {
         skip: (pagina - 1) * limite,
         take: limite,
         orderBy: { [ordenarPor]: direcao },
+        include: INCLUDE_RELACOES,
       }),
       this.prisma.produto.count({ where }),
     ]);
@@ -68,17 +81,26 @@ export class PrismaProdutoRepository extends ProdutoRepository {
   }
 
   async buscarPorId(id: string): Promise<Produto | null> {
-    const produto = await this.prisma.produto.findUnique({ where: { id } });
+    const produto = await this.prisma.produto.findUnique({
+      where: { id },
+      include: INCLUDE_RELACOES,
+    });
     return produto ? this.paraDominio(produto) : null;
   }
 
   async buscarPorIds(ids: string[]): Promise<Produto[]> {
-    const produtos = await this.prisma.produto.findMany({ where: { id: { in: ids } } });
+    const produtos = await this.prisma.produto.findMany({
+      where: { id: { in: ids } },
+      include: INCLUDE_RELACOES,
+    });
     return produtos.map((produto) => this.paraDominio(produto));
   }
 
   async buscarPorSlug(slug: string): Promise<Produto | null> {
-    const produto = await this.prisma.produto.findUnique({ where: { slug } });
+    const produto = await this.prisma.produto.findUnique({
+      where: { slug },
+      include: INCLUDE_RELACOES,
+    });
     return produto ? this.paraDominio(produto) : null;
   }
 
@@ -162,7 +184,10 @@ export class PrismaProdutoRepository extends ProdutoRepository {
     await this.prisma.$transaction((tx) => incrementar(tx));
   }
 
-  private paraDominio(produto: ProdutoPrisma): Produto {
+  private paraDominio(produto: ProdutoPrisma | ProdutoComRelacoes): Produto {
+    const marca = 'marca' in produto ? produto.marca : undefined;
+    const produtoTipo = 'produtoTipo' in produto ? produto.produtoTipo : undefined;
+
     return new Produto(
       produto.id,
       produto.nome,
@@ -178,6 +203,11 @@ export class PrismaProdutoRepository extends ProdutoRepository {
       produto.alturaCm !== null ? Number(produto.alturaCm) : undefined,
       produto.larguraCm !== null ? Number(produto.larguraCm) : undefined,
       produto.comprimentoCm !== null ? Number(produto.comprimentoCm) : undefined,
+      produto.pack ?? undefined,
+      marca
+        ? { id: marca.id, nome: marca.nome, imagemUrl: marca.imagemUrl ?? undefined }
+        : undefined,
+      produtoTipo?.slug ? { slug: produtoTipo.slug, nome: produtoTipo.nome } : undefined,
     );
   }
 }

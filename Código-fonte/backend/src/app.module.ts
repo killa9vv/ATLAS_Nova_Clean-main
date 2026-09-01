@@ -16,6 +16,7 @@ import { ClientesModule } from './clientes/infrastructure/clientes.module';
 import { FreteModule } from './frete/infrastructure/frete.module';
 import { CuponsModule } from './cupons/infrastructure/cupons.module';
 import { BannersModule } from './banners/infrastructure/banners.module';
+import { ResenhasModule } from './resenhas/infrastructure/resenhas.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -40,6 +41,7 @@ import { BannersModule } from './banners/infrastructure/banners.module';
     FreteModule,
     CuponsModule,
     BannersModule,
+    ResenhasModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

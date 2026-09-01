@@ -349,13 +349,24 @@ export default function CheckoutPage() {
         onLoad={() => setSdkPronto(true)}
       />
       <h1 className="mb-2 font-display text-2xl font-bold text-navy">Finalizar pedido</h1>
-      <ol className="mb-8 flex gap-4 text-[13px] font-semibold text-muted">
+      <ol className="mb-8 flex gap-5 text-[13px] font-semibold">
         {PASSOS.map((nome, i) => (
           <li
             key={nome}
-            className={i === passo ? 'text-navy' : i < passo ? 'text-blue' : undefined}
+            className={[
+              'flex items-center gap-2',
+              i === passo ? 'text-navy' : i < passo ? 'text-blue' : 'text-muted',
+            ].join(' ')}
           >
-            {i + 1}. {nome}
+            <span
+              className={[
+                'flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-mono font-bold',
+                i <= passo ? 'bg-navy text-white' : 'bg-line text-muted',
+              ].join(' ')}
+            >
+              {i + 1}
+            </span>
+            {nome}
           </li>
         ))}
       </ol>
@@ -511,16 +522,23 @@ export default function CheckoutPage() {
 
       {passo === 2 && resultadoPagamento?.tipo !== 'sucesso' && (
         <div className="flex flex-col gap-4">
-          <div className="rounded-atlas border border-line bg-white p-4 shadow-atlas">
-            <h2 className="mb-2 font-display text-[14px] font-bold text-navy">Itens</h2>
-            {carrinhoQuery.data?.itens.map((item) => (
-              <div key={item.produtoId} className="flex justify-between text-[13px] text-ink">
-                <span>
-                  {item.quantidade}x {item.nome}
-                </span>
-                <span>{formatarMoeda(item.subtotal)}</span>
-              </div>
-            ))}
+          <div className="overflow-hidden rounded-atlas border border-line bg-white shadow-atlas">
+            <div className="border-b-2 border-dashed border-line px-4 py-3">
+              <h2 className="font-display text-[14px] font-bold text-navy">Sua lista de compras</h2>
+            </div>
+            <div className="flex flex-col px-4">
+              {carrinhoQuery.data?.itens.map((item) => (
+                <div
+                  key={item.produtoId}
+                  className="flex justify-between border-b border-dashed border-line py-2.5 text-[13px] text-ink last:border-b-0"
+                >
+                  <span>
+                    {item.quantidade}x {item.nome}
+                  </span>
+                  <span className="font-mono font-semibold">{formatarMoeda(item.subtotal)}</span>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="rounded-atlas border border-line bg-white p-4 shadow-atlas">
@@ -543,12 +561,14 @@ export default function CheckoutPage() {
 
           <p className="text-right font-display text-lg font-bold text-navy">
             Total:{' '}
-            {formatarMoeda(
-              (carrinhoQuery.data?.total ?? 0) +
-                (form.tipoEntrega === 'ENTREGA'
-                  ? (freteQuery.data?.opcoes.find((o) => o.tipo === 'ENTREGA')?.valor ?? 0)
-                  : 0),
-            )}
+            <span className="font-mono">
+              {formatarMoeda(
+                (carrinhoQuery.data?.total ?? 0) +
+                  (form.tipoEntrega === 'ENTREGA'
+                    ? (freteQuery.data?.opcoes.find((o) => o.tipo === 'ENTREGA')?.valor ?? 0)
+                    : 0),
+              )}
+            </span>
           </p>
 
           <div className="grid grid-cols-2 gap-3">
