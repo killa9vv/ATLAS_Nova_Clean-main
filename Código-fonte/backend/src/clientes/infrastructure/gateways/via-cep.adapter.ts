@@ -2,7 +2,11 @@ import { Injectable } from '@nestjs/common';
 import axios, { AxiosInstance } from 'axios';
 import { apenasDigitosCep } from '../../../shared/cep.util';
 import { CepLookupProvider, EnderecoPorCep } from '../../domain/cep-lookup.port';
-import { CepInvalidoException, CepNaoEncontradoException } from '../../domain/clientes.exceptions';
+import {
+  CepIndisponivelException,
+  CepInvalidoException,
+  CepNaoEncontradoException,
+} from '../../domain/clientes.exceptions';
 
 const VIA_CEP_URL = 'https://viacep.com.br/ws';
 
@@ -31,9 +35,14 @@ export class ViaCepAdapter extends CepLookupProvider {
     let resposta;
     try {
       resposta = await this.http.get<RespostaViaCep>(`/${cepLimpo}/json/`);
-    } catch {
+    } catch (erro) {
       // ViaCEP responde 400 pra CEP com formato claramente inválido (ex.: menos de 8 dígitos).
-      throw new CepInvalidoException(cep);
+      // Qualquer outra falha (timeout, rede, 5xx) é indisponibilidade do provedor, não CEP
+      // inválido — misturar os dois culpava o CEP do cliente por um timeout nosso.
+      if (axios.isAxiosError(erro) && erro.response?.status === 400) {
+        throw new CepInvalidoException(cep);
+      }
+      throw new CepIndisponivelException();
     }
 
     // CEP com 8 dígitos válidos mas que não existe na base do ViaCEP responde 200

@@ -18,6 +18,7 @@ function criarClienteMock(): jest.Mocked<ClienteRepository> {
     buscarPorEmail: jest.fn().mockResolvedValue(null),
     atualizar: jest.fn(),
     listarTodos: jest.fn(),
+    atualizarSenha: jest.fn(),
   } as unknown as jest.Mocked<ClienteRepository>;
 }
 

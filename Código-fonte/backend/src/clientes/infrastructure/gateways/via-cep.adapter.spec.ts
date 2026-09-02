@@ -1,6 +1,10 @@
 import axios from 'axios';
 import { ViaCepAdapter } from './via-cep.adapter';
-import { CepInvalidoException, CepNaoEncontradoException } from '../../domain/clientes.exceptions';
+import {
+  CepIndisponivelException,
+  CepInvalidoException,
+  CepNaoEncontradoException,
+} from '../../domain/clientes.exceptions';
 
 jest.mock('axios');
 
@@ -13,6 +17,7 @@ describe('ViaCepAdapter', () => {
   beforeEach(() => {
     httpMock = { get: jest.fn() };
     axiosMock.create.mockReturnValue(httpMock as any);
+    axiosMock.isAxiosError.mockImplementation((erro: any) => Boolean(erro?.isAxiosError));
     adapter = new ViaCepAdapter();
   });
 
@@ -51,5 +56,17 @@ describe('ViaCepAdapter', () => {
     httpMock.get.mockRejectedValue({ isAxiosError: true, response: { status: 400 } });
 
     await expect(adapter.buscar('123')).rejects.toBeInstanceOf(CepInvalidoException);
+  });
+
+  it('lança CepIndisponivelException quando a chamada falha por timeout/erro de rede', async () => {
+    httpMock.get.mockRejectedValue({ isAxiosError: true, code: 'ECONNABORTED' });
+
+    await expect(adapter.buscar('28013000')).rejects.toBeInstanceOf(CepIndisponivelException);
+  });
+
+  it('lança CepIndisponivelException quando o ViaCEP responde 5xx', async () => {
+    httpMock.get.mockRejectedValue({ isAxiosError: true, response: { status: 503 } });
+
+    await expect(adapter.buscar('28013000')).rejects.toBeInstanceOf(CepIndisponivelException);
   });
 });

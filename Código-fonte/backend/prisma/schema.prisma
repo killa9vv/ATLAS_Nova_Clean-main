@@ -103,23 +103,23 @@ model ProdutoTipo {
 }
 
 model Produto {
-  id            String   @id @default(uuid())
+  id            String  @id @default(uuid())
   nome          String
   // Embalagem/variante (ex: "500ml") do modelo original — nenhum fluxo de
   // criação/edição atual preenche isso ainda, por isso ficou opcional.
   pack          String?
   descricao     String?
-  slug          String   @unique
-  produtoTipoId String?  @map("produto_tipo_id")
-  marcaId       String?  @map("marca_id")
-  categoriaId   String?  @map("categoria_id")
+  slug          String  @unique
+  produtoTipoId String? @map("produto_tipo_id")
+  marcaId       String? @map("marca_id")
+  categoriaId   String? @map("categoria_id")
   // Categoria em texto livre, herdada do modelo antigo. Ainda é a fonte do filtro
   // de listagem e do ProdutoResponseDto; sai quando os dados forem migrados para
   // categoriaId. As três FKs acima são opcionais porque já existem produtos no
   // banco sem essa classificação.
   categoria     String?
-  preco         Decimal  @db.Decimal(10, 2)
-  estoque       Int      @default(0)
+  preco         Decimal @db.Decimal(10, 2)
+  estoque       Int     @default(0)
 
   // Dados físicos usados para cotação de frete.
   // Opcionais para manter compatibilidade com produtos já cadastrados.
@@ -128,9 +128,9 @@ model Produto {
   larguraCm     Decimal? @map("largura_cm") @db.Decimal(10, 2)
   comprimentoCm Decimal? @map("comprimento_cm") @db.Decimal(10, 2)
 
-  ativo         Boolean  @default(true)
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   produtoTipo          ProdutoTipo?          @relation(fields: [produtoTipoId], references: [id])
   marca                Marca?                @relation(fields: [marcaId], references: [id])
@@ -204,13 +204,57 @@ model Cliente {
   // limpeza terceirizada) — cliente tem um ou outro, nunca os dois; a exclusividade
   // é validada na aplicação (CriarClienteUseCase/AtualizarClienteUseCase), não no banco.
   cnpj      String?  @unique
+  // Nullable de propósito: checkout de convidado (CriarClienteUseCase) continua
+  // criando Cliente sem senha. "Criar conta" é popular este campo num Cliente novo
+  // ou já existente (mesmo upsert-by-email). Login (LoginClienteUseCase) rejeita
+  // null como credencial inválida — nunca compara contra hash vazio.
+  senhaHash String?  @map("senha_hash")
   createdAt DateTime @default(now()) @map("created_at")
 
-  enderecos Endereco[]
-  pedidos   Pedido[]
-  carrinhos Carrinho[]
+  enderecos         Endereco[]
+  pedidos           Pedido[]
+  carrinhos         Carrinho[]
+  tokensRecuperacao TokenRecuperacaoSenha[]
+  refreshTokens     RefreshToken[]
 
   @@map("clientes")
+}
+
+// Token de uso único pra redefinição de senha — guarda só o hash (bcrypt, mesmo
+// custo de senhaHash), nunca o valor cru, mesmo espírito de nunca expor senha.
+// `usadoEm` marca consumo (nunca é reaproveitável); ao emitir um novo token pra um
+// cliente, SolicitarRecuperacaoSenhaUseCase invalida qualquer token anterior ainda
+// válido do mesmo cliente. Sem envio de e-mail real ainda — o token é devolvido/
+// logado pela API (ver TODO no use case) até um provedor ser configurado.
+model TokenRecuperacaoSenha {
+  id        String    @id @default(uuid())
+  clienteId String    @map("cliente_id")
+  tokenHash String    @map("token_hash")
+  expiraEm  DateTime  @map("expira_em")
+  usadoEm   DateTime? @map("usado_em")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  cliente Cliente @relation(fields: [clienteId], references: [id])
+
+  @@index([clienteId])
+  @@map("tokens_recuperacao_senha")
+}
+
+// Refresh token opaco (não-JWT) com rotação: cada uso emite um novo e revoga este
+// (`revogadoEm`). Backed por banco (não puramente stateless) porque TrocarSenhaUseCase
+// precisa revogar todas as sessões de um cliente de uma vez na troca de senha.
+model RefreshToken {
+  id         String    @id @default(uuid())
+  clienteId  String    @map("cliente_id")
+  tokenHash  String    @map("token_hash")
+  expiraEm   DateTime  @map("expira_em")
+  revogadoEm DateTime? @map("revogado_em")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  cliente Cliente @relation(fields: [clienteId], references: [id])
+
+  @@index([clienteId])
+  @@map("refresh_tokens")
 }
 
 // Um endereço marcado `padrao = true` por cliente por vez — reforçado por um índice
@@ -341,13 +385,32 @@ model Pedido {
   contatoEmail    String? @map("contato_email")
   contatoTelefone String? @map("contato_telefone")
 
-  cliente    Cliente?     @relation(fields: [clienteId], references: [id])
-  cupom      Cupom?       @relation(fields: [cupomCodigo], references: [codigo])
+  cliente    Cliente?                @relation(fields: [clienteId], references: [id])
+  cupom      Cupom?                  @relation(fields: [cupomCodigo], references: [codigo])
   itens      ItemPedido[]
   pagamentos Pagamento[]
+  historico  PedidoStatusHistorico[]
 
   @@index([clienteId])
   @@map("pedidos")
+}
+
+// Trilha auditável de mudança de status — Pedido.status é a única fonte de verdade
+// pro estado atual, esta tabela é só apend-only pra timeline (rastreamento do
+// cliente, auditoria admin). Escrita em todo ponto que já muda Pedido.status hoje:
+// AtualizarStatusPedidoUseCase (transição manual do admin) e
+// ReconciliarPedidoService (confirmação automática de pagamento via webhook/polling).
+model PedidoStatusHistorico {
+  id             String        @id @default(uuid())
+  pedidoId       String        @map("pedido_id")
+  statusAnterior StatusPedido? @map("status_anterior")
+  statusNovo     StatusPedido  @map("status_novo")
+  alteradoEm     DateTime      @default(now()) @map("alterado_em")
+
+  pedido Pedido @relation(fields: [pedidoId], references: [id])
+
+  @@index([pedidoId])
+  @@map("pedido_status_historico")
 }
 
 model ItemPedido {
