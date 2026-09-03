@@ -6,9 +6,11 @@ NestJS + Prisma + PostgreSQL. Módulos: `auth`, `produtos` (inclui imagens), `ca
 
 ## Rodando localmente
 
+### Opção A: Postgres embarcado (sem Docker)
+
 ```bash
 npm install
-cp .env.example .env   # preencha DATABASE_URL e as chaves do Mercado Pago
+cp .env.example .env   # preencha as chaves do Mercado Pago se for testar pagamento
 npx prisma migrate deploy   # só na primeira vez, ou quando houver migration nova
 npx prisma db seed         # só na primeira vez — popula o catálogo (~126 produtos)
 npm run dev                 # sobe o Postgres local e a API juntos (Ctrl+C encerra os dois)
@@ -16,6 +18,19 @@ npm run dev                 # sobe o Postgres local e a API juntos (Ctrl+C encer
 
 Se preferir bancos separados (útil se você já sobe o Postgres manualmente por outro
 lado), use `node scripts/dev-db.mjs keep-alive` numa aba e `npm run start:dev` em outra.
+
+### Opção B: Docker Compose
+
+```bash
+cp .env.example .env
+docker compose up --build   # Postgres + API com hot reload, migrations automáticas
+```
+
+Não precisa de Node nem Postgres instalados no host — só Docker. Passo a passo
+completo, connection string do DBeaver/pgAdmin e troubleshooting em
+[`docs/local-setup.md`](docs/local-setup.md).
+
+**As duas opções usam as mesmas credenciais/porta (5433) — rode só uma por vez.**
 
 ## Documentação da API
 
