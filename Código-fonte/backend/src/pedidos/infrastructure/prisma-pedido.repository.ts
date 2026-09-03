@@ -8,13 +8,20 @@ import {
   Pedido,
   TipoEntrega,
 } from '../domain/pedido.entity';
-import { PedidoRepository } from '../domain/pedido.repository';
+import {
+  FiltrosListagemPedidosAdmin,
+  FiltrosListagemPedidosCliente,
+  PedidoRepository,
+  ResultadoPaginadoPedidos,
+} from '../domain/pedido.repository';
 import { StatusPedido } from '../domain/status-pedido.enum';
+import { HistoricoStatusPedido } from '../domain/historico-status-pedido.entity';
 import type {
   Pedido as PedidoPrisma,
   ItemPedido as ItemPedidoPrisma,
   StatusPedido as StatusPedidoPrisma,
   TipoEntrega as TipoEntregaPrisma,
+  PedidoStatusHistorico as HistoricoPrisma,
   Prisma,
 } from '@prisma/client';
 
@@ -42,9 +49,11 @@ export class PrismaPedidoRepository extends PedidoRepository {
     contexto?: unknown,
   ): Promise<Pedido> {
     const cliente = (contexto as ClientePrisma | undefined) ?? this.prisma;
+    const numero = await this.proximoNumero(cliente);
 
     const pedido = await cliente.pedido.create({
       data: {
+        numero,
         total,
         status: statusInicial as unknown as StatusPedidoPrisma | undefined,
         clienteId,
@@ -76,6 +85,21 @@ export class PrismaPedidoRepository extends PedidoRepository {
     return this.paraDominio(pedido);
   }
 
+  /**
+   * Upsert com increment é atômico no Postgres (traduzido pra um INSERT ... ON
+   * CONFLICT DO UPDATE) — seguro sob concorrência sem lock explícito. Um valor de
+   * ultimoValor por ano, então o número reseta em 1 a cada ano novo.
+   */
+  private async proximoNumero(cliente: ClientePrisma): Promise<string> {
+    const ano = new Date().getFullYear();
+    const sequencial = await cliente.pedidoNumeroSequencial.upsert({
+      where: { ano },
+      create: { ano, ultimoValor: 1 },
+      update: { ultimoValor: { increment: 1 } },
+    });
+    return `${ano}-${String(sequencial.ultimoValor).padStart(6, '0')}`;
+  }
+
   async buscarPorId(id: string): Promise<Pedido | null> {
     const pedido = await this.prisma.pedido.findUnique({
       where: { id },
@@ -87,17 +111,80 @@ export class PrismaPedidoRepository extends PedidoRepository {
     return this.paraDominio(pedido);
   }
 
-  async listarTodos(): Promise<Pedido[]> {
-    const pedidos = await this.prisma.pedido.findMany({
-      include: { itens: true },
-      orderBy: { createdAt: 'desc' },
-    });
+  async listarTodos(filtros: FiltrosListagemPedidosAdmin): Promise<ResultadoPaginadoPedidos> {
+    const where: Prisma.PedidoWhereInput = {
+      status: filtros.status as unknown as StatusPedidoPrisma | undefined,
+      clienteId: filtros.clienteId,
+      createdAt:
+        filtros.dataInicio || filtros.dataFim
+          ? { gte: filtros.dataInicio, lte: filtros.dataFim }
+          : undefined,
+    };
 
-    return pedidos.map((pedido) => this.paraDominio(pedido));
+    const [pedidos, total] = await this.prisma.$transaction([
+      this.prisma.pedido.findMany({
+        where,
+        include: { itens: true },
+        orderBy: { createdAt: 'desc' },
+        skip: (filtros.pagina - 1) * filtros.limite,
+        take: filtros.limite,
+      }),
+      this.prisma.pedido.count({ where }),
+    ]);
+
+    return {
+      itens: pedidos.map((pedido) => this.paraDominio(pedido)),
+      total,
+      pagina: filtros.pagina,
+      limite: filtros.limite,
+    };
+  }
+
+  async listarPorCliente(
+    clienteId: string,
+    filtros: FiltrosListagemPedidosCliente,
+  ): Promise<ResultadoPaginadoPedidos> {
+    const where: Prisma.PedidoWhereInput = {
+      clienteId,
+      status: filtros.status as unknown as StatusPedidoPrisma | undefined,
+    };
+
+    const [pedidos, total] = await this.prisma.$transaction([
+      this.prisma.pedido.findMany({
+        where,
+        include: { itens: true },
+        orderBy: { createdAt: 'desc' },
+        skip: (filtros.pagina - 1) * filtros.limite,
+        take: filtros.limite,
+      }),
+      this.prisma.pedido.count({ where }),
+    ]);
+
+    return {
+      itens: pedidos.map((pedido) => this.paraDominio(pedido)),
+      total,
+      pagina: filtros.pagina,
+      limite: filtros.limite,
+    };
+  }
+
+  async listarHistoricoStatus(pedidoId: string): Promise<HistoricoStatusPedido[]> {
+    const historico = await this.prisma.pedidoStatusHistorico.findMany({
+      where: { pedidoId },
+      orderBy: { alteradoEm: 'desc' },
+    });
+    return historico.map((item) => this.historicoParaDominio(item));
   }
 
   async atualizarStatus(id: string, status: StatusPedido, contexto?: unknown): Promise<Pedido> {
     const cliente = (contexto as ClientePrisma | undefined) ?? this.prisma;
+
+    // Lê o status atual antes de sobrescrever — precisa dele pra registrar
+    // statusAnterior no histórico (Prisma update() só devolve o estado novo).
+    const atual = await cliente.pedido.findUniqueOrThrow({
+      where: { id },
+      select: { status: true },
+    });
 
     const pedido = await cliente.pedido.update({
       where: { id },
@@ -105,6 +192,14 @@ export class PrismaPedidoRepository extends PedidoRepository {
         status: status as unknown as StatusPedidoPrisma,
       },
       include: { itens: true },
+    });
+
+    await cliente.pedidoStatusHistorico.create({
+      data: {
+        pedidoId: id,
+        statusAnterior: atual.status,
+        statusNovo: status as unknown as StatusPedidoPrisma,
+      },
     });
 
     return this.paraDominio(pedido);
@@ -154,6 +249,7 @@ export class PrismaPedidoRepository extends PedidoRepository {
 
     return new Pedido(
       pedido.id,
+      pedido.numero,
       pedido.status as unknown as StatusPedido,
       itens,
       Number(pedido.total),
@@ -165,6 +261,16 @@ export class PrismaPedidoRepository extends PedidoRepository {
       pedido.codigoRastreio ?? undefined,
       contato,
       pedido.clienteId ?? undefined,
+    );
+  }
+
+  private historicoParaDominio(historico: HistoricoPrisma): HistoricoStatusPedido {
+    return new HistoricoStatusPedido(
+      historico.id,
+      historico.pedidoId,
+      historico.statusNovo as unknown as StatusPedido,
+      historico.alteradoEm,
+      (historico.statusAnterior as unknown as StatusPedido) ?? undefined,
     );
   }
 }

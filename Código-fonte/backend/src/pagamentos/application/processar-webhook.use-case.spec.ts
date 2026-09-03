@@ -27,7 +27,17 @@ function criarPagamento(status: StatusPagamento): Pagamento {
 }
 
 function criarPedido(status: StatusPedido, itens: ItemPedidoEntity[] = []): Pedido {
-  return new Pedido('pedido-1', status, itens, 100, 'RETIRADA', 0, new Date(), new Date());
+  return new Pedido(
+    'pedido-1',
+    '2026-000001',
+    status,
+    itens,
+    100,
+    'RETIRADA',
+    0,
+    new Date(),
+    new Date(),
+  );
 }
 
 describe('ProcessarWebhookUseCase (idempotência)', () => {

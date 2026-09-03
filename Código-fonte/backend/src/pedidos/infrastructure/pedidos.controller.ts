@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CriarPedidoUseCase } from '../application/criar-pedido.use-case';
 import { BuscarPedidoPorIdUseCase } from '../application/buscar-pedido-por-id.use-case';
@@ -8,12 +8,19 @@ import { AtualizarRastreioPedidoUseCase } from '../application/atualizar-rastrei
 import { CriarPedidoDto } from './dto/criar-pedido.dto';
 import { AtualizarStatusPedidoDto } from './dto/atualizar-status-pedido.dto';
 import { AtualizarRastreioPedidoDto } from './dto/atualizar-rastreio-pedido.dto';
+import { ListarPedidosAdminQueryDto } from './dto/listar-pedidos-admin-query.dto';
 import { PedidoResponseDto } from './dto/pedido-response.dto';
 import { PedidoStatusResponseDto } from './dto/pedido-status-response.dto';
+import { MeusPedidosResponseDto } from './dto/meus-pedidos-response.dto';
 import { JwtAuthGuard } from '../../auth/infrastructure/guards/jwt-auth.guard';
+import { OptionalJwtAuthGuard } from '../../auth/infrastructure/guards/optional-jwt-auth.guard';
 import { RolesGuard } from '../../auth/infrastructure/guards/roles.guard';
 import { Roles } from '../../auth/infrastructure/decorators/roles.decorator';
 import { PapelUsuario } from '../../auth/domain/papel-usuario.enum';
+
+interface RequisicaoComClienteOpcional {
+  user?: { id: string; papel: string };
+}
 
 @ApiTags('pedidos')
 @Controller('pedidos')
@@ -26,28 +33,45 @@ export class PedidosController {
     private readonly atualizarRastreioPedidoUseCase: AtualizarRastreioPedidoUseCase,
   ) {}
 
-  // Admin-only — painel administrativo (dashboard, gestão de pedidos). Mesma
-  // restrição de buscarPorId abaixo: sem login de cliente, não dá pra saber
-  // "dono" de cada pedido, então listar tudo fica restrito a staff.
+  // Admin-only — painel administrativo (dashboard, gestão de pedidos), paginado e
+  // filtrável por status/cliente/período.
   @Get()
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(PapelUsuario.ADMIN)
-  async listar(): Promise<PedidoResponseDto[]> {
-    const pedidos = await this.listarPedidosUseCase.executar();
-    return pedidos.map(PedidoResponseDto.fromDomain);
+  async listar(@Query() query: ListarPedidosAdminQueryDto): Promise<MeusPedidosResponseDto> {
+    const resultado = await this.listarPedidosUseCase.executar({
+      pagina: query.pagina,
+      limite: query.limite,
+      status: query.status,
+      clienteId: query.clienteId,
+      dataInicio: query.dataInicio ? new Date(query.dataInicio) : undefined,
+      dataFim: query.dataFim ? new Date(query.dataFim) : undefined,
+    });
+    return MeusPedidosResponseDto.fromDomain(resultado);
   }
 
-  // Público de propósito: checkout de convidado, sem exigir login de cliente
-  // (Pedido.clienteId é opcional — ver schema.prisma). Não há hoje sistema de
-  // login para clientes, só para staff (Usuario/ADMIN).
+  // Público de propósito: checkout de convidado continua funcionando sem login
+  // (Pedido.clienteId é opcional — ver schema.prisma), inclusive "salvar meus dados"
+  // (cliente sem senha, criado na hora — dto.clienteId aqui é ele, não uma conta real).
+  // Com OptionalJwtAuthGuard: se vier um Bearer token válido de cliente (conta de
+  // verdade, com senha), o pedido é vinculado a ELE (request.user.id, do JWT) — nunca
+  // ao dto.clienteId, que não tem como provar que é de quem está autenticado. Só cai
+  // pro dto.clienteId quando a requisição é mesmo anônima.
   @Post()
-  async criar(@Body() dto: CriarPedidoDto): Promise<PedidoResponseDto> {
+  @UseGuards(OptionalJwtAuthGuard)
+  async criar(
+    @Body() dto: CriarPedidoDto,
+    @Req() request: RequisicaoComClienteOpcional,
+  ): Promise<PedidoResponseDto> {
+    const clienteId =
+      request.user?.papel === PapelUsuario.CLIENTE ? request.user.id : dto.clienteId;
+
     const pedido = await this.criarPedidoUseCase.executar(
       dto.itens,
       { tipoEntrega: dto.tipoEntrega, endereco: dto.endereco },
       dto.contato,
-      dto.clienteId,
+      clienteId,
       dto.canal,
     );
     return PedidoResponseDto.fromDomain(pedido);

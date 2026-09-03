@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import Script from 'next/script';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/Button';
@@ -15,6 +16,7 @@ import { buscarEnderecoPorCep, criarCliente } from '@/lib/clientes';
 import { cotarFrete } from '@/lib/frete';
 import { criarPedido, type PedidoCriado } from '@/lib/pedidos';
 import { montarLinkWhatsApp } from '@/lib/whatsapp';
+import { obterSessaoCliente, type SessaoCliente } from '@/lib/conta-auth';
 import {
   acompanharPagamentoPix,
   desmontarPaymentBrick,
@@ -88,7 +90,23 @@ export default function CheckoutPage() {
   const [pedidoPagamento, setPedidoPagamento] = useState<PedidoCriado | null>(null);
   const [carregandoPagamento, setCarregandoPagamento] = useState(false);
   const [resultadoPagamento, setResultadoPagamento] = useState<ResultadoPagamento | null>(null);
+  const [sessaoCliente, setSessaoCliente] = useState<SessaoCliente | null>(null);
   const pararPollingRef = useRef<(() => void) | null>(null);
+
+  // Comprador logado: pré-preenche identificação e usa o clienteId da sessão
+  // direto (sem passar por "salvar meus dados"/criarCliente) — sem isso, o
+  // pedido nunca ficaria vinculado à conta e nunca apareceria em /conta/pedidos.
+  useEffect(() => {
+    const sessao = obterSessaoCliente();
+    if (!sessao) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSessaoCliente(sessao);
+    setForm((prev) => ({
+      ...prev,
+      nome: sessao.cliente.nome,
+      email: sessao.cliente.email ?? prev.email,
+    }));
+  }, []);
 
   const carrinhoQuery = useQuery({
     queryKey: ['carrinho-calculo', chaveCarrinho(itens)],
@@ -180,8 +198,8 @@ export default function CheckoutPage() {
     const carrinhoAtual = await carrinhoQuery.refetch();
     if (carrinhoAtual.error) throw carrinhoAtual.error;
 
-    let clienteId: string | undefined;
-    if (form.salvarDados) {
+    let clienteId: string | undefined = sessaoCliente?.cliente.id;
+    if (!clienteId && form.salvarDados) {
       const cliente = await criarCliente({
         nome: form.nome,
         email: form.email || undefined,
@@ -191,29 +209,38 @@ export default function CheckoutPage() {
       window.localStorage.setItem('atlas-cliente-id', cliente.id);
     }
 
-    return criarPedido({
-      itens: itens.map((item) => ({ produtoId: item.produtoId, quantidade: item.quantidade })),
-      tipoEntrega: form.tipoEntrega,
-      endereco:
-        form.tipoEntrega === 'ENTREGA'
-          ? {
-              cep: cepLimpo,
-              logradouro: form.logradouro,
-              numero: form.numero,
-              complemento: form.complemento || undefined,
-              bairro: form.bairro,
-              cidade: form.cidade,
-              estado: form.estado,
-            }
-          : undefined,
-      contato: {
-        nome: form.nome,
-        email: form.email || undefined,
-        telefone: form.telefone || undefined,
+    return criarPedido(
+      {
+        itens: itens.map((item) => ({ produtoId: item.produtoId, quantidade: item.quantidade })),
+        tipoEntrega: form.tipoEntrega,
+        endereco:
+          form.tipoEntrega === 'ENTREGA'
+            ? {
+                cep: cepLimpo,
+                logradouro: form.logradouro,
+                numero: form.numero,
+                complemento: form.complemento || undefined,
+                bairro: form.bairro,
+                cidade: form.cidade,
+                estado: form.estado,
+              }
+            : undefined,
+        contato: {
+          nome: form.nome,
+          email: form.email || undefined,
+          telefone: form.telefone || undefined,
+        },
+        clienteId,
+        canal,
       },
-      clienteId,
-      canal,
-    });
+      // Comprador logado: manda o token pra vincular ao cliente autenticado de
+      // verdade (o backend ignora `clienteId` acima quando autenticado — ver
+      // PedidosController.criar). Sem isso o pedido cairia no caminho anônimo/
+      // "salvar meus dados" mesmo com sessão ativa.
+      sessaoCliente
+        ? { headers: { Authorization: `Bearer ${sessaoCliente.accessToken}` } }
+        : undefined,
+    );
   }
 
   async function confirmarPedidoWhatsApp() {
@@ -391,15 +418,27 @@ export default function CheckoutPage() {
             value={form.telefone}
             onChange={(e) => setForm({ ...form, telefone: e.target.value })}
           />
-          <label className="flex items-center gap-2 text-[13px] text-ink">
-            <input
-              type="checkbox"
-              checked={form.salvarDados}
-              onChange={(e) => setForm({ ...form, salvarDados: e.target.checked })}
-              className="h-4 w-4 accent-blue"
-            />
-            Salvar meus dados pra próxima compra
-          </label>
+          {sessaoCliente ? (
+            <p className="text-[13px] text-muted">
+              Comprando como{' '}
+              <span className="font-semibold text-navy">{sessaoCliente.cliente.nome}</span> — este
+              pedido vai aparecer em{' '}
+              <Link href="/conta/pedidos" className="font-semibold text-blue hover:underline">
+                Meus pedidos
+              </Link>
+              .
+            </p>
+          ) : (
+            <label className="flex items-center gap-2 text-[13px] text-ink">
+              <input
+                type="checkbox"
+                checked={form.salvarDados}
+                onChange={(e) => setForm({ ...form, salvarDados: e.target.checked })}
+                className="h-4 w-4 accent-blue"
+              />
+              Salvar meus dados pra próxima compra
+            </label>
+          )}
           <Button disabled={!podeAvancarPasso0()} onClick={() => setPasso(1)}>
             Continuar
           </Button>

@@ -22,6 +22,7 @@ export class PrismaClienteRepository extends ClienteRepository {
         telefone: dados.telefone,
         cpf: dados.cpf,
         cnpj: dados.cnpj,
+        senhaHash: dados.senhaHash,
       },
     });
     return this.paraDominio(cliente);
@@ -56,6 +57,10 @@ export class PrismaClienteRepository extends ClienteRepository {
     return clientes.map((cliente) => this.paraDominio(cliente));
   }
 
+  async atualizarSenha(id: string, senhaHash: string): Promise<void> {
+    await this.prisma.cliente.update({ where: { id }, data: { senhaHash } });
+  }
+
   private paraDominio(cliente: ClientePrisma): Cliente {
     return new Cliente(
       cliente.id,
@@ -65,6 +70,7 @@ export class PrismaClienteRepository extends ClienteRepository {
       cliente.cpf ?? undefined,
       cliente.cnpj ?? undefined,
       cliente.createdAt,
+      cliente.senhaHash ?? undefined,
     );
   }
 }

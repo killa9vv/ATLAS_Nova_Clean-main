@@ -1,0 +1,98 @@
+# Ambiente de desenvolvimento local (Postgres + API com hot reload). Não é o único
+# jeito de rodar o projeto localmente — `npm run dev` (raiz do backend) sobe um
+# Postgres embarcado sem Docker; veja docs/local-setup.md pra comparação. As duas
+# opções usam as mesmas credenciais (definidas no .env), então DATABASE_URL não muda
+# entre elas — só rode uma de cada vez pra não disputar a porta 5433.
+#
+# Uso:
+#   cp .env.example .env
+#   docker compose up --build
+#
+# pgAdmin é opcional (perfil "tools"), já que o time também usa DBeaver local — ver
+# docs/local-setup.md pras duas connection strings:
+#   docker compose --profile tools up --build
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: atlas-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-atlas}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-atlas}
+      POSTGRES_DB: ${POSTGRES_DB:-atlas_nova_clean}
+    ports:
+      # Host:container. Porta host padrão 5433 (não 5432) de propósito — evita
+      # colidir com uma instalação nativa de Postgres no Windows, e casa com a
+      # porta que o Postgres embarcado do `npm run dev` já usa.
+      - '${POSTGRES_PORT:-5433}:5432'
+    volumes:
+      - atlas_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-atlas} -d ${POSTGRES_DB:-atlas_nova_clean}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - atlas-net
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: atlas-api
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      # Sobrescreve o DATABASE_URL do .env (que aponta pra localhost, útil pro
+      # Prisma CLI/DBeaver rodando no host) — dentro da rede do compose, o Postgres
+      # é acessado pelo nome do serviço, não localhost.
+      DATABASE_URL: postgresql://${POSTGRES_USER:-atlas}:${POSTGRES_PASSWORD:-atlas}@postgres:5432/${POSTGRES_DB:-atlas_nova_clean}?schema=public
+      PORT: ${PORT:-3000}
+    ports:
+      - '${PORT:-3000}:${PORT:-3000}'
+    volumes:
+      - .:/app
+      # Volume nomeado sobre node_modules: evita que binários/engines instalados
+      # pro Linux do container sejam ofuscados pelo node_modules do host Windows via
+      # o bind mount acima (e vice-versa). Se você alterar dependências
+      # (package.json), rode `docker compose exec api npm install`, ou
+      # `docker compose down -v` pra recriar o volume do zero no próximo up.
+      - atlas_api_node_modules:/app/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - atlas-net
+
+  pgadmin:
+    image: dpage/pgadmin4:8.12
+    container_name: atlas-pgadmin
+    restart: unless-stopped
+    profiles: ['tools']
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-dev@atlas.local}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-atlas}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - '5050:80'
+    volumes:
+      - atlas_pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - atlas-net
+
+volumes:
+  atlas_postgres_data:
+    name: atlas_postgres_data
+  atlas_api_node_modules:
+    name: atlas_api_node_modules
+  atlas_pgadmin_data:
+    name: atlas_pgadmin_data
+
+networks:
+  atlas-net:
+    name: atlas-net

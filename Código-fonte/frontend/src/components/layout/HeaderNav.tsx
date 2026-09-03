@@ -4,6 +4,7 @@ import { useState, type MouseEvent } from 'react';
 import Link from 'next/link';
 import { MegaMenu } from './MegaMenu';
 import { CartButton } from './CartButton';
+import { ContaLink } from './ContaLink';
 import { useCart } from '@/lib/cart-context';
 
 const NAV_LINK_CLASS =
@@ -59,6 +60,8 @@ export function HeaderNav() {
             className="w-[180px] rounded-[20px] border border-line bg-white py-2 pl-[34px] pr-3 font-sans text-[13px]"
           />
         </form>
+
+        <ContaLink />
 
         <button
           type="button"

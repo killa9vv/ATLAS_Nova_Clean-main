@@ -25,6 +25,7 @@ describe('CriarPagamentoUseCase', () => {
   // itens (10) + valorFrete (12) = total (22) — total já é o valor final cobrado.
   const pedido = new Pedido(
     'pedido-1',
+    '2026-000001',
     StatusPedido.CRIADO,
     [],
     22,

@@ -53,6 +53,8 @@ export interface ContatoPedido {
 export class Pedido {
   constructor(
     public readonly id: string,
+    /** Número legível pro cliente (ex: "2026-000123") — ver PedidoRepository.criar. */
+    public readonly numero: string,
     public readonly status: StatusPedido,
     public readonly itens: ItemPedidoEntity[],
     public readonly total: number,

@@ -1,5 +1,30 @@
 import { ContatoPedido, DadosEntregaPedido, NovoItemPedido, Pedido } from './pedido.entity';
 import { StatusPedido } from './status-pedido.enum';
+import { HistoricoStatusPedido } from './historico-status-pedido.entity';
+
+export interface FiltrosListagemPedidosCliente {
+  pagina: number;
+  limite: number;
+  status?: StatusPedido;
+}
+
+export interface FiltrosListagemPedidosAdmin {
+  pagina: number;
+  limite: number;
+  status?: StatusPedido;
+  clienteId?: string;
+  /** Início do período por createdAt (inclusive). */
+  dataInicio?: Date;
+  /** Fim do período por createdAt (inclusive). */
+  dataFim?: Date;
+}
+
+export interface ResultadoPaginadoPedidos {
+  itens: Pedido[];
+  total: number;
+  pagina: number;
+  limite: number;
+}
 
 export abstract class PedidoRepository {
   /**
@@ -25,8 +50,17 @@ export abstract class PedidoRepository {
   ): Promise<Pedido>;
   abstract buscarPorId(id: string): Promise<Pedido | null>;
 
-  /** Admin-only — ver PedidosController. Mais recentes primeiro. */
-  abstract listarTodos(): Promise<Pedido[]>;
+  /** Admin-only — ver PedidosController. Paginado, com filtros opcionais, mais recentes primeiro. */
+  abstract listarTodos(filtros: FiltrosListagemPedidosAdmin): Promise<ResultadoPaginadoPedidos>;
+
+  /** "Meus pedidos" — só os do próprio cliente autenticado, paginado, mais recentes primeiro. */
+  abstract listarPorCliente(
+    clienteId: string,
+    filtros: FiltrosListagemPedidosCliente,
+  ): Promise<ResultadoPaginadoPedidos>;
+
+  /** Timeline de status pra rastreamento — mais recente primeiro. */
+  abstract listarHistoricoStatus(pedidoId: string): Promise<HistoricoStatusPedido[]>;
 
   /**
    * `contexto`, quando informado, é o contexto de transação devolvido por

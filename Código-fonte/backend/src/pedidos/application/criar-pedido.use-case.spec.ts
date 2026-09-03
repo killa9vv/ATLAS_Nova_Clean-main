@@ -56,6 +56,7 @@ describe('CriarPedidoUseCase', () => {
         .mockResolvedValue(
           new Pedido(
             'pedido-1',
+            '2026-000001',
             StatusPedido.CRIADO,
             [],
             20,

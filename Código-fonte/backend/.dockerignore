@@ -1,0 +1,8 @@
+node_modules
+dist
+coverage
+.pgdata
+.pgdata-test
+.git
+.env
+*.log

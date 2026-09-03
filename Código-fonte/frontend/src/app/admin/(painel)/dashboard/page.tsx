@@ -27,9 +27,12 @@ function formatarMoeda(valor: number): string {
 }
 
 export default function DashboardPage() {
+  // limite alto pelo mesmo motivo de produtos?limite=500 abaixo: esta tela agrega
+  // estatísticas do mês inteiro no client, não uma listagem paginada de verdade
+  // (essa fica em /admin/pedidos).
   const pedidosQuery = useQuery({
-    queryKey: ['admin', 'pedidos'],
-    queryFn: listarPedidosAdmin,
+    queryKey: ['admin', 'pedidos', 'dashboard'],
+    queryFn: () => listarPedidosAdmin({ limite: 1000 }),
   });
 
   // GET /produtos é público (usado pela loja) — não precisa do Authorization
@@ -42,7 +45,7 @@ export default function DashboardPage() {
   const carregando = pedidosQuery.isLoading || produtosQuery.isLoading;
   const erro = pedidosQuery.error ?? produtosQuery.error;
 
-  const pedidos = pedidosQuery.data ?? [];
+  const pedidos = pedidosQuery.data?.itens ?? [];
   const produtos = produtosQuery.data?.itens ?? [];
 
   const inicioMes = new Date();

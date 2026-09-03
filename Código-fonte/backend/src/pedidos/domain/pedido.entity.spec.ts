@@ -2,7 +2,17 @@ import { Pedido } from './pedido.entity';
 import { StatusPedido } from './status-pedido.enum';
 
 function criarPedido(status: StatusPedido): Pedido {
-  return new Pedido('pedido-1', status, [], 100, 'RETIRADA', 0, new Date(), new Date());
+  return new Pedido(
+    'pedido-1',
+    '2026-000001',
+    status,
+    [],
+    100,
+    'RETIRADA',
+    0,
+    new Date(),
+    new Date(),
+  );
 }
 
 describe('Pedido.estaAguardandoPagamento', () => {

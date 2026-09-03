@@ -1,0 +1,18 @@
+# Imagem de DESENVOLVIMENTO (hot reload) — não usar em produção. Lá, faça um build
+# multi-stage separado (nest build + start:prod) sem bind mount de código.
+FROM node:20-bookworm-slim
+
+WORKDIR /app
+
+# Copia só os manifests primeiro pra cachear a camada de `npm ci` entre builds —
+# só reinstala dependências quando package.json/package-lock.json mudam.
+COPY package.json package-lock.json ./
+RUN npm ci
+
+COPY . .
+
+EXPOSE 3000
+
+# Via `sh`, não pelo bit de execução do arquivo: bind mount do Windows pelo Docker
+# Desktop nem sempre preserva permissão de execução do host.
+ENTRYPOINT ["sh", "scripts/docker-entrypoint.dev.sh"]

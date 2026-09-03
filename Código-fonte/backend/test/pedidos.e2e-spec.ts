@@ -361,18 +361,47 @@ describe('Pedidos (e2e)', () => {
         .expect(201);
 
       const resposta = await request(app.getHttpServer())
-        .get('/pedidos')
+        .get('/pedidos?limite=200')
         .set('Authorization', `Bearer ${tokenAdmin}`)
         .expect(200);
 
-      expect(Array.isArray(resposta.body)).toBe(true);
-      expect(resposta.body.length).toBeGreaterThan(0);
+      expect(Array.isArray(resposta.body.itens)).toBe(true);
+      expect(resposta.body.itens.length).toBeGreaterThan(0);
+      expect(typeof resposta.body.total).toBe('number');
 
-      const datas = resposta.body.map((p: { createdAt: string }) =>
+      const datas = resposta.body.itens.map((p: { createdAt: string }) =>
         new Date(p.createdAt).getTime(),
       );
       const datasOrdenadas = [...datas].sort((a, b) => b - a);
       expect(datas).toEqual(datasOrdenadas);
+    });
+
+    it('filtra por status', async () => {
+      const produto = await criarProdutoComEstoque(5);
+      const criacao = await request(app.getHttpServer())
+        .post('/pedidos')
+        .send({
+          itens: [{ produtoId: produto.id, quantidade: 1 }],
+          tipoEntrega: 'RETIRADA',
+          contato: contatoValido,
+        })
+        .expect(201);
+
+      await request(app.getHttpServer())
+        .patch(`/pedidos/${criacao.body.id}/status`)
+        .set('Authorization', `Bearer ${tokenAdmin}`)
+        .send({ status: 'CANCELADO' })
+        .expect(200);
+
+      const resposta = await request(app.getHttpServer())
+        .get('/pedidos?status=CANCELADO&limite=200')
+        .set('Authorization', `Bearer ${tokenAdmin}`)
+        .expect(200);
+
+      expect(resposta.body.itens.every((p: { status: string }) => p.status === 'CANCELADO')).toBe(
+        true,
+      );
+      expect(resposta.body.itens.some((p: { id: string }) => p.id === criacao.body.id)).toBe(true);
     });
   });
 

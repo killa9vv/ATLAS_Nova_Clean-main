@@ -30,9 +30,13 @@ export class DomainExceptionFilter implements ExceptionFilter {
     ENDERECO_NAO_ENCONTRADO: 404,
     CEP_INVALIDO: 400,
     CEP_NAO_ENCONTRADO: 404,
+    CEP_INDISPONIVEL: 503,
     CUPOM_NAO_ENCONTRADO: 404,
     CUPOM_CODIGO_DUPLICADO: 409,
     BANNER_NAO_ENCONTRADO: 404,
+    CREDENCIAIS_INVALIDAS: 401,
+    TOKEN_RECUPERACAO_INVALIDO: 400,
+    ENDERECO_PADRAO_UNICO: 409,
   };
 
   private readonly logger = new Logger(DomainExceptionFilter.name);

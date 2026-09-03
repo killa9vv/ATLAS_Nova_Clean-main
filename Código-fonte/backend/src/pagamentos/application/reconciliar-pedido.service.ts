@@ -3,7 +3,12 @@ import { EstoqueInsuficienteException } from '../../carrinho/domain/carrinho.exc
 import { ProdutoRepository } from '../../produtos/domain/produto.repository';
 import { PedidoRepository } from '../../pedidos/domain/pedido.repository';
 import { Pedido } from '../../pedidos/domain/pedido.entity';
+import {
+  OrigemTransicaoPedido,
+  PedidoStateMachine,
+} from '../../pedidos/domain/pedido-state-machine';
 import { StatusPedido } from '../../pedidos/domain/status-pedido.enum';
+import { PedidoEmStatusInvalidoException } from '../../pedidos/domain/pedidos.exceptions';
 import { TransactionManager } from '../../shared/prisma/transaction-manager';
 import { Pagamento } from '../domain/pagamento.entity';
 import { StatusPagamento } from '../domain/status-pagamento.enum';
@@ -16,13 +21,6 @@ const STATUS_PAGAMENTO_PARA_PEDIDO: Partial<Record<StatusPagamento, StatusPedido
   [StatusPagamento.CANCELADO]: StatusPedido.CANCELADO,
 };
 
-/** Status de pedido considerados finais — não são sobrescritos automaticamente pela reconciliação. */
-const STATUS_PEDIDO_FINAIS = new Set<StatusPedido>([
-  StatusPedido.PAGO,
-  StatusPedido.CANCELADO,
-  StatusPedido.ESTORNADO,
-]);
-
 /**
  * Aplica o efeito de um status de pagamento sobre o pedido correspondente (baixa de
  * estoque, marcação como PAGO/CANCELADO/ESTORNADO). Compartilhado por
@@ -34,6 +32,7 @@ const STATUS_PEDIDO_FINAIS = new Set<StatusPedido>([
 @Injectable()
 export class ReconciliarPedidoService {
   private readonly logger = new Logger(ReconciliarPedidoService.name);
+  private readonly stateMachine = new PedidoStateMachine();
 
   constructor(
     private readonly pedidoRepository: PedidoRepository,
@@ -59,13 +58,19 @@ export class ReconciliarPedidoService {
       return;
     }
 
-    if (
-      STATUS_PEDIDO_FINAIS.has(pedido.status) &&
-      !this.transicaoFinalPermitida(pedido.status, novoStatusPedido)
-    ) {
+    try {
+      this.stateMachine.validar(
+        pedido.status,
+        novoStatusPedido,
+        OrigemTransicaoPedido.SISTEMA_PAGAMENTO,
+      );
+    } catch (erro) {
+      if (!(erro instanceof PedidoEmStatusInvalidoException)) {
+        throw erro;
+      }
       this.logger.warn(
         `Inconsistência detectada: pagamento ${pagamento.id} está ${pagamento.status} ` +
-          `(sugere pedido ${novoStatusPedido}), mas pedido ${pedido.id} já está em ${pedido.status}. ` +
+          `(sugere pedido ${novoStatusPedido}), mas pedido ${pedido.id} está em ${pedido.status}. ` +
           'Requer reconciliação manual.',
       );
       return;
@@ -132,14 +137,5 @@ export class ReconciliarPedidoService {
       }
       throw erro;
     }
-  }
-
-  /**
-   * PAGO é tratado como final pra reconciliação em geral (webhooks fora de ordem não
-   * devem regredir um pedido já pago), mas um estorno é uma transição legítima a partir
-   * dele — é o único caso em que um pedido final pode mudar de status aqui.
-   */
-  private transicaoFinalPermitida(statusAtual: StatusPedido, novoStatus: StatusPedido): boolean {
-    return statusAtual === StatusPedido.PAGO && novoStatus === StatusPedido.ESTORNADO;
   }
 }

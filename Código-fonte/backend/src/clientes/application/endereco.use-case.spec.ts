@@ -7,6 +7,7 @@ import {
   CepInvalidoException,
   ClienteNaoEncontradoException,
   EnderecoNaoEncontradoException,
+  EnderecoPadraoUnicoException,
 } from '../domain/clientes.exceptions';
 import { CriarEnderecoUseCase } from './criar-endereco.use-case';
 import { AtualizarEnderecoUseCase } from './atualizar-endereco.use-case';
@@ -149,6 +150,45 @@ describe('ExcluirEnderecoUseCase', () => {
       EnderecoNaoEncontradoException,
     );
     expect(enderecoRepository.excluir).not.toHaveBeenCalled();
+  });
+
+  it('bloqueia excluir o único endereço quando ele é o padrão', async () => {
+    const enderecoRepository = criarEnderecoRepositoryMock();
+    const unico = criarEndereco({ padrao: true });
+    enderecoRepository.buscarPorId.mockResolvedValue(unico);
+    enderecoRepository.listarPorCliente.mockResolvedValue([unico]);
+    const useCase = new ExcluirEnderecoUseCase(enderecoRepository);
+
+    await expect(useCase.executar('end-1', 'cli-1')).rejects.toBeInstanceOf(
+      EnderecoPadraoUnicoException,
+    );
+    expect(enderecoRepository.excluir).not.toHaveBeenCalled();
+  });
+
+  it('permite excluir um endereço não-padrão mesmo sendo o único (não há regra sobre não-padrão)', async () => {
+    const enderecoRepository = criarEnderecoRepositoryMock();
+    const naoPadrao = criarEndereco({ padrao: false });
+    enderecoRepository.buscarPorId.mockResolvedValue(naoPadrao);
+    enderecoRepository.listarPorCliente.mockResolvedValue([naoPadrao]);
+    const useCase = new ExcluirEnderecoUseCase(enderecoRepository);
+
+    await useCase.executar('end-1', 'cli-1');
+
+    expect(enderecoRepository.excluir).toHaveBeenCalledWith('end-1');
+  });
+
+  it('excluir o padrão havendo outros promove automaticamente um dos restantes', async () => {
+    const enderecoRepository = criarEnderecoRepositoryMock();
+    const padrao = criarEndereco({ id: 'end-1', padrao: true });
+    const outro = criarEndereco({ id: 'end-2', padrao: false });
+    enderecoRepository.buscarPorId.mockResolvedValue(padrao);
+    enderecoRepository.listarPorCliente.mockResolvedValue([padrao, outro]);
+    const useCase = new ExcluirEnderecoUseCase(enderecoRepository);
+
+    await useCase.executar('end-1', 'cli-1');
+
+    expect(enderecoRepository.excluir).toHaveBeenCalledWith('end-1');
+    expect(enderecoRepository.definirComoPadrao).toHaveBeenCalledWith('end-2', 'cli-1');
   });
 });
 

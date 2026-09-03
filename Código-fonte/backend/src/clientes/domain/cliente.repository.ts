@@ -6,6 +6,7 @@ export interface DadosCriacaoCliente {
   telefone?: string;
   cpf?: string;
   cnpj?: string;
+  senhaHash?: string;
 }
 
 export interface DadosAtualizacaoCliente {
@@ -23,4 +24,5 @@ export abstract class ClienteRepository {
   abstract atualizar(id: string, dados: DadosAtualizacaoCliente): Promise<Cliente>;
   /** Admin-only — ver ClientesController. */
   abstract listarTodos(): Promise<Cliente[]>;
+  abstract atualizarSenha(id: string, senhaHash: string): Promise<void>;
 }

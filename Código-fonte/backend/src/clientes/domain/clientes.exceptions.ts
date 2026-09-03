@@ -41,3 +41,41 @@ export class CepNaoEncontradoException extends DomainException {
     super(`CEP "${cep}" não foi encontrado.`);
   }
 }
+
+/** Timeout/erro de rede consultando o ViaCEP — diferente de CEP com formato inválido. */
+export class CepIndisponivelException extends DomainException {
+  readonly code = 'CEP_INDISPONIVEL';
+
+  constructor() {
+    super('Não foi possível consultar o CEP no momento. Tente novamente.');
+  }
+}
+
+/** E-mail não cadastrado, senha errada, ou conta sem senha (só existe do checkout de
+ * convidado, nunca "criou conta") — mesma mensagem genérica nos três casos, de
+ * propósito, pra não revelar qual deles é o motivo real. */
+export class CredenciaisInvalidasException extends DomainException {
+  readonly code = 'CREDENCIAIS_INVALIDAS';
+
+  constructor() {
+    super('E-mail ou senha inválidos.');
+  }
+}
+
+/** Token de recuperação de senha inexistente, expirado ou já usado — mesma mensagem
+ * genérica nos três casos, mesmo motivo de CredenciaisInvalidasException. */
+export class TokenRecuperacaoInvalidoException extends DomainException {
+  readonly code = 'TOKEN_RECUPERACAO_INVALIDO';
+
+  constructor() {
+    super('Token de recuperação inválido ou expirado.');
+  }
+}
+
+export class EnderecoPadraoUnicoException extends DomainException {
+  readonly code = 'ENDERECO_PADRAO_UNICO';
+
+  constructor() {
+    super('Não é possível excluir o único endereço cadastrado.');
+  }
+}
