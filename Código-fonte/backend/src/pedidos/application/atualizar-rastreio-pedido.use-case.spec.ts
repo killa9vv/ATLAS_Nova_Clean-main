@@ -28,7 +28,17 @@ describe('AtualizarRastreioPedidoUseCase', () => {
 
   it('grava o código de rastreio, sem exigir nenhum status específico', async () => {
     pedidoRepository.buscarPorId.mockResolvedValue(
-      new Pedido('pedido-1', StatusPedido.PAGO, [], 20, 'RETIRADA', 0, new Date(), new Date()),
+      new Pedido(
+        'pedido-1',
+        '2026-000001',
+        StatusPedido.PAGO,
+        [],
+        20,
+        'RETIRADA',
+        0,
+        new Date(),
+        new Date(),
+      ),
     );
 
     await useCase.executar('pedido-1', 'BR123456789BR');
@@ -38,7 +48,17 @@ describe('AtualizarRastreioPedidoUseCase', () => {
 
   it('aceita null pra limpar o campo', async () => {
     pedidoRepository.buscarPorId.mockResolvedValue(
-      new Pedido('pedido-1', StatusPedido.PAGO, [], 20, 'RETIRADA', 0, new Date(), new Date()),
+      new Pedido(
+        'pedido-1',
+        '2026-000001',
+        StatusPedido.PAGO,
+        [],
+        20,
+        'RETIRADA',
+        0,
+        new Date(),
+        new Date(),
+      ),
     );
 
     await useCase.executar('pedido-1', null);

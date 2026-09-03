@@ -8,6 +8,17 @@ export interface FiltrosListagemPedidosCliente {
   status?: StatusPedido;
 }
 
+export interface FiltrosListagemPedidosAdmin {
+  pagina: number;
+  limite: number;
+  status?: StatusPedido;
+  clienteId?: string;
+  /** Início do período por createdAt (inclusive). */
+  dataInicio?: Date;
+  /** Fim do período por createdAt (inclusive). */
+  dataFim?: Date;
+}
+
 export interface ResultadoPaginadoPedidos {
   itens: Pedido[];
   total: number;
@@ -39,8 +50,8 @@ export abstract class PedidoRepository {
   ): Promise<Pedido>;
   abstract buscarPorId(id: string): Promise<Pedido | null>;
 
-  /** Admin-only — ver PedidosController. Mais recentes primeiro. */
-  abstract listarTodos(): Promise<Pedido[]>;
+  /** Admin-only — ver PedidosController. Paginado, com filtros opcionais, mais recentes primeiro. */
+  abstract listarTodos(filtros: FiltrosListagemPedidosAdmin): Promise<ResultadoPaginadoPedidos>;
 
   /** "Meus pedidos" — só os do próprio cliente autenticado, paginado, mais recentes primeiro. */
   abstract listarPorCliente(

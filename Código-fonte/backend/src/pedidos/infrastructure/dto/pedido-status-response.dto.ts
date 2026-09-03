@@ -9,6 +9,9 @@ import { StatusPedido } from '../../domain/status-pedido.enum';
  * (ver comentário em PedidosController.buscarStatus).
  */
 export class PedidoStatusResponseDto {
+  @ApiProperty({ example: '2026-000123' })
+  numero: string;
+
   @ApiProperty({ enum: StatusPedido, example: StatusPedido.CRIADO })
   status: StatusPedido;
 
@@ -17,6 +20,7 @@ export class PedidoStatusResponseDto {
 
   static fromDomain(pedido: Pedido): PedidoStatusResponseDto {
     const dto = new PedidoStatusResponseDto();
+    dto.numero = pedido.numero;
     dto.status = pedido.status;
     dto.total = pedido.total;
     return dto;

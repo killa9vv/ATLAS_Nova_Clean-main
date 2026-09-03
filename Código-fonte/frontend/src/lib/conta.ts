@@ -108,13 +108,24 @@ export function definirEnderecoPadrao(id: string): Promise<Endereco> {
 // ---------- Pedidos ----------
 
 export type StatusPedido =
-  'CRIADO' | 'AGUARDANDO_PAGAMENTO' | 'AGUARDANDO_CONTATO' | 'PAGO' | 'CANCELADO' | 'ESTORNADO';
+  | 'CRIADO'
+  | 'AGUARDANDO_PAGAMENTO'
+  | 'AGUARDANDO_CONTATO'
+  | 'PAGO'
+  | 'SEPARACAO'
+  | 'ENVIADO'
+  | 'ENTREGUE'
+  | 'CANCELADO'
+  | 'ESTORNADO';
 
 export const STATUS_PEDIDO_LABEL: Record<StatusPedido, string> = {
   CRIADO: 'Aguardando pagamento',
   AGUARDANDO_PAGAMENTO: 'Aguardando pagamento',
   AGUARDANDO_CONTATO: 'Aguardando contato (WhatsApp)',
   PAGO: 'Pago',
+  SEPARACAO: 'Em separação',
+  ENVIADO: 'Enviado',
+  ENTREGUE: 'Entregue',
   CANCELADO: 'Cancelado',
   ESTORNADO: 'Estornado',
 };
@@ -139,6 +150,7 @@ export interface EnderecoEntregaPedido {
 
 export interface Pedido {
   id: string;
+  numero: string;
   status: StatusPedido;
   itens: ItemPedido[];
   total: number;

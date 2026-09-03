@@ -122,6 +122,7 @@ describe('Pagamentos - webhook (e2e)', () => {
 
     const pedido = await prisma.pedido.create({
       data: {
+        numero: `teste-${randomUUID()}`,
         status: StatusPedidoPrisma.PAGO,
         total: 20,
         itens: {
@@ -178,6 +179,7 @@ describe('Pagamentos - webhook (e2e)', () => {
     const criarPedidoAguardandoPagamento = () =>
       prisma.pedido.create({
         data: {
+          numero: `teste-${randomUUID()}`,
           status: StatusPedidoPrisma.AGUARDANDO_PAGAMENTO,
           total: 10,
           itens: {

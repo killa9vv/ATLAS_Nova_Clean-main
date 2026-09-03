@@ -209,29 +209,38 @@ export default function CheckoutPage() {
       window.localStorage.setItem('atlas-cliente-id', cliente.id);
     }
 
-    return criarPedido({
-      itens: itens.map((item) => ({ produtoId: item.produtoId, quantidade: item.quantidade })),
-      tipoEntrega: form.tipoEntrega,
-      endereco:
-        form.tipoEntrega === 'ENTREGA'
-          ? {
-              cep: cepLimpo,
-              logradouro: form.logradouro,
-              numero: form.numero,
-              complemento: form.complemento || undefined,
-              bairro: form.bairro,
-              cidade: form.cidade,
-              estado: form.estado,
-            }
-          : undefined,
-      contato: {
-        nome: form.nome,
-        email: form.email || undefined,
-        telefone: form.telefone || undefined,
+    return criarPedido(
+      {
+        itens: itens.map((item) => ({ produtoId: item.produtoId, quantidade: item.quantidade })),
+        tipoEntrega: form.tipoEntrega,
+        endereco:
+          form.tipoEntrega === 'ENTREGA'
+            ? {
+                cep: cepLimpo,
+                logradouro: form.logradouro,
+                numero: form.numero,
+                complemento: form.complemento || undefined,
+                bairro: form.bairro,
+                cidade: form.cidade,
+                estado: form.estado,
+              }
+            : undefined,
+        contato: {
+          nome: form.nome,
+          email: form.email || undefined,
+          telefone: form.telefone || undefined,
+        },
+        clienteId,
+        canal,
       },
-      clienteId,
-      canal,
-    });
+      // Comprador logado: manda o token pra vincular ao cliente autenticado de
+      // verdade (o backend ignora `clienteId` acima quando autenticado — ver
+      // PedidosController.criar). Sem isso o pedido cairia no caminho anônimo/
+      // "salvar meus dados" mesmo com sessão ativa.
+      sessaoCliente
+        ? { headers: { Authorization: `Bearer ${sessaoCliente.accessToken}` } }
+        : undefined,
+    );
   }
 
   async function confirmarPedidoWhatsApp() {

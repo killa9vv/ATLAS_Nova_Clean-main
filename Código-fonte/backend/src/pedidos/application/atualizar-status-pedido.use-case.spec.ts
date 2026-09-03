@@ -1,6 +1,7 @@
 // Cobre a mesma invariante de estoque do fluxo automático (ReconciliarPedidoService),
 // só que disparada manualmente pelo admin: decrementa só ao entrar em PAGO, devolve só
-// ao sair de PAGO, e rejeita qualquer transição fora da lista permitida.
+// ao sair de PAGO pra CANCELADO/ESTORNADO (não pra SEPARACAO — a venda continua de pé,
+// só mudou de fase), e rejeita qualquer transição fora da PedidoStateMachine.
 import { AtualizarStatusPedidoUseCase } from './atualizar-status-pedido.use-case';
 import { PedidoRepository } from '../domain/pedido.repository';
 import { Pedido, ItemPedidoEntity } from '../domain/pedido.entity';
@@ -22,7 +23,17 @@ describe('AtualizarStatusPedidoUseCase', () => {
   const itens = [new ItemPedidoEntity('produto-1', 'Detergente', 2, 10)];
 
   function criarPedido(status: StatusPedido): Pedido {
-    return new Pedido('pedido-1', status, itens, 20, 'RETIRADA', 0, new Date(), new Date());
+    return new Pedido(
+      'pedido-1',
+      '2026-000001',
+      status,
+      itens,
+      20,
+      'RETIRADA',
+      0,
+      new Date(),
+      new Date(),
+    );
   }
 
   beforeEach(() => {
@@ -108,6 +119,35 @@ describe('AtualizarStatusPedidoUseCase', () => {
     expect(produtoRepository.incrementarEstoque).toHaveBeenCalled();
   });
 
+  it('PAGO → SEPARACAO: muda o status SEM devolver estoque (a venda continua de pé, só mudou de fase)', async () => {
+    pedidoRepository.buscarPorId.mockResolvedValue(criarPedido(StatusPedido.PAGO));
+
+    await useCase.executar('pedido-1', StatusPedido.SEPARACAO);
+
+    expect(pedidoRepository.atualizarStatus).toHaveBeenCalledWith(
+      'pedido-1',
+      StatusPedido.SEPARACAO,
+    );
+    expect(produtoRepository.incrementarEstoque).not.toHaveBeenCalled();
+    expect(transactionManager.executar).not.toHaveBeenCalled();
+  });
+
+  it('SEPARACAO → ENVIADO → ENTREGUE: esteira de cumprimento avança sem tocar em estoque', async () => {
+    pedidoRepository.buscarPorId.mockResolvedValue(criarPedido(StatusPedido.SEPARACAO));
+    await useCase.executar('pedido-1', StatusPedido.ENVIADO);
+    expect(pedidoRepository.atualizarStatus).toHaveBeenCalledWith('pedido-1', StatusPedido.ENVIADO);
+
+    pedidoRepository.buscarPorId.mockResolvedValue(criarPedido(StatusPedido.ENVIADO));
+    await useCase.executar('pedido-1', StatusPedido.ENTREGUE);
+    expect(pedidoRepository.atualizarStatus).toHaveBeenCalledWith(
+      'pedido-1',
+      StatusPedido.ENTREGUE,
+    );
+
+    expect(produtoRepository.incrementarEstoque).not.toHaveBeenCalled();
+    expect(produtoRepository.decrementarEstoque).not.toHaveBeenCalled();
+  });
+
   it('rejeita CRIADO → PAGO (não é um caminho manual permitido — só via pagamento online)', async () => {
     pedidoRepository.buscarPorId.mockResolvedValue(criarPedido(StatusPedido.CRIADO));
 
@@ -115,6 +155,23 @@ describe('AtualizarStatusPedidoUseCase', () => {
       PedidoEmStatusInvalidoException,
     );
     expect(pedidoRepository.atualizarStatus).not.toHaveBeenCalled();
+  });
+
+  it('rejeita cancelamento a partir de SEPARACAO (já foi pra separação física — sem volta pelo sistema)', async () => {
+    pedidoRepository.buscarPorId.mockResolvedValue(criarPedido(StatusPedido.SEPARACAO));
+
+    await expect(useCase.executar('pedido-1', StatusPedido.CANCELADO)).rejects.toBeInstanceOf(
+      PedidoEmStatusInvalidoException,
+    );
+    expect(pedidoRepository.atualizarStatus).not.toHaveBeenCalled();
+  });
+
+  it('rejeita pular etapa da esteira (PAGO → ENVIADO, sem passar por SEPARACAO)', async () => {
+    pedidoRepository.buscarPorId.mockResolvedValue(criarPedido(StatusPedido.PAGO));
+
+    await expect(useCase.executar('pedido-1', StatusPedido.ENVIADO)).rejects.toBeInstanceOf(
+      PedidoEmStatusInvalidoException,
+    );
   });
 
   it('rejeita transição a partir de um status final (CANCELADO → qualquer coisa)', async () => {

@@ -15,6 +15,9 @@ import {
   type StatusPedido,
 } from '@/lib/admin-pedidos';
 
+const LIMITE_PAGINA = 20;
+const TODOS_STATUS = Object.keys(STATUS_LABEL) as StatusPedido[];
+
 function formatarMoeda(valor: number): string {
   return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
@@ -35,7 +38,7 @@ function imprimirPedido(pedido: PedidoAdmin) {
       ? '<p><b>Retirada na loja</b></p>'
       : `<p><b>Entrega:</b> ${pedido.endereco?.logradouro}, ${pedido.endereco?.numero}${pedido.endereco?.complemento ? ' — ' + pedido.endereco.complemento : ''}<br>${pedido.endereco?.bairro} — ${pedido.endereco?.cidade}/${pedido.endereco?.estado}<br>CEP ${pedido.endereco?.cep}</p>`;
 
-  janela.document.write(`<!doctype html><html><head><title>Pedido ${pedido.id}</title>
+  janela.document.write(`<!doctype html><html><head><title>Pedido ${pedido.numero}</title>
     <style>
       body{font-family:Arial,sans-serif;padding:16px;font-size:13px;color:#0a0e1a}
       h2{margin:0 0 4px}
@@ -45,7 +48,7 @@ function imprimirPedido(pedido: PedidoAdmin) {
     </style></head>
     <body>
       <h2>Atlas Nova Clean</h2>
-      <p>Pedido <b>${pedido.id}</b><br>Status: ${STATUS_LABEL[pedido.status]}<br>${new Date(pedido.createdAt).toLocaleString('pt-BR')}</p>
+      <p>Pedido <b>${pedido.numero}</b><br>Status: ${STATUS_LABEL[pedido.status]}<br>${new Date(pedido.createdAt).toLocaleString('pt-BR')}</p>
       <table>${linhasItens}
         <tr class="total"><td>Frete</td><td style="text-align:right">${formatarMoeda(pedido.valorFrete)}</td></tr>
         <tr class="total"><td>Total</td><td style="text-align:right">${formatarMoeda(pedido.total)}</td></tr>
@@ -101,7 +104,7 @@ function LinhaPedido({ pedido }: { pedido: PedidoAdmin }) {
 
   return (
     <tr className="border-t border-line align-top">
-      <td className="px-3.5 py-2.5 font-mono text-[12px] text-muted">{pedido.id.slice(0, 8)}…</td>
+      <td className="px-3.5 py-2.5 font-mono text-[12px] text-muted">{pedido.numero}</td>
       <td className="px-3.5 py-2.5">
         <span
           className={`inline-flex items-center rounded-full px-2.5 py-1 text-[10.5px] font-bold uppercase ${STATUS_BADGE_CLASSES[pedido.status]}`}
@@ -158,22 +161,51 @@ function LinhaPedido({ pedido }: { pedido: PedidoAdmin }) {
 }
 
 export default function PedidosAdminPage() {
+  const [pagina, setPagina] = useState(1);
+  const [statusFiltro, setStatusFiltro] = useState<StatusPedido | ''>('');
+
   const pedidosQuery = useQuery({
-    queryKey: ['admin', 'pedidos'],
-    queryFn: listarPedidosAdmin,
+    queryKey: ['admin', 'pedidos', pagina, statusFiltro],
+    queryFn: () =>
+      listarPedidosAdmin({
+        pagina,
+        limite: LIMITE_PAGINA,
+        status: statusFiltro || undefined,
+      }),
   });
 
-  const pedidos = pedidosQuery.data ?? [];
+  const pedidos = pedidosQuery.data?.itens ?? [];
+  const total = pedidosQuery.data?.total ?? 0;
+  const totalPaginas = Math.max(1, Math.ceil(total / LIMITE_PAGINA));
+
+  function aoMudarFiltro(novoStatus: StatusPedido | '') {
+    setStatusFiltro(novoStatus);
+    setPagina(1);
+  }
 
   return (
     <div>
-      <h1 className="mb-6 font-display text-2xl font-bold text-navy">Pedidos</h1>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <h1 className="font-display text-2xl font-bold text-navy">Pedidos</h1>
+        <select
+          value={statusFiltro}
+          onChange={(e) => aoMudarFiltro(e.target.value as StatusPedido | '')}
+          className="rounded-atlas-sm border border-line bg-white px-2.5 py-1.5 text-[12.5px] focus:outline-none focus:ring-2 focus:ring-blue/40"
+        >
+          <option value="">Todos os status</option>
+          {TODOS_STATUS.map((status) => (
+            <option key={status} value={status}>
+              {STATUS_LABEL[status]}
+            </option>
+          ))}
+        </select>
+      </div>
 
       <div className="overflow-x-auto rounded-atlas border border-line bg-white shadow-atlas">
         <table className="w-full text-[13px]">
           <thead>
             <tr className="bg-sky text-left text-[11px] uppercase tracking-wide text-navy">
-              <th className="px-3.5 py-2.5">ID</th>
+              <th className="px-3.5 py-2.5">Número</th>
               <th className="px-3.5 py-2.5">Status</th>
               <th className="px-3.5 py-2.5">Total</th>
               <th className="px-3.5 py-2.5">Entrega</th>
@@ -192,7 +224,7 @@ export default function PedidosAdminPage() {
             {!pedidosQuery.isLoading && pedidos.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-3.5 py-6 text-center text-muted">
-                  Nenhum pedido ainda.
+                  Nenhum pedido encontrado.
                 </td>
               </tr>
             )}
@@ -202,6 +234,32 @@ export default function PedidosAdminPage() {
           </tbody>
         </table>
       </div>
+
+      {total > 0 && (
+        <div className="mt-4 flex items-center justify-between text-[12.5px] text-muted">
+          <span>
+            Página {pagina} de {totalPaginas} — {total} pedido{total === 1 ? '' : 's'}
+          </span>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              disabled={pagina <= 1}
+              onClick={() => setPagina((p) => p - 1)}
+              className="rounded-atlas-sm border border-line bg-white px-3 py-1.5 font-semibold text-navy disabled:opacity-40"
+            >
+              Anterior
+            </button>
+            <button
+              type="button"
+              disabled={pagina >= totalPaginas}
+              onClick={() => setPagina((p) => p + 1)}
+              className="rounded-atlas-sm border border-line bg-white px-3 py-1.5 font-semibold text-navy disabled:opacity-40"
+            >
+              Próxima
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

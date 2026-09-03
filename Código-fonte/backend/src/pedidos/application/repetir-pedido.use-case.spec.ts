@@ -32,6 +32,7 @@ function criarProduto(overrides: Partial<Produto> = {}): Produto {
 function criarPedido(itens: ItemPedidoEntity[], clienteId = 'cli-1'): Pedido {
   return new Pedido(
     'pedido-1',
+    '2026-000001',
     StatusPedido.PAGO,
     itens,
     100,

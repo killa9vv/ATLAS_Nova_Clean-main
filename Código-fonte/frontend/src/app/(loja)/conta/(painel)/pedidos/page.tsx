@@ -13,6 +13,9 @@ const BADGE_POR_STATUS: Record<StatusPedido, BadgeVariant> = {
   AGUARDANDO_PAGAMENTO: 'sky',
   AGUARDANDO_CONTATO: 'amber',
   PAGO: 'green',
+  SEPARACAO: 'sky',
+  ENVIADO: 'amber',
+  ENTREGUE: 'green',
   CANCELADO: 'navy',
   ESTORNADO: 'navy',
 };
@@ -60,7 +63,7 @@ export default function MeusPedidosPage() {
             <Card className="flex items-center justify-between gap-4 p-4 transition-transform hover:-translate-y-0.5">
               <div>
                 <p className="font-mono text-[12px] text-muted">
-                  Pedido #{pedido.id.slice(0, 8)} — {formatarData(pedido.createdAt)}
+                  Pedido {pedido.numero} — {formatarData(pedido.createdAt)}
                 </p>
                 <p className="mt-1 text-[13.5px] text-ink">
                   {pedido.itens.length} {pedido.itens.length === 1 ? 'item' : 'itens'} —{' '}

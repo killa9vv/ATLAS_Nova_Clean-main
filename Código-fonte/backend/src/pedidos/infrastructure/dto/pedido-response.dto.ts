@@ -60,6 +60,12 @@ export class PedidoResponseDto {
   @ApiProperty()
   id!: string;
 
+  @ApiProperty({
+    example: '2026-000123',
+    description: 'Número legível pro cliente — use este pra atendimento/referência, não o id.',
+  })
+  numero!: string;
+
   @ApiProperty({ enum: StatusPedido })
   status!: StatusPedido;
 
@@ -97,6 +103,7 @@ export class PedidoResponseDto {
     const dto = new PedidoResponseDto();
 
     dto.id = pedido.id;
+    dto.numero = pedido.numero;
     dto.status = pedido.status;
     dto.itens = pedido.itens.map((item) => ({
       produtoId: item.produtoId,

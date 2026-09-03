@@ -27,6 +27,7 @@ export interface DadosCriacaoPedido {
 
 export interface PedidoCriado {
   id: string;
+  numero: string;
   status: string;
   itens: { produtoId: string; nome: string; quantidade: number; precoUnitario: number }[];
   total: number;
@@ -35,6 +36,9 @@ export interface PedidoCriado {
   endereco?: EnderecoPedido;
 }
 
-export function criarPedido(dados: DadosCriacaoPedido): Promise<PedidoCriado> {
-  return api.post<PedidoCriado>('/pedidos', dados);
+export function criarPedido(
+  dados: DadosCriacaoPedido,
+  opcoes?: { headers?: HeadersInit },
+): Promise<PedidoCriado> {
+  return api.post<PedidoCriado>('/pedidos', dados, opcoes);
 }

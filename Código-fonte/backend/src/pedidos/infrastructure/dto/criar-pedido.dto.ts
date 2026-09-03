@@ -47,7 +47,9 @@ export class CriarPedidoDto {
 
   @ApiPropertyOptional({
     description:
-      'Vincula o pedido a um cliente cadastrado (opcional — "salvar meus dados" no checkout).',
+      'Vincula o pedido a um cliente cadastrado sem login (ex: "salvar meus dados" no ' +
+      'checkout, cadastro sem senha). Ignorado quando a requisição vem autenticada — nesse ' +
+      'caso o cliente é sempre o do token, nunca este campo (ver PedidosController.criar).',
   })
   @IsOptional()
   @IsUUID()

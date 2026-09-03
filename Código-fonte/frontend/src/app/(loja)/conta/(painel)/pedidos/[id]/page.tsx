@@ -108,7 +108,7 @@ export default function PedidoDetalhePage() {
       <Card className="p-6">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
           <div>
-            <p className="font-mono text-[12px] text-muted">Pedido #{pedido.id.slice(0, 8)}</p>
+            <p className="font-mono text-[12px] text-muted">Pedido {pedido.numero}</p>
             <h2 className="font-display text-lg font-bold text-navy">
               {STATUS_PEDIDO_LABEL[pedido.status]}
             </h2>
