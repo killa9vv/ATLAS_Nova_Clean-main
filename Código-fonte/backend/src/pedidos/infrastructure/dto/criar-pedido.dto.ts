@@ -5,6 +5,7 @@ import {
   IsDefined,
   IsIn,
   IsOptional,
+  IsString,
   IsUUID,
   ValidateIf,
   ValidateNested,
@@ -64,4 +65,11 @@ export class CriarPedidoDto {
   @IsOptional()
   @IsIn(['site', 'whatsapp'])
   canal?: 'site' | 'whatsapp';
+
+  @ApiPropertyOptional({
+    description: 'Código de cupom a aplicar. 409 se não existir/estiver inválido.',
+  })
+  @IsOptional()
+  @IsString()
+  cupomCodigo?: string;
 }

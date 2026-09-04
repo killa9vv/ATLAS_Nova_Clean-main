@@ -11,7 +11,7 @@ export class CarrinhoController {
 
   @Post('calcular')
   async calcular(@Body() dto: CalcularCarrinhoDto): Promise<CarrinhoResponseDto> {
-    const carrinho = await this.montarCarrinhoUseCase.executar(dto.itens);
+    const carrinho = await this.montarCarrinhoUseCase.executar(dto.itens, dto.cupomCodigo);
     return CarrinhoResponseDto.fromDomain(carrinho);
   }
 }

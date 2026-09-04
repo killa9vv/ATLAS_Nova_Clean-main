@@ -16,8 +16,16 @@ export class ItemPrecificado {
 }
 
 export class Carrinho {
-  constructor(public readonly itens: ItemPrecificado[]) {}
+  constructor(
+    public readonly itens: ItemPrecificado[],
+    /** 0 quando nenhum cupom foi aplicado. Já validado e calculado (ver Cupom.calcularDesconto)
+     * — nunca maior que `total`. */
+    public readonly desconto: number = 0,
+    public readonly cupomCodigo?: string,
+  ) {}
 
+  /** Soma dos itens, SEM desconto — quem precisa do valor final (ex: CriarPedidoUseCase)
+   * calcula `total - desconto` explicitamente, pra não esconder essa conta num getter. */
   get total(): number {
     return Number(this.itens.reduce((soma, item) => soma + item.subtotal, 0).toFixed(2));
   }

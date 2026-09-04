@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EstoqueInsuficienteException } from '../../carrinho/domain/carrinho.exceptions';
 import { ProdutoRepository } from '../../produtos/domain/produto.repository';
+import { CupomRepository } from '../../cupons/domain/cupom.repository';
 import { PedidoRepository } from '../../pedidos/domain/pedido.repository';
 import { Pedido } from '../../pedidos/domain/pedido.entity';
 import {
@@ -37,6 +38,7 @@ export class ReconciliarPedidoService {
   constructor(
     private readonly pedidoRepository: PedidoRepository,
     private readonly produtoRepository: ProdutoRepository,
+    private readonly cupomRepository: CupomRepository,
     private readonly transactionManager: TransactionManager,
   ) {}
 
@@ -100,6 +102,9 @@ export class ReconciliarPedidoService {
         pedido.itens.map((item) => ({ produtoId: item.produtoId, quantidade: item.quantidade })),
         contexto,
       );
+      if (pedido.cupomCodigo) {
+        await this.cupomRepository.decrementarUsos(pedido.cupomCodigo, contexto);
+      }
     });
   }
 
@@ -124,6 +129,9 @@ export class ReconciliarPedidoService {
           })),
           contexto,
         );
+        if (pedido.cupomCodigo) {
+          await this.cupomRepository.incrementarUsos(pedido.cupomCodigo, contexto);
+        }
         await this.pedidoRepository.atualizarStatus(pedido.id, StatusPedido.PAGO, contexto);
       });
     } catch (erro) {

@@ -73,6 +73,7 @@ export class PedidosController {
       dto.contato,
       clienteId,
       dto.canal,
+      dto.cupomCodigo,
     );
     return PedidoResponseDto.fromDomain(pedido);
   }

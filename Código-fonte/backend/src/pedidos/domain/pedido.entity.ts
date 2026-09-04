@@ -66,6 +66,9 @@ export class Pedido {
     public readonly codigoRastreio?: string,
     public readonly contato?: ContatoPedido,
     public readonly clienteId?: string,
+    /** 0 quando nenhum cupom foi usado. */
+    public readonly desconto: number = 0,
+    public readonly cupomCodigo?: string,
   ) {}
 
   estaAguardandoPagamento(): boolean {

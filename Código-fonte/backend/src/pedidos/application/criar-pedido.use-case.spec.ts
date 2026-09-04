@@ -115,6 +115,9 @@ describe('CriarPedidoUseCase', () => {
       contato,
       undefined,
       undefined,
+      undefined,
+      carrinho.desconto,
+      carrinho.cupomCodigo,
     );
   });
 
@@ -156,6 +159,9 @@ describe('CriarPedidoUseCase', () => {
       contato,
       undefined,
       undefined,
+      undefined,
+      carrinho.desconto,
+      carrinho.cupomCodigo,
     );
   });
 
@@ -188,6 +194,9 @@ describe('CriarPedidoUseCase', () => {
       contato,
       undefined,
       undefined,
+      undefined,
+      carrinhoComPeso.desconto,
+      carrinhoComPeso.cupomCodigo,
     );
   });
 
@@ -222,6 +231,9 @@ describe('CriarPedidoUseCase', () => {
       contato,
       undefined,
       undefined,
+      undefined,
+      carrinhoSemPeso.desconto,
+      carrinhoSemPeso.cupomCodigo,
     );
   });
 
@@ -249,6 +261,9 @@ describe('CriarPedidoUseCase', () => {
       contato,
       undefined,
       StatusPedido.AGUARDANDO_CONTATO,
+      undefined,
+      carrinho.desconto,
+      carrinho.cupomCodigo,
     );
   });
 
@@ -270,6 +285,9 @@ describe('CriarPedidoUseCase', () => {
       contato,
       'cliente-1',
       undefined,
+      undefined,
+      carrinho.desconto,
+      carrinho.cupomCodigo,
     );
   });
 
@@ -287,5 +305,39 @@ describe('CriarPedidoUseCase', () => {
 
     expect(montarCarrinhoUseCase.executar).not.toHaveBeenCalled();
     expect(pedidoRepository.criar).not.toHaveBeenCalled();
+  });
+
+  it('repassa cupomCodigo pro MontarCarrinhoUseCase e grava desconto/cupomCodigo no pedido', async () => {
+    const carrinhoComDesconto = new Carrinho(
+      [new ItemPrecificado('produto-1', 'Detergente', 2, 10)],
+      2,
+      'DESCONTO10',
+    );
+    montarCarrinhoUseCase.executar.mockResolvedValue(carrinhoComDesconto);
+
+    await useCase.executar(
+      [{ produtoId: 'produto-1', quantidade: 2 }],
+      { tipoEntrega: 'RETIRADA' },
+      contato,
+      undefined,
+      'site',
+      'DESCONTO10',
+    );
+
+    expect(montarCarrinhoUseCase.executar).toHaveBeenCalledWith(
+      [{ produtoId: 'produto-1', quantidade: 2 }],
+      'DESCONTO10',
+    );
+    expect(pedidoRepository.criar).toHaveBeenCalledWith(
+      expect.any(Array),
+      18, // total (20) - desconto (2) + frete (0)
+      expect.any(Object),
+      contato,
+      undefined,
+      undefined,
+      undefined,
+      2,
+      'DESCONTO10',
+    );
   });
 });

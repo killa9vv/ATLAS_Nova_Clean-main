@@ -6,7 +6,15 @@ import {
   DadosAtualizacaoCupom,
   DadosCriacaoCupom,
 } from '../domain/cupom.repository';
-import type { Cupom as CupomPrisma, TipoDesconto as TipoDescontoPrisma } from '@prisma/client';
+import type {
+  Cupom as CupomPrisma,
+  TipoDesconto as TipoDescontoPrisma,
+  Prisma,
+} from '@prisma/client';
+
+/** Cliente Prisma "normal" ou um client de transação (`tx` de `$transaction`) — mesma
+ * API para o que é usado aqui (mesmo padrão de PrismaPedidoRepository). */
+type ClientePrisma = PrismaService | Prisma.TransactionClient;
 
 @Injectable()
 export class PrismaCupomRepository extends CupomRepository {
@@ -54,6 +62,22 @@ export class PrismaCupomRepository extends CupomRepository {
       },
     });
     return this.paraDominio(cupom);
+  }
+
+  async incrementarUsos(codigo: string, contexto?: unknown): Promise<void> {
+    const cliente = (contexto as ClientePrisma | undefined) ?? this.prisma;
+    await cliente.cupom.update({
+      where: { codigo },
+      data: { usosCount: { increment: 1 } },
+    });
+  }
+
+  async decrementarUsos(codigo: string, contexto?: unknown): Promise<void> {
+    const cliente = (contexto as ClientePrisma | undefined) ?? this.prisma;
+    await cliente.cupom.update({
+      where: { codigo },
+      data: { usosCount: { decrement: 1 } },
+    });
   }
 
   private paraDominio(cupom: CupomPrisma): Cupom {

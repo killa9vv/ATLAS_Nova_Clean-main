@@ -23,6 +23,7 @@ export interface DadosCriacaoPedido {
   contato: ContatoPedido;
   clienteId?: string;
   canal: 'site' | 'whatsapp';
+  cupomCodigo?: string;
 }
 
 export interface PedidoCriado {
@@ -31,6 +32,8 @@ export interface PedidoCriado {
   status: string;
   itens: { produtoId: string; nome: string; quantidade: number; precoUnitario: number }[];
   total: number;
+  desconto: number;
+  cupomCodigo?: string;
   tipoEntrega: 'ENTREGA' | 'RETIRADA';
   valorFrete: number;
   endereco?: EnderecoPedido;

@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ProdutoRepository } from '../../produtos/domain/produto.repository';
+import { CupomRepository } from '../../cupons/domain/cupom.repository';
 import { TransactionManager } from '../../shared/prisma/transaction-manager';
 import { Pedido } from '../domain/pedido.entity';
 import { PedidoRepository } from '../domain/pedido.repository';
@@ -22,6 +23,7 @@ export class AtualizarStatusPedidoUseCase {
   constructor(
     private readonly pedidoRepository: PedidoRepository,
     private readonly produtoRepository: ProdutoRepository,
+    private readonly cupomRepository: CupomRepository,
     private readonly transactionManager: TransactionManager,
   ) {}
 
@@ -37,6 +39,8 @@ export class AtualizarStatusPedidoUseCase {
       // Mesma transação atômica do confirmarPagamento em ReconciliarPedidoService: se o
       // decremento falhar por falta de estoque, EstoqueInsuficienteException sobe pro
       // controller (409) e o pedido continua como estava — não fica "meio confirmado".
+      // Uso do cupom (se houver) só conta agora, pelo mesmo motivo do estoque: aplicar
+      // na criação do pedido não "gasta" nada de verdade.
       return this.transactionManager.executar(async (contexto) => {
         await this.produtoRepository.decrementarEstoque(
           pedido.itens.map((item) => ({
@@ -46,6 +50,9 @@ export class AtualizarStatusPedidoUseCase {
           })),
           contexto,
         );
+        if (pedido.cupomCodigo) {
+          await this.cupomRepository.incrementarUsos(pedido.cupomCodigo, contexto);
+        }
         return this.pedidoRepository.atualizarStatus(id, novoStatus, contexto);
       });
     }
@@ -63,6 +70,9 @@ export class AtualizarStatusPedidoUseCase {
         pedido.itens.map((item) => ({ produtoId: item.produtoId, quantidade: item.quantidade })),
         contexto,
       );
+      if (pedido.cupomCodigo) {
+        await this.cupomRepository.decrementarUsos(pedido.cupomCodigo, contexto);
+      }
       return atualizado;
     });
   }

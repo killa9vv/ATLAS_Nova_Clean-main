@@ -91,6 +91,9 @@ export default function CheckoutPage() {
   const [carregandoPagamento, setCarregandoPagamento] = useState(false);
   const [resultadoPagamento, setResultadoPagamento] = useState<ResultadoPagamento | null>(null);
   const [sessaoCliente, setSessaoCliente] = useState<SessaoCliente | null>(null);
+  const [cupomInput, setCupomInput] = useState('');
+  const [cupomAplicado, setCupomAplicado] = useState<string | undefined>(undefined);
+  const [erroCupom, setErroCupom] = useState<string | null>(null);
   const pararPollingRef = useRef<(() => void) | null>(null);
 
   // Comprador logado: pré-preenche identificação e usa o clienteId da sessão
@@ -109,10 +112,38 @@ export default function CheckoutPage() {
   }, []);
 
   const carrinhoQuery = useQuery({
-    queryKey: ['carrinho-calculo', chaveCarrinho(itens)],
-    queryFn: () => calcularCarrinho(itens),
+    queryKey: ['carrinho-calculo', chaveCarrinho(itens), cupomAplicado],
+    queryFn: () => calcularCarrinho(itens, cupomAplicado),
     enabled: itens.length > 0,
   });
+
+  function aplicarCupom() {
+    const codigo = cupomInput.trim().toUpperCase();
+    if (!codigo) return;
+    setErroCupom(null);
+    setCupomAplicado(codigo);
+  }
+
+  function removerCupom() {
+    setCupomInput('');
+    setCupomAplicado(undefined);
+    setErroCupom(null);
+  }
+
+  // O erro de cupom inválido/expirado vem da query do carrinho (POST /carrinho/calcular
+  // valida o cupom junto) — se falhar, remove o cupom aplicado pra não deixar o total
+  // travado num estado de erro permanente, e mostra a mensagem do backend.
+  useEffect(() => {
+    if (!cupomAplicado || !carrinhoQuery.error) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setErroCupom(
+      carrinhoQuery.error instanceof ApiError
+        ? carrinhoQuery.error.message
+        : 'Não foi possível aplicar esse cupom.',
+    );
+    setCupomAplicado(undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [carrinhoQuery.error]);
 
   const cepLimpo = somenteDigitos(form.cep);
   const freteQuery = useQuery({
@@ -232,6 +263,7 @@ export default function CheckoutPage() {
         },
         clienteId,
         canal,
+        cupomCodigo: cupomAplicado,
       },
       // Comprador logado: manda o token pra vincular ao cliente autenticado de
       // verdade (o backend ignora `clienteId` acima quando autenticado — ver
@@ -581,6 +613,46 @@ export default function CheckoutPage() {
           </div>
 
           <div className="rounded-atlas border border-line bg-white p-4 shadow-atlas">
+            <h2 className="mb-2 font-display text-[14px] font-bold text-navy">Cupom de desconto</h2>
+            {cupomAplicado ? (
+              <div className="flex items-center justify-between text-[13px]">
+                <span className="text-ink">
+                  Cupom <span className="font-mono font-semibold text-green">{cupomAplicado}</span>{' '}
+                  aplicado
+                  {carrinhoQuery.data?.desconto ? (
+                    <> — desconto de {formatarMoeda(carrinhoQuery.data.desconto)}</>
+                  ) : null}
+                </span>
+                <button
+                  type="button"
+                  onClick={removerCupom}
+                  className="font-semibold text-blue hover:underline"
+                >
+                  Remover
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <input
+                  value={cupomInput}
+                  onChange={(e) => setCupomInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), aplicarCupom())}
+                  placeholder="Código do cupom"
+                  className="flex-1 rounded-atlas-sm border border-line bg-white px-3 py-2 text-[13px] uppercase focus:outline-none focus:ring-2 focus:ring-blue/40"
+                />
+                <Button
+                  variant="secondary"
+                  onClick={aplicarCupom}
+                  disabled={!cupomInput.trim() || carrinhoQuery.isFetching}
+                >
+                  Aplicar
+                </Button>
+              </div>
+            )}
+            {erroCupom && <p className="mt-1.5 text-[12.5px] text-red-600">{erroCupom}</p>}
+          </div>
+
+          <div className="rounded-atlas border border-line bg-white p-4 shadow-atlas">
             <h2 className="mb-2 font-display text-[14px] font-bold text-navy">Contato</h2>
             <p className="text-[13px] text-ink">{form.nome}</p>
             {form.email && <p className="text-[13px] text-muted">{form.email}</p>}
@@ -598,11 +670,17 @@ export default function CheckoutPage() {
             )}
           </div>
 
+          {!!carrinhoQuery.data?.desconto && (
+            <p className="text-right text-[13px] text-green">
+              Desconto:{' '}
+              <span className="font-mono">-{formatarMoeda(carrinhoQuery.data.desconto)}</span>
+            </p>
+          )}
           <p className="text-right font-display text-lg font-bold text-navy">
             Total:{' '}
             <span className="font-mono">
               {formatarMoeda(
-                (carrinhoQuery.data?.total ?? 0) +
+                (carrinhoQuery.data?.totalComDesconto ?? 0) +
                   (form.tipoEntrega === 'ENTREGA'
                     ? (freteQuery.data?.opcoes.find((o) => o.tipo === 'ENTREGA')?.valor ?? 0)
                     : 0),

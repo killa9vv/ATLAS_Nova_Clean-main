@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { ProdutoRepository } from '../../produtos/domain/produto.repository';
 import { ProdutoNaoEncontradoException } from '../../produtos/domain/produtos.exceptions';
+import { CupomRepository } from '../../cupons/domain/cupom.repository';
+import { CupomInvalidoException } from '../../cupons/domain/cupons.exceptions';
 import { Carrinho, ItemPrecificado } from '../domain/item-precificado';
 import { CarrinhoItemSolicitado } from '../domain/carrinho-item-solicitado';
 import {
@@ -15,9 +17,15 @@ import {
  */
 @Injectable()
 export class MontarCarrinhoUseCase {
-  constructor(private readonly produtoRepository: ProdutoRepository) {}
+  constructor(
+    private readonly produtoRepository: ProdutoRepository,
+    private readonly cupomRepository: CupomRepository,
+  ) {}
 
-  async executar(itensSolicitados: CarrinhoItemSolicitado[]): Promise<Carrinho> {
+  async executar(
+    itensSolicitados: CarrinhoItemSolicitado[],
+    cupomCodigo?: string,
+  ): Promise<Carrinho> {
     if (!itensSolicitados.length) {
       throw new CarrinhoVazioException();
     }
@@ -57,6 +65,20 @@ export class MontarCarrinhoUseCase {
       );
     });
 
-    return new Carrinho(itens);
+    const carrinhoSemDesconto = new Carrinho(itens);
+    if (!cupomCodigo) {
+      return carrinhoSemDesconto;
+    }
+
+    // CriarCupomUseCase sempre normaliza o código pra maiúsculo antes de gravar —
+    // normaliza aqui também, senão um cliente digitando minúsculo nunca acharia
+    // um cupom que existe.
+    const cupom = await this.cupomRepository.buscarPorCodigo(cupomCodigo.toUpperCase());
+    if (!cupom || !cupom.estaValido()) {
+      throw new CupomInvalidoException(cupomCodigo);
+    }
+
+    const desconto = cupom.calcularDesconto(carrinhoSemDesconto.total);
+    return new Carrinho(itens, desconto, cupom.codigo);
   }
 }

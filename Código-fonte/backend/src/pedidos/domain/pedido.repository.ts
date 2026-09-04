@@ -47,6 +47,8 @@ export abstract class PedidoRepository {
     clienteId?: string,
     statusInicial?: StatusPedido,
     contexto?: unknown,
+    desconto?: number,
+    cupomCodigo?: string,
   ): Promise<Pedido>;
   abstract buscarPorId(id: string): Promise<Pedido | null>;
 

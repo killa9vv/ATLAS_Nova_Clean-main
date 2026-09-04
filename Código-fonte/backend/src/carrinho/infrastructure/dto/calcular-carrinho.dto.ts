@@ -1,6 +1,6 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { ArrayMinSize, IsInt, IsString, Min, ValidateNested } from 'class-validator';
+import { ArrayMinSize, IsInt, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
 
 export class CarrinhoItemDto {
   @ApiProperty({ example: 'b3f1c2d4-5678-4abc-9def-0123456789ab' })
@@ -19,4 +19,11 @@ export class CalcularCarrinhoDto {
   @Type(() => CarrinhoItemDto)
   @ArrayMinSize(1)
   itens: CarrinhoItemDto[];
+
+  @ApiPropertyOptional({
+    description: 'Código de cupom a aplicar. 409 se não existir/estiver inválido.',
+  })
+  @IsOptional()
+  @IsString()
+  cupomCodigo?: string;
 }

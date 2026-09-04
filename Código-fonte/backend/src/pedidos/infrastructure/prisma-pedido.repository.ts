@@ -47,6 +47,8 @@ export class PrismaPedidoRepository extends PedidoRepository {
     clienteId?: string,
     statusInicial?: StatusPedido,
     contexto?: unknown,
+    desconto?: number,
+    cupomCodigo?: string,
   ): Promise<Pedido> {
     const cliente = (contexto as ClientePrisma | undefined) ?? this.prisma;
     const numero = await this.proximoNumero(cliente);
@@ -55,6 +57,8 @@ export class PrismaPedidoRepository extends PedidoRepository {
       data: {
         numero,
         total,
+        desconto,
+        cupomCodigo,
         status: statusInicial as unknown as StatusPedidoPrisma | undefined,
         clienteId,
         contatoNome: contato.nome,
@@ -261,6 +265,8 @@ export class PrismaPedidoRepository extends PedidoRepository {
       pedido.codigoRastreio ?? undefined,
       contato,
       pedido.clienteId ?? undefined,
+      Number(pedido.desconto),
+      pedido.cupomCodigo ?? undefined,
     );
   }
 
