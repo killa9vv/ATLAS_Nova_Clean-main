@@ -33,7 +33,8 @@ export function CartDrawer() {
     remover,
   } = useCart();
 
-  const temItemIndisponivel = itensIndisponiveis.length > 0 || itens.some((item) => !item.disponivel);
+  const temItemIndisponivel =
+    itensIndisponiveis.length > 0 || itens.some((item) => !item.disponivel);
 
   if (!hidratado) return null;
 

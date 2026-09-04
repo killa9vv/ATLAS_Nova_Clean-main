@@ -72,8 +72,14 @@ export class PedidoResponseDto {
   @ApiProperty({ type: [ItemPedidoResponseDto] })
   itens!: ItemPedidoResponseDto[];
 
-  @ApiProperty({ example: 25.8, description: 'Total dos itens + valorFrete.' })
+  @ApiProperty({ example: 25.8, description: 'Total dos itens - desconto + valorFrete.' })
   total!: number;
+
+  @ApiProperty({ example: 0, description: '0 quando nenhum cupom foi usado.' })
+  desconto!: number;
+
+  @ApiPropertyOptional({ example: 'BEMVINDO10' })
+  cupomCodigo?: string;
 
   @ApiProperty({ enum: ['ENTREGA', 'RETIRADA'], example: 'ENTREGA' })
   tipoEntrega!: 'ENTREGA' | 'RETIRADA';
@@ -113,6 +119,8 @@ export class PedidoResponseDto {
       freteRateado: item.freteRateado,
     }));
     dto.total = pedido.total;
+    dto.desconto = pedido.desconto;
+    dto.cupomCodigo = pedido.cupomCodigo;
     dto.tipoEntrega = pedido.tipoEntrega;
     dto.valorFrete = pedido.valorFrete;
     dto.endereco = pedido.endereco;

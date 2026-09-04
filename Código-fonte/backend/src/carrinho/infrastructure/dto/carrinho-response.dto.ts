@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Carrinho } from '../../domain/item-precificado';
 
 class ItemCarrinhoResponseDto {
@@ -22,8 +22,17 @@ export class CarrinhoResponseDto {
   @ApiProperty({ type: [ItemCarrinhoResponseDto] })
   itens: ItemCarrinhoResponseDto[];
 
-  @ApiProperty({ example: 25.8 })
+  @ApiProperty({ example: 25.8, description: 'Soma dos itens, sem desconto.' })
   total: number;
+
+  @ApiProperty({ example: 0, description: '0 quando nenhum cupom foi aplicado.' })
+  desconto: number;
+
+  @ApiProperty({ example: 25.8, description: 'total - desconto — o que o cliente paga.' })
+  totalComDesconto: number;
+
+  @ApiPropertyOptional({ example: 'BEMVINDO10' })
+  cupomCodigo?: string;
 
   static fromDomain(carrinho: Carrinho): CarrinhoResponseDto {
     const dto = new CarrinhoResponseDto();
@@ -35,6 +44,9 @@ export class CarrinhoResponseDto {
       subtotal: item.subtotal,
     }));
     dto.total = carrinho.total;
+    dto.desconto = carrinho.desconto;
+    dto.totalComDesconto = Number((carrinho.total - carrinho.desconto).toFixed(2));
+    dto.cupomCodigo = carrinho.cupomCodigo;
     return dto;
   }
 }

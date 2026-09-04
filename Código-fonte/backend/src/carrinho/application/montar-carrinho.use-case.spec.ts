@@ -4,6 +4,9 @@ import { MontarCarrinhoUseCase } from './montar-carrinho.use-case';
 import { ProdutoRepository } from '../../produtos/domain/produto.repository';
 import { ProdutoNaoEncontradoException } from '../../produtos/domain/produtos.exceptions';
 import { Produto } from '../../produtos/domain/produto.entity';
+import { CupomRepository } from '../../cupons/domain/cupom.repository';
+import { Cupom } from '../../cupons/domain/cupom.entity';
+import { CupomInvalidoException } from '../../cupons/domain/cupons.exceptions';
 import {
   CarrinhoVazioException,
   EstoqueInsuficienteException,
@@ -22,8 +25,23 @@ function criarProduto(overrides: Partial<Produto> = {}): Produto {
   );
 }
 
+function criarCupom(overrides: Partial<Cupom> = {}): Cupom {
+  return new Cupom(
+    overrides.id ?? 'cupom-1',
+    overrides.codigo ?? 'DESCONTO10',
+    overrides.tipoDesconto ?? 'PERCENTUAL',
+    overrides.valor ?? 10,
+    overrides.ativo ?? true,
+    overrides.usosCount ?? 0,
+    overrides.createdAt ?? new Date(),
+    overrides.validoAte,
+    overrides.usoMaximo,
+  );
+}
+
 describe('MontarCarrinhoUseCase', () => {
   let produtoRepository: jest.Mocked<ProdutoRepository>;
+  let cupomRepository: jest.Mocked<CupomRepository>;
   let useCase: MontarCarrinhoUseCase;
 
   beforeEach(() => {
@@ -34,7 +52,11 @@ describe('MontarCarrinhoUseCase', () => {
       decrementarEstoque: jest.fn(),
     } as unknown as jest.Mocked<ProdutoRepository>;
 
-    useCase = new MontarCarrinhoUseCase(produtoRepository);
+    cupomRepository = {
+      buscarPorCodigo: jest.fn(),
+    } as unknown as jest.Mocked<CupomRepository>;
+
+    useCase = new MontarCarrinhoUseCase(produtoRepository, cupomRepository);
   });
 
   it('lança CarrinhoVazioException quando não há itens solicitados', async () => {
@@ -108,5 +130,86 @@ describe('MontarCarrinhoUseCase', () => {
         { produtoId: 'produto-1', quantidade: 3 },
       ]),
     ).rejects.toBeInstanceOf(EstoqueInsuficienteException);
+  });
+
+  describe('cupom', () => {
+    it('sem cupomCodigo, desconto fica 0 e cupomCodigo undefined', async () => {
+      produtoRepository.buscarPorIds.mockResolvedValue([criarProduto({ preco: 10 })]);
+
+      const carrinho = await useCase.executar([{ produtoId: 'produto-1', quantidade: 2 }]);
+
+      expect(carrinho.desconto).toBe(0);
+      expect(carrinho.cupomCodigo).toBeUndefined();
+      expect(cupomRepository.buscarPorCodigo).not.toHaveBeenCalled();
+    });
+
+    it('aplica cupom PERCENTUAL válido sobre o total dos itens', async () => {
+      produtoRepository.buscarPorIds.mockResolvedValue([criarProduto({ preco: 10 })]);
+      cupomRepository.buscarPorCodigo.mockResolvedValue(
+        criarCupom({ codigo: 'DESCONTO10', tipoDesconto: 'PERCENTUAL', valor: 10 }),
+      );
+
+      const carrinho = await useCase.executar(
+        [{ produtoId: 'produto-1', quantidade: 2 }],
+        'DESCONTO10',
+      );
+
+      expect(carrinho.total).toBe(20);
+      expect(carrinho.desconto).toBe(2);
+      expect(carrinho.cupomCodigo).toBe('DESCONTO10');
+    });
+
+    it('cupom VALOR_FIXO maior que o total nunca deixa o desconto passar do total', async () => {
+      produtoRepository.buscarPorIds.mockResolvedValue([criarProduto({ preco: 10 })]);
+      cupomRepository.buscarPorCodigo.mockResolvedValue(
+        criarCupom({ codigo: 'FRETE50', tipoDesconto: 'VALOR_FIXO', valor: 50 }),
+      );
+
+      const carrinho = await useCase.executar(
+        [{ produtoId: 'produto-1', quantidade: 1 }],
+        'FRETE50',
+      );
+
+      expect(carrinho.total).toBe(10);
+      expect(carrinho.desconto).toBe(10);
+    });
+
+    it('lança CupomInvalidoException quando o código não existe', async () => {
+      produtoRepository.buscarPorIds.mockResolvedValue([criarProduto({ preco: 10 })]);
+      cupomRepository.buscarPorCodigo.mockResolvedValue(null);
+
+      await expect(
+        useCase.executar([{ produtoId: 'produto-1', quantidade: 1 }], 'INEXISTENTE'),
+      ).rejects.toBeInstanceOf(CupomInvalidoException);
+    });
+
+    it('lança CupomInvalidoException quando o cupom está inativo', async () => {
+      produtoRepository.buscarPorIds.mockResolvedValue([criarProduto({ preco: 10 })]);
+      cupomRepository.buscarPorCodigo.mockResolvedValue(criarCupom({ ativo: false }));
+
+      await expect(
+        useCase.executar([{ produtoId: 'produto-1', quantidade: 1 }], 'DESCONTO10'),
+      ).rejects.toBeInstanceOf(CupomInvalidoException);
+    });
+
+    it('lança CupomInvalidoException quando o cupom expirou', async () => {
+      produtoRepository.buscarPorIds.mockResolvedValue([criarProduto({ preco: 10 })]);
+      cupomRepository.buscarPorCodigo.mockResolvedValue(
+        criarCupom({ validoAte: new Date('2020-01-01') }),
+      );
+
+      await expect(
+        useCase.executar([{ produtoId: 'produto-1', quantidade: 1 }], 'DESCONTO10'),
+      ).rejects.toBeInstanceOf(CupomInvalidoException);
+    });
+
+    it('lança CupomInvalidoException quando o cupom já atingiu o usoMaximo', async () => {
+      produtoRepository.buscarPorIds.mockResolvedValue([criarProduto({ preco: 10 })]);
+      cupomRepository.buscarPorCodigo.mockResolvedValue(criarCupom({ usoMaximo: 5, usosCount: 5 }));
+
+      await expect(
+        useCase.executar([{ produtoId: 'produto-1', quantidade: 1 }], 'DESCONTO10'),
+      ).rejects.toBeInstanceOf(CupomInvalidoException);
+    });
   });
 });

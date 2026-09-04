@@ -5,6 +5,7 @@ import { PagamentoRepository } from '../domain/pagamento.repository';
 import { PaymentGateway } from '../domain/payment-gateway.port';
 import { PedidoRepository } from '../../pedidos/domain/pedido.repository';
 import { ProdutoRepository } from '../../produtos/domain/produto.repository';
+import { CupomRepository } from '../../cupons/domain/cupom.repository';
 import { TransactionManager } from '../../shared/prisma/transaction-manager';
 import { Pagamento } from '../domain/pagamento.entity';
 import { MetodoPagamento } from '../domain/metodo-pagamento.enum';
@@ -44,6 +45,7 @@ describe('ProcessarWebhookUseCase (idempotência)', () => {
   let pagamentoRepository: jest.Mocked<PagamentoRepository>;
   let pedidoRepository: jest.Mocked<PedidoRepository>;
   let produtoRepository: jest.Mocked<ProdutoRepository>;
+  let cupomRepository: jest.Mocked<CupomRepository>;
   let paymentGateway: jest.Mocked<PaymentGateway>;
   let transactionManager: jest.Mocked<TransactionManager>;
   let useCase: ProcessarWebhookUseCase;
@@ -77,6 +79,11 @@ describe('ProcessarWebhookUseCase (idempotência)', () => {
       incrementarEstoque: jest.fn().mockResolvedValue(undefined),
     } as unknown as jest.Mocked<ProdutoRepository>;
 
+    cupomRepository = {
+      incrementarUsos: jest.fn().mockResolvedValue(undefined),
+      decrementarUsos: jest.fn().mockResolvedValue(undefined),
+    } as unknown as jest.Mocked<CupomRepository>;
+
     paymentGateway = {
       criarPagamentoPix: jest.fn(),
       criarPagamentoCartao: jest.fn(),
@@ -90,6 +97,7 @@ describe('ProcessarWebhookUseCase (idempotência)', () => {
     const reconciliarPedidoService = new ReconciliarPedidoService(
       pedidoRepository,
       produtoRepository,
+      cupomRepository,
       transactionManager,
     );
 

@@ -45,6 +45,7 @@ export class CriarPedidoUseCase {
     contato: ContatoPedido,
     clienteId?: string,
     canal: CanalCheckout = 'site',
+    cupomCodigo?: string,
   ): Promise<Pedido> {
     // Fail-fast: valida o cliente antes de montar o carrinho, pra não gastar uma
     // consulta de estoque/preço num pedido que vai falhar de qualquer jeito.
@@ -52,7 +53,7 @@ export class CriarPedidoUseCase {
       throw new ClienteNaoEncontradoException(clienteId);
     }
 
-    const carrinho = await this.montarCarrinhoUseCase.executar(itensSolicitados);
+    const carrinho = await this.montarCarrinhoUseCase.executar(itensSolicitados, cupomCodigo);
 
     // RETIRADA nunca cobra frete nem rateia nada entre os itens. ENTREGA usa a mesma
     // cotação do endpoint público de frete (POST /frete/cotacao) — reaproveitada aqui
@@ -115,14 +116,18 @@ export class CriarPedidoUseCase {
     // Checkout via WhatsApp não passa pelo pagamento online — registra o pedido direto em
     // AGUARDANDO_CONTATO, pra existir um registro no banco antes do redirect pro wa.me.
     const statusInicial = canal === 'whatsapp' ? StatusPedido.AGUARDANDO_CONTATO : undefined;
+    const total = Number((carrinho.total - carrinho.desconto + valorFrete).toFixed(2));
 
     return this.pedidoRepository.criar(
       itens,
-      carrinho.total + valorFrete,
+      total,
       entrega,
       contato,
       clienteId,
       statusInicial,
+      undefined,
+      carrinho.desconto,
+      carrinho.cupomCodigo,
     );
   }
 }

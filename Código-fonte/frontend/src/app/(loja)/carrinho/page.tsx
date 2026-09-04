@@ -21,7 +21,8 @@ export default function CarrinhoPage() {
   const { itens, itensIndisponiveis, total, hidratado, atualizarQuantidade, remover, limpar } =
     useCart();
 
-  const temItemIndisponivel = itensIndisponiveis.length > 0 || itens.some((item) => !item.disponivel);
+  const temItemIndisponivel =
+    itensIndisponiveis.length > 0 || itens.some((item) => !item.disponivel);
 
   // Espera hidratar antes de decidir "vazio" — logo após montar, o carrinho ainda
   // não terminou de carregar do servidor (ver CartProvider), senão um reload desta

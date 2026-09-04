@@ -11,18 +11,20 @@ import {
   PedidoNaoEncontradoException,
 } from '../domain/pedidos.exceptions';
 import { ProdutoRepository } from '../../produtos/domain/produto.repository';
+import { CupomRepository } from '../../cupons/domain/cupom.repository';
 import { TransactionManager } from '../../shared/prisma/transaction-manager';
 
 describe('AtualizarStatusPedidoUseCase', () => {
   let pedidoRepository: jest.Mocked<PedidoRepository>;
   let produtoRepository: jest.Mocked<ProdutoRepository>;
+  let cupomRepository: jest.Mocked<CupomRepository>;
   let transactionManager: jest.Mocked<TransactionManager>;
   let useCase: AtualizarStatusPedidoUseCase;
 
   const contextoFalso = { transacao: 'fake' };
   const itens = [new ItemPedidoEntity('produto-1', 'Detergente', 2, 10)];
 
-  function criarPedido(status: StatusPedido): Pedido {
+  function criarPedido(status: StatusPedido, cupomCodigo?: string): Pedido {
     return new Pedido(
       'pedido-1',
       '2026-000001',
@@ -33,6 +35,12 @@ describe('AtualizarStatusPedidoUseCase', () => {
       0,
       new Date(),
       new Date(),
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      0,
+      cupomCodigo,
     );
   }
 
@@ -47,6 +55,11 @@ describe('AtualizarStatusPedidoUseCase', () => {
       incrementarEstoque: jest.fn().mockResolvedValue(undefined),
     } as unknown as jest.Mocked<ProdutoRepository>;
 
+    cupomRepository = {
+      incrementarUsos: jest.fn().mockResolvedValue(undefined),
+      decrementarUsos: jest.fn().mockResolvedValue(undefined),
+    } as unknown as jest.Mocked<CupomRepository>;
+
     transactionManager = {
       executar: jest.fn((fn: (contexto: unknown) => Promise<unknown>) => fn(contextoFalso)),
     } as unknown as jest.Mocked<TransactionManager>;
@@ -54,6 +67,7 @@ describe('AtualizarStatusPedidoUseCase', () => {
     useCase = new AtualizarStatusPedidoUseCase(
       pedidoRepository,
       produtoRepository,
+      cupomRepository,
       transactionManager,
     );
   });
@@ -189,5 +203,43 @@ describe('AtualizarStatusPedidoUseCase', () => {
 
     await expect(useCase.executar('pedido-1', StatusPedido.PAGO)).rejects.toThrow('sem estoque');
     expect(pedidoRepository.atualizarStatus).not.toHaveBeenCalled();
+  });
+
+  describe('cupom', () => {
+    it('AGUARDANDO_CONTATO → PAGO com cupom: incrementa o uso do cupom na mesma transação', async () => {
+      pedidoRepository.buscarPorId.mockResolvedValue(
+        criarPedido(StatusPedido.AGUARDANDO_CONTATO, 'DESCONTO10'),
+      );
+
+      await useCase.executar('pedido-1', StatusPedido.PAGO);
+
+      expect(cupomRepository.incrementarUsos).toHaveBeenCalledWith('DESCONTO10', contextoFalso);
+    });
+
+    it('PAGO → CANCELADO com cupom: devolve o uso do cupom na mesma transação', async () => {
+      pedidoRepository.buscarPorId.mockResolvedValue(criarPedido(StatusPedido.PAGO, 'DESCONTO10'));
+
+      await useCase.executar('pedido-1', StatusPedido.CANCELADO);
+
+      expect(cupomRepository.decrementarUsos).toHaveBeenCalledWith('DESCONTO10', contextoFalso);
+    });
+
+    it('PAGO → SEPARACAO com cupom: NÃO mexe no uso do cupom (venda continua de pé)', async () => {
+      pedidoRepository.buscarPorId.mockResolvedValue(criarPedido(StatusPedido.PAGO, 'DESCONTO10'));
+
+      await useCase.executar('pedido-1', StatusPedido.SEPARACAO);
+
+      expect(cupomRepository.incrementarUsos).not.toHaveBeenCalled();
+      expect(cupomRepository.decrementarUsos).not.toHaveBeenCalled();
+    });
+
+    it('sem cupom no pedido, nenhum método de cupom é chamado', async () => {
+      pedidoRepository.buscarPorId.mockResolvedValue(criarPedido(StatusPedido.AGUARDANDO_CONTATO));
+
+      await useCase.executar('pedido-1', StatusPedido.PAGO);
+
+      expect(cupomRepository.incrementarUsos).not.toHaveBeenCalled();
+      expect(cupomRepository.decrementarUsos).not.toHaveBeenCalled();
+    });
   });
 });

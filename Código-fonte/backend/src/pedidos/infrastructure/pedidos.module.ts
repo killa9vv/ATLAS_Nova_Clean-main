@@ -3,6 +3,7 @@ import { CarrinhoModule } from '../../carrinho/infrastructure/carrinho.module';
 import { ProdutosModule } from '../../produtos/infrastructure/produtos.module';
 import { FreteModule } from '../../frete/infrastructure/frete.module';
 import { ClientesModule } from '../../clientes/infrastructure/clientes.module';
+import { CuponsModule } from '../../cupons/infrastructure/cupons.module';
 import { CriarPedidoUseCase } from '../application/criar-pedido.use-case';
 import { BuscarPedidoPorIdUseCase } from '../application/buscar-pedido-por-id.use-case';
 import { ListarPedidosUseCase } from '../application/listar-pedidos.use-case';
@@ -18,7 +19,7 @@ import { PedidosClienteController } from './pedidos-cliente.controller';
 import { PrismaPedidoRepository } from './prisma-pedido.repository';
 
 @Module({
-  imports: [CarrinhoModule, ProdutosModule, FreteModule, ClientesModule],
+  imports: [CarrinhoModule, ProdutosModule, FreteModule, ClientesModule, CuponsModule],
   controllers: [PedidosController, PedidosClienteController],
   providers: [
     {

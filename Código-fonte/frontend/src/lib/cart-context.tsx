@@ -11,7 +11,10 @@ import {
   type CarrinhoServidor,
 } from '@/lib/carrinho-api';
 
-export type { ItemCarrinhoServidor as ItemCarrinho, ItemCarrinhoIndisponivel } from '@/lib/carrinho-api';
+export type {
+  ItemCarrinhoServidor as ItemCarrinho,
+  ItemCarrinhoIndisponivel,
+} from '@/lib/carrinho-api';
 
 export const CHAVE_QUERY_CARRINHO = ['carrinho'] as const;
 

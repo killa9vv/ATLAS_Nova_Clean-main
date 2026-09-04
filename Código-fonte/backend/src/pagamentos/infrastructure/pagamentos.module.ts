@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { PedidosModule } from '../../pedidos/infrastructure/pedidos.module';
 import { ProdutosModule } from '../../produtos/infrastructure/produtos.module';
+import { CuponsModule } from '../../cupons/infrastructure/cupons.module';
 import { PagamentosController } from './pagamentos.controller';
 import { PrismaPagamentoRepository } from './prisma-pagamento.repository';
 import { PagamentoRepository } from '../domain/pagamento.repository';
@@ -14,7 +15,7 @@ import { ReconciliarPagamentosPendentesUseCase } from '../application/reconcilia
 import { ReconciliacaoPagamentosScheduler } from './reconciliacao-pagamentos.scheduler';
 
 @Module({
-  imports: [ConfigModule, PedidosModule, ProdutosModule],
+  imports: [ConfigModule, PedidosModule, ProdutosModule, CuponsModule],
   controllers: [PagamentosController],
   providers: [
     { provide: PagamentoRepository, useClass: PrismaPagamentoRepository },

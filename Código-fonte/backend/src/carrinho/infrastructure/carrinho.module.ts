@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ProdutosModule } from '../../produtos/infrastructure/produtos.module';
+import { CuponsModule } from '../../cupons/infrastructure/cupons.module';
 import { CarrinhoController } from './carrinho.controller';
 import { MontarCarrinhoUseCase } from '../application/montar-carrinho.use-case';
 import { ResolverCarrinhoSessaoUseCase } from '../application/resolver-carrinho-sessao.use-case';
@@ -13,7 +14,7 @@ import { PrismaCarrinhoSessaoRepository } from './prisma-carrinho-sessao.reposit
 import { LimpezaCarrinhosScheduler } from './limpeza-carrinhos.scheduler';
 
 @Module({
-  imports: [ProdutosModule],
+  imports: [ProdutosModule, CuponsModule],
   controllers: [CarrinhoController],
   providers: [
     MontarCarrinhoUseCase,
