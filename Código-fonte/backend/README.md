@@ -11,13 +11,21 @@ NestJS + Prisma + PostgreSQL. Módulos: `auth`, `produtos` (inclui imagens), `ca
 ```bash
 npm install
 cp .env.example .env   # preencha as chaves do Mercado Pago se for testar pagamento
-npx prisma migrate deploy   # só na primeira vez, ou quando houver migration nova
-npx prisma db seed         # só na primeira vez — popula o catálogo (~126 produtos)
-npm run dev                 # sobe o Postgres local e a API juntos (Ctrl+C encerra os dois)
+npm run dev             # sobe o Postgres local e a API juntos (Ctrl+C encerra os dois)
 ```
 
+`npm run dev` já aplica migrations pendentes, popula o catálogo (se estiver vazio) e cria
+um usuário ADMIN (se nenhum existir) sozinho, toda vez que sobe — ver
+`scripts/db-bootstrap.mjs`. Não precisa rodar `prisma migrate deploy`/`prisma db seed`/
+`create-admin.mjs` manualmente depois de um merge com migration nova ou de apagar o
+`.pgdata`; nenhum desses passos sobrescreve o que já existe, então é seguro reiniciar
+quantas vezes quiser. As credenciais do admin criado automaticamente vêm de
+`ADMIN_EMAIL`/`ADMIN_SENHA` no `.env` (opcionais — sem elas, usa
+`admin@atlas.local` / `admin12345`).
+
 Se preferir bancos separados (útil se você já sobe o Postgres manualmente por outro
-lado), use `node scripts/dev-db.mjs keep-alive` numa aba e `npm run start:dev` em outra.
+lado), use `node scripts/dev-db.mjs keep-alive` numa aba (também faz o bootstrap acima)
+e `npm run start:dev` em outra.
 
 ### Opção B: Docker Compose
 
@@ -104,8 +112,11 @@ backend rodando (seção acima), precisa de:
 
 ### Problemas comuns
 
-- **Catálogo vazio / "Produto X não encontrado"**: o seed não rodou nesse banco —
-  `npx prisma db seed`.
+- **Catálogo vazio / "Produto X não encontrado"** ou **login admin não funciona**: só
+  acontece se você rodou a API sem passar pelo `npm run dev`/`dev-db.mjs` (que fazem o
+  bootstrap automático — ver seção "Rodando localmente" acima). Rode
+  `npx prisma db seed` e/ou `ADMIN_EMAIL=... ADMIN_SENHA=... node scripts/create-admin.mjs`
+  manualmente nesse caso.
 - **`pre-existing shared memory block is still in use`** ao rodar `npm run dev`: sobrou
   um processo do Postgres embarcado de uma execução anterior que não fechou direito.
   Descubra o PID na porta 5433 e finalize:

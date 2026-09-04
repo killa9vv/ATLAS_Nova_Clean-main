@@ -27,12 +27,10 @@ export interface ResultadoRepeticaoPedido {
 }
 
 /**
- * "Repetir pedido" não persiste nada — carrinho neste projeto é inteiramente
- * client-side (ver cart-context.tsx no frontend; POST /carrinho/calcular só
- * valida/precifica uma lista enviada, não existe carrinho server-side por cliente).
- * Este use case só devolve os itens prontos pro frontend jogar no carrinho local,
- * com preço ATUAL (nunca o snapshot antigo — mesma invariante de nunca confiar em
- * preço/estoque velho, ver MontarCarrinhoUseCase).
+ * "Repetir pedido" não persiste nada — devolve os itens prontos pro frontend jogar
+ * no carrinho (local ou já persistido via POST /carrinho/itens, ver módulo
+ * carrinho/), com preço ATUAL (nunca o snapshot antigo — mesma invariante de nunca
+ * confiar em preço/estoque velho, ver MontarCarrinhoUseCase).
  *
  * Diferente de MontarCarrinhoUseCase (que lança exceção em estoque insuficiente):
  * aqui o objetivo é degradar graciosamente — item sem estoque suficiente entra

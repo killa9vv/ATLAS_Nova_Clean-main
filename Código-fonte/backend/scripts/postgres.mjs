@@ -6,6 +6,7 @@ import EmbeddedPostgres from 'embedded-postgres';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
+import { bootstrapBancoDev } from './db-bootstrap.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const databaseDir = path.resolve(__dirname, '../.pgdata');
@@ -36,4 +37,6 @@ export async function subirPostgres(pg) {
   }
 
   console.log('Postgres local rodando em postgresql://atlas:atlas@localhost:5433/atlas_nova_clean');
+
+  await bootstrapBancoDev();
 }

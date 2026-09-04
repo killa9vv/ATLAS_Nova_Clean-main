@@ -10,8 +10,9 @@ import { Input } from '@/components/ui/Input';
 import { Radio } from '@/components/ui/Radio';
 import { useToast } from '@/components/ui/Toast';
 import { ApiError } from '@/lib/http';
-import { useCart } from '@/lib/cart-context';
-import { calcularCarrinho, chaveCarrinho } from '@/lib/carrinho';
+import { useCart, CHAVE_QUERY_CARRINHO } from '@/lib/cart-context';
+import { buscarCarrinho } from '@/lib/carrinho-api';
+import { calcularCarrinho } from '@/lib/carrinho';
 import { buscarEnderecoPorCep, criarCliente } from '@/lib/clientes';
 import { cotarFrete } from '@/lib/frete';
 import { criarPedido, type PedidoCriado } from '@/lib/pedidos';
@@ -43,6 +44,15 @@ function formatarMoeda(valor: number): string {
 
 function somenteDigitos(valor: string): string {
   return valor.replace(/\D/g, '');
+}
+
+// Chave de query estável a partir dos itens do carrinho persistido, independente da
+// ordem — evita refetch do preço-com-cupom quando só a ordem dos itens muda.
+function chaveItens(itens: { produtoId: string; quantidade: number }[]): string {
+  return itens
+    .map((item) => `${item.produtoId}:${item.quantidade}`)
+    .sort()
+    .join(',');
 }
 
 interface CheckoutForm {
@@ -111,11 +121,30 @@ export default function CheckoutPage() {
     }));
   }, []);
 
-  const carrinhoQuery = useQuery({
-    queryKey: ['carrinho-calculo', chaveCarrinho(itens), cupomAplicado],
-    queryFn: () => calcularCarrinho(itens, cupomAplicado),
-    enabled: itens.length > 0,
+  // Mesma queryKey do CartProvider — compartilha o cache (sem round-trip extra) e
+  // `.refetch()` aqui atualiza o carrinho pra qualquer outro consumidor também.
+  const carrinhoQuery = useQuery({ queryKey: CHAVE_QUERY_CARRINHO, queryFn: buscarCarrinho });
+
+  // Cupom é aplicado por cima do carrinho persistido, via o endpoint stateless
+  // /carrinho/calcular (mesmo usado internamente por CriarPedidoUseCase) — passa os
+  // itens já resolvidos pelo carrinho do servidor. Só roda quando há cupom aplicado;
+  // sem cupom, o total do carrinho persistido (carrinhoQuery.data.total) já basta.
+  const precificacaoCupomQuery = useQuery({
+    queryKey: ['carrinho-cupom', chaveItens(carrinhoQuery.data?.itens ?? []), cupomAplicado],
+    queryFn: () =>
+      calcularCarrinho(
+        (carrinhoQuery.data?.itens ?? []).map((item) => ({
+          produtoId: item.produtoId,
+          quantidade: item.quantidade,
+        })),
+        cupomAplicado,
+      ),
+    enabled: !!cupomAplicado && !!carrinhoQuery.data && carrinhoQuery.data.itens.length > 0,
   });
+
+  const desconto = precificacaoCupomQuery.data?.desconto ?? 0;
+  const totalComDesconto =
+    precificacaoCupomQuery.data?.totalComDesconto ?? carrinhoQuery.data?.total ?? 0;
 
   function aplicarCupom() {
     const codigo = cupomInput.trim().toUpperCase();
@@ -130,20 +159,21 @@ export default function CheckoutPage() {
     setErroCupom(null);
   }
 
-  // O erro de cupom inválido/expirado vem da query do carrinho (POST /carrinho/calcular
-  // valida o cupom junto) — se falhar, remove o cupom aplicado pra não deixar o total
-  // travado num estado de erro permanente, e mostra a mensagem do backend.
+  // O erro de cupom inválido/expirado vem da query de precificação (POST
+  // /carrinho/calcular valida o cupom junto) — se falhar, remove o cupom aplicado
+  // pra não deixar o total travado num estado de erro permanente, e mostra a
+  // mensagem do backend.
   useEffect(() => {
-    if (!cupomAplicado || !carrinhoQuery.error) return;
+    if (!cupomAplicado || !precificacaoCupomQuery.error) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setErroCupom(
-      carrinhoQuery.error instanceof ApiError
-        ? carrinhoQuery.error.message
+      precificacaoCupomQuery.error instanceof ApiError
+        ? precificacaoCupomQuery.error.message
         : 'Não foi possível aplicar esse cupom.',
     );
     setCupomAplicado(undefined);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [carrinhoQuery.error]);
+  }, [precificacaoCupomQuery.error]);
 
   const cepLimpo = somenteDigitos(form.cep);
   const freteQuery = useQuery({
@@ -279,7 +309,7 @@ export default function CheckoutPage() {
     setEnviando(true);
     try {
       const pedido = await criarPedidoNoBackend('whatsapp');
-      limpar();
+      void limpar();
       const link = montarLinkWhatsApp(WHATSAPP_NUMERO, pedido);
       window.open(link, '_blank');
       router.push('/catalogo');
@@ -350,7 +380,7 @@ export default function CheckoutPage() {
       pararPollingRef.current = acompanharPagamentoPix(pedidoId, {
         aoAtualizar: (status) => {
           if (status === 'PAGO') {
-            limpar();
+            void limpar();
             setResultadoPagamento({ tipo: 'sucesso' });
           } else if (status === 'CANCELADO' || status === 'ESTORNADO') {
             setResultadoPagamento((prev) =>
@@ -366,7 +396,7 @@ export default function CheckoutPage() {
     } else {
       // RECUSADO nunca chega aqui — o backend lança PagamentoRecusadoException (402),
       // capturado no catch do onSubmit acima e tratado via onErro.
-      limpar();
+      void limpar();
       setResultadoPagamento({ tipo: 'sucesso' });
     }
   }
@@ -619,9 +649,7 @@ export default function CheckoutPage() {
                 <span className="text-ink">
                   Cupom <span className="font-mono font-semibold text-green">{cupomAplicado}</span>{' '}
                   aplicado
-                  {carrinhoQuery.data?.desconto ? (
-                    <> — desconto de {formatarMoeda(carrinhoQuery.data.desconto)}</>
-                  ) : null}
+                  {desconto ? <> — desconto de {formatarMoeda(desconto)}</> : null}
                 </span>
                 <button
                   type="button"
@@ -643,7 +671,7 @@ export default function CheckoutPage() {
                 <Button
                   variant="secondary"
                   onClick={aplicarCupom}
-                  disabled={!cupomInput.trim() || carrinhoQuery.isFetching}
+                  disabled={!cupomInput.trim() || precificacaoCupomQuery.isFetching}
                 >
                   Aplicar
                 </Button>
@@ -670,17 +698,16 @@ export default function CheckoutPage() {
             )}
           </div>
 
-          {!!carrinhoQuery.data?.desconto && (
+          {!!desconto && (
             <p className="text-right text-[13px] text-green">
-              Desconto:{' '}
-              <span className="font-mono">-{formatarMoeda(carrinhoQuery.data.desconto)}</span>
+              Desconto: <span className="font-mono">-{formatarMoeda(desconto)}</span>
             </p>
           )}
           <p className="text-right font-display text-lg font-bold text-navy">
             Total:{' '}
             <span className="font-mono">
               {formatarMoeda(
-                (carrinhoQuery.data?.totalComDesconto ?? 0) +
+                totalComDesconto +
                   (form.tipoEntrega === 'ENTREGA'
                     ? (freteQuery.data?.opcoes.find((o) => o.tipo === 'ENTREGA')?.valor ?? 0)
                     : 0),

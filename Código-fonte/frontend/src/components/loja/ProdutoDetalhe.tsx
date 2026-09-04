@@ -30,8 +30,8 @@ export function ProdutoDetalhe({ variantes }: ProdutoDetalheProps) {
   const categoryInfo = CATEGORY_INFO[selecionado.categoria as Category];
   const { principal: imagemProduto } = useImagemPrincipal(selecionado.id);
 
-  function aoAdicionar() {
-    adicionar(selecionado.id, selecionado.nome, selecionado.preco, 1);
+  async function aoAdicionar() {
+    await adicionar(selecionado.id);
     showToast('Adicionado ao carrinho.', 'success');
   }
 

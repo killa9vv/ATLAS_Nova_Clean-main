@@ -36,8 +36,8 @@ export function ProductCard({ produto, indice = 0 }: ProductCardProps) {
   // absurdamente longa em grids grandes.
   const delayMs = Math.min(indice, 7) * 30;
 
-  function aoAdicionar() {
-    adicionar(produto.id, produto.nome, produto.preco, 1);
+  async function aoAdicionar() {
+    await adicionar(produto.id);
     showToast('Adicionado ao carrinho.', 'success');
   }
 
