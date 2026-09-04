@@ -2,12 +2,9 @@
 
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/Button';
 import { Stepper } from '@/components/ui/Stepper';
-import { ApiError } from '@/lib/http';
 import { useCart } from '@/lib/cart-context';
-import { calcularCarrinho, chaveCarrinho } from '@/lib/carrinho';
 
 const TRUST_BADGES = [
   { icone: '⚡', texto: 'Resposta rápida' },
@@ -25,16 +22,18 @@ function formatarMoeda(valor: number): string {
 // verdade (o botão abaixo leva direto pra /checkout).
 export function CartDrawer() {
   const router = useRouter();
-  const { itens, hidratado, drawerAberto, fecharDrawer, atualizarQuantidade, remover } = useCart();
+  const {
+    itens,
+    itensIndisponiveis,
+    total,
+    hidratado,
+    drawerAberto,
+    fecharDrawer,
+    atualizarQuantidade,
+    remover,
+  } = useCart();
 
-  const carrinhoQuery = useQuery({
-    queryKey: ['carrinho-calculo', chaveCarrinho(itens)],
-    queryFn: () => calcularCarrinho(itens),
-    enabled: drawerAberto && itens.length > 0,
-  });
-
-  const estoqueInsuficiente =
-    carrinhoQuery.error instanceof ApiError && carrinhoQuery.error.status === 409;
+  const temItemIndisponivel = itensIndisponiveis.length > 0 || itens.some((item) => !item.disponivel);
 
   if (!hidratado) return null;
 
@@ -83,7 +82,7 @@ export function CartDrawer() {
         </div>
 
         <div className="flex-1 overflow-y-auto p-5">
-          {itens.length === 0 ? (
+          {itens.length === 0 && itensIndisponiveis.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
               <p className="text-[13.5px] text-muted">Seu carrinho está vazio.</p>
               <Link href="/catalogo" onClick={fecharDrawer}>
@@ -92,46 +91,43 @@ export function CartDrawer() {
             </div>
           ) : (
             <>
-              {estoqueInsuficiente && (
+              {itensIndisponiveis.length > 0 && (
                 <p className="mb-4 rounded-atlas-sm bg-red-50 px-3.5 py-2.5 text-[12.5px] text-red-600">
-                  {(carrinhoQuery.error as ApiError).message}
+                  {itensIndisponiveis.map((item) => item.nome ?? 'Um item').join(', ')} não está
+                  mais disponível.
                 </p>
               )}
               <div className="flex flex-col">
-                {itens.map((item) => {
-                  const calculado = carrinhoQuery.data?.itens.find(
-                    (i) => i.produtoId === item.produtoId,
-                  );
-                  return (
-                    <div
-                      key={item.produtoId}
-                      className="flex items-center justify-between gap-2.5 border-b border-dashed border-line py-3.5 last:border-b-0"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-[13px] font-semibold text-navy">{item.nome}</p>
-                        <p className="font-mono text-[11.5px] text-muted">
-                          {carrinhoQuery.isLoading
-                            ? 'Calculando…'
-                            : calculado
-                              ? formatarMoeda(calculado.precoUnitario)
-                              : '—'}
+                {itens.map((item) => (
+                  <div
+                    key={item.produtoId}
+                    className="flex items-center justify-between gap-2.5 border-b border-dashed border-line py-3.5 last:border-b-0"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[13px] font-semibold text-navy">{item.nome}</p>
+                      <p className="font-mono text-[11.5px] text-muted">
+                        {formatarMoeda(item.precoUnitario)}
+                      </p>
+                      {!item.disponivel && (
+                        <p className="text-[11px] text-red-600">
+                          Só {item.estoqueDisponivel} em estoque.
                         </p>
-                      </div>
-                      <Stepper
-                        quantidade={item.quantidade}
-                        onChange={(q) => atualizarQuantidade(item.produtoId, q)}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => remover(item.produtoId)}
-                        aria-label={`Remover ${item.nome}`}
-                        className="shrink-0 text-muted hover:text-red-600"
-                      >
-                        ✕
-                      </button>
+                      )}
                     </div>
-                  );
-                })}
+                    <Stepper
+                      quantidade={item.quantidade}
+                      onChange={(q) => atualizarQuantidade(item.produtoId, q)}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => remover(item.produtoId)}
+                      aria-label={`Remover ${item.nome}`}
+                      className="shrink-0 text-muted hover:text-red-600"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
               </div>
             </>
           )}
@@ -152,11 +148,11 @@ export function CartDrawer() {
             </div>
             <div className="mb-3.5 flex items-center justify-between font-mono text-[15px] font-semibold text-navy">
               <span>Subtotal</span>
-              <span>{carrinhoQuery.data ? formatarMoeda(carrinhoQuery.data.total) : '—'}</span>
+              <span>{formatarMoeda(total)}</span>
             </div>
             <Button
               className="w-full justify-center"
-              disabled={!carrinhoQuery.data || estoqueInsuficiente}
+              disabled={temItemIndisponivel}
               onClick={irParaCheckout}
             >
               Continuar para o checkout

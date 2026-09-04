@@ -1,34 +1,44 @@
 'use client';
 
-import { ReactNode, createContext, useContext, useEffect, useState } from 'react';
+import { ReactNode, createContext, useContext, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  adicionarItemCarrinho,
+  atualizarQuantidadeItemCarrinho,
+  buscarCarrinho,
+  limparCarrinhoServidor,
+  removerItemCarrinho,
+  type CarrinhoServidor,
+} from '@/lib/carrinho-api';
 
-export interface ItemCarrinho {
-  produtoId: string;
-  nome: string;
-  quantidade: number;
-  precoUnitario: number;
-}
+export type { ItemCarrinhoServidor as ItemCarrinho, ItemCarrinhoIndisponivel } from '@/lib/carrinho-api';
+
+export const CHAVE_QUERY_CARRINHO = ['carrinho'] as const;
+
+const CARRINHO_VAZIO: CarrinhoServidor = { itens: [], itensIndisponiveis: [], total: 0 };
 
 interface CartContextValue {
-  itens: ItemCarrinho[];
-  /** false até o carrinho salvo no localStorage terminar de carregar. Consumidores
-   * que decidem algo com base em "carrinho vazio" (ex.: redirecionar pra fora do
-   * checkout) precisam esperar isso virar true antes de checar `itens.length`, senão
-   * tratam o instante inicial (sempre vazio, antes da hidratação) como vazio de verdade. */
+  itens: CarrinhoServidor['itens'];
+  itensIndisponiveis: CarrinhoServidor['itensIndisponiveis'];
+  total: number;
+  /** false enquanto o carrinho (agora persistido no servidor) ainda não terminou de
+   * carregar. Consumidores que decidem algo com base em "carrinho vazio" (ex.:
+   * redirecionar pra fora do checkout) precisam esperar isso virar true antes de
+   * checar `itens.length`, senão tratam o carregamento inicial como vazio de verdade.
+   * Falha de rede também vira `hidratado: true` (degrada pra carrinho vazio) — nunca
+   * trava indefinidamente. */
   hidratado: boolean;
   quantidadeTotal: number;
-  adicionar: (produtoId: string, nome: string, precoUnitario: number, quantidade?: number) => void;
-  remover: (produtoId: string) => void;
-  atualizarQuantidade: (produtoId: string, quantidade: number) => void;
-  limpar: () => void;
+  adicionar: (produtoId: string, quantidade?: number) => Promise<void>;
+  remover: (produtoId: string) => Promise<void>;
+  atualizarQuantidade: (produtoId: string, quantidade: number) => Promise<void>;
+  limpar: () => Promise<void>;
   /** Drawer lateral (mesmo padrão do site antigo: botão do header abre uma prévia
    * do carrinho na lateral, em vez de navegar direto pra uma página cheia). */
   drawerAberto: boolean;
   abrirDrawer: () => void;
   fecharDrawer: () => void;
 }
-
-const CHAVE_LOCALSTORAGE = 'atlas-carrinho';
 
 const CartContext = createContext<CartContextValue | null>(null);
 
@@ -40,76 +50,64 @@ export function useCart(): CartContextValue {
   return ctx;
 }
 
-function lerCarrinhoSalvo(): ItemCarrinho[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const bruto = window.localStorage.getItem(CHAVE_LOCALSTORAGE);
-    return bruto ? (JSON.parse(bruto) as ItemCarrinho[]) : [];
-  } catch {
-    return [];
-  }
-}
-
 export function CartProvider({ children }: { children: ReactNode }) {
-  // Começa vazio pra bater com a marcação renderizada no servidor (que nunca tem
-  // acesso a localStorage) — ler localStorage já no useState via lazy init causaria
-  // mismatch de hidratação sempre que o carrinho não estivesse vazio. `hidratado`
-  // separa "carreguei do localStorage" de "itens mudou por uma ação do usuário", pra
-  // esse carregamento inicial não disparar o efeito de gravação com um array vazio
-  // por cima do que já estava salvo.
-  const [itens, setItens] = useState<ItemCarrinho[]>([]);
-  const [hidratado, setHidratado] = useState(false);
+  const queryClient = useQueryClient();
   const [drawerAberto, setDrawerAberto] = useState(false);
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setItens(lerCarrinhoSalvo());
-    setHidratado(true);
-  }, []);
+  // Mesma queryKey usada por qualquer outro componente que precise da instância de
+  // carrinho crua (ex.: checkout, pra chamar .refetch() antes de criar o pedido) —
+  // react-query compartilha o cache por key, não precisa passar isso pelo contexto.
+  const carrinhoQuery = useQuery({ queryKey: CHAVE_QUERY_CARRINHO, queryFn: buscarCarrinho });
 
-  useEffect(() => {
-    if (!hidratado) return;
-    window.localStorage.setItem(CHAVE_LOCALSTORAGE, JSON.stringify(itens));
-  }, [itens, hidratado]);
-
-  function adicionar(produtoId: string, nome: string, precoUnitario: number, quantidade = 1) {
-    setItens((prev) => {
-      const existente = prev.find((item) => item.produtoId === produtoId);
-      if (existente) {
-        return prev.map((item) =>
-          item.produtoId === produtoId
-            ? { ...item, quantidade: item.quantidade + quantidade }
-            : item,
-        );
-      }
-      return [...prev, { produtoId, nome, precoUnitario, quantidade }];
-    });
+  function aposMutar() {
+    return queryClient.invalidateQueries({ queryKey: CHAVE_QUERY_CARRINHO });
   }
 
-  function remover(produtoId: string) {
-    setItens((prev) => prev.filter((item) => item.produtoId !== produtoId));
+  const adicionarMutation = useMutation({
+    mutationFn: ({ produtoId, quantidade }: { produtoId: string; quantidade: number }) =>
+      adicionarItemCarrinho(produtoId, quantidade),
+    onSuccess: aposMutar,
+  });
+  const atualizarQuantidadeMutation = useMutation({
+    mutationFn: ({ produtoId, quantidade }: { produtoId: string; quantidade: number }) =>
+      atualizarQuantidadeItemCarrinho(produtoId, quantidade),
+    onSuccess: aposMutar,
+  });
+  const removerMutation = useMutation({
+    mutationFn: (produtoId: string) => removerItemCarrinho(produtoId),
+    onSuccess: aposMutar,
+  });
+  const limparMutation = useMutation({
+    mutationFn: () => limparCarrinhoServidor(),
+    onSuccess: aposMutar,
+  });
+
+  const carrinho = carrinhoQuery.data ?? CARRINHO_VAZIO;
+  const hidratado = !carrinhoQuery.isLoading;
+  const quantidadeTotal = carrinho.itens.reduce((soma, item) => soma + item.quantidade, 0);
+
+  async function adicionar(produtoId: string, quantidade = 1) {
+    await adicionarMutation.mutateAsync({ produtoId, quantidade });
   }
 
-  function atualizarQuantidade(produtoId: string, quantidade: number) {
-    if (quantidade <= 0) {
-      remover(produtoId);
-      return;
-    }
-    setItens((prev) =>
-      prev.map((item) => (item.produtoId === produtoId ? { ...item, quantidade } : item)),
-    );
+  async function remover(produtoId: string) {
+    await removerMutation.mutateAsync(produtoId);
   }
 
-  function limpar() {
-    setItens([]);
+  async function atualizarQuantidade(produtoId: string, quantidade: number) {
+    await atualizarQuantidadeMutation.mutateAsync({ produtoId, quantidade });
   }
 
-  const quantidadeTotal = itens.reduce((soma, item) => soma + item.quantidade, 0);
+  async function limpar() {
+    await limparMutation.mutateAsync();
+  }
 
   return (
     <CartContext.Provider
       value={{
-        itens,
+        itens: carrinho.itens,
+        itensIndisponiveis: carrinho.itensIndisponiveis,
+        total: carrinho.total,
         hidratado,
         quantidadeTotal,
         adicionar,
