@@ -2,14 +2,9 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/Button';
 import { Stepper } from '@/components/ui/Stepper';
-import { useToast } from '@/components/ui/Toast';
-import { ApiError } from '@/lib/http';
 import { useCart } from '@/lib/cart-context';
-import { calcularCarrinho, chaveCarrinho } from '@/lib/carrinho';
 
 const TRUST_BADGES = [
   { icone: '⚡', texto: 'Resposta rápida' },
@@ -23,42 +18,19 @@ function formatarMoeda(valor: number): string {
 
 export default function CarrinhoPage() {
   const router = useRouter();
-  const { showToast } = useToast();
-  const { itens, hidratado, atualizarQuantidade, remover, limpar } = useCart();
+  const { itens, itensIndisponiveis, total, hidratado, atualizarQuantidade, remover, limpar } =
+    useCart();
 
-  const carrinhoQuery = useQuery({
-    queryKey: ['carrinho-calculo', chaveCarrinho(itens)],
-    queryFn: () => calcularCarrinho(itens),
-    enabled: itens.length > 0,
-  });
+  const temItemIndisponivel = itensIndisponiveis.length > 0 || itens.some((item) => !item.disponivel);
 
-  // Produto some do catálogo (inativado/excluído) depois de já estar no carrinho local
-  // — o backend não devolve mais esse produtoId. Remove silenciosamente e avisa.
-  useEffect(() => {
-    if (!carrinhoQuery.data) return;
-    const idsRetornados = new Set(carrinhoQuery.data.itens.map((item) => item.produtoId));
-    const removidos = itens.filter((item) => !idsRetornados.has(item.produtoId));
-    if (removidos.length > 0) {
-      removidos.forEach((item) => remover(item.produtoId));
-      showToast(
-        `${removidos.map((i) => i.nome).join(', ')} não está mais disponível e foi removido do carrinho.`,
-        'error',
-      );
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [carrinhoQuery.data]);
-
-  const estoqueInsuficiente =
-    carrinhoQuery.error instanceof ApiError && carrinhoQuery.error.status === 409;
-
-  // Espera hidratar antes de decidir "vazio" — logo após montar o carrinho começa
-  // vazio até terminar de ler o localStorage (ver CartProvider), senão um reload
-  // desta página com carrinho não vazio mostraria "carrinho vazio" por um instante.
+  // Espera hidratar antes de decidir "vazio" — logo após montar, o carrinho ainda
+  // não terminou de carregar do servidor (ver CartProvider), senão um reload desta
+  // página com carrinho não vazio mostraria "carrinho vazio" por um instante.
   if (!hidratado) {
     return null;
   }
 
-  if (itens.length === 0) {
+  if (itens.length === 0 && itensIndisponiveis.length === 0) {
     return (
       <main className="mx-auto max-w-3xl px-5 py-16 text-center">
         <h1 className="mb-3 font-display text-2xl font-bold text-navy">Seu carrinho está vazio</h1>
@@ -83,48 +55,65 @@ export default function CarrinhoPage() {
           </span>
         </div>
 
-        {estoqueInsuficiente && (
+        {itensIndisponiveis.length > 0 && (
           <p className="mx-5 mt-4 rounded-atlas-sm bg-red-50 px-4 py-3 text-[13px] text-red-600">
-            {(carrinhoQuery.error as ApiError).message} Ajuste as quantidades abaixo pra continuar.
+            {itensIndisponiveis.map((item) => item.nome ?? 'Um item').join(', ')} não está mais
+            disponível — remova pra continuar.
           </p>
         )}
 
         <div className="flex flex-col px-5">
-          {itens.map((item) => {
-            const calculado = carrinhoQuery.data?.itens.find((i) => i.produtoId === item.produtoId);
-            return (
-              <div
-                key={item.produtoId}
-                className="flex items-center justify-between gap-3 border-b border-dashed border-line py-4 last:border-b-0"
+          {itensIndisponiveis.map((item) => (
+            <div
+              key={item.produtoId}
+              className="flex items-center justify-between gap-3 border-b border-dashed border-line py-4 last:border-b-0 opacity-60"
+            >
+              <p className="truncate text-[13.5px] font-semibold text-navy">
+                {item.nome ?? 'Produto indisponível'}
+              </p>
+              <button
+                type="button"
+                onClick={() => remover(item.produtoId)}
+                aria-label={`Remover ${item.nome ?? 'produto'}`}
+                className="shrink-0 text-muted hover:text-red-600"
               >
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-[13.5px] font-semibold text-navy">{item.nome}</p>
-                  <p className="font-mono text-[12px] text-muted">
-                    {carrinhoQuery.isLoading
-                      ? 'Calculando…'
-                      : calculado
-                        ? formatarMoeda(calculado.precoUnitario)
-                        : '—'}
+                ✕
+              </button>
+            </div>
+          ))}
+          {itens.map((item) => (
+            <div
+              key={item.produtoId}
+              className="flex items-center justify-between gap-3 border-b border-dashed border-line py-4 last:border-b-0"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[13.5px] font-semibold text-navy">{item.nome}</p>
+                <p className="font-mono text-[12px] text-muted">
+                  {formatarMoeda(item.precoUnitario)}
+                </p>
+                {!item.disponivel && (
+                  <p className="text-[11.5px] text-red-600">
+                    Só {item.estoqueDisponivel} em estoque.
                   </p>
-                </div>
-                <Stepper
-                  quantidade={item.quantidade}
-                  onChange={(q) => atualizarQuantidade(item.produtoId, q)}
-                />
-                <span className="w-20 shrink-0 text-right font-mono text-[13.5px] font-bold text-navy">
-                  {calculado ? formatarMoeda(calculado.subtotal) : '—'}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => remover(item.produtoId)}
-                  aria-label={`Remover ${item.nome}`}
-                  className="shrink-0 text-muted hover:text-red-600"
-                >
-                  ✕
-                </button>
+                )}
               </div>
-            );
-          })}
+              <Stepper
+                quantidade={item.quantidade}
+                onChange={(q) => atualizarQuantidade(item.produtoId, q)}
+              />
+              <span className="w-20 shrink-0 text-right font-mono text-[13.5px] font-bold text-navy">
+                {formatarMoeda(item.subtotal)}
+              </span>
+              <button
+                type="button"
+                onClick={() => remover(item.produtoId)}
+                aria-label={`Remover ${item.nome}`}
+                className="shrink-0 text-muted hover:text-red-600"
+              >
+                ✕
+              </button>
+            </div>
+          ))}
         </div>
 
         <div className="border-t-2 border-dashed border-line px-5 py-4">
@@ -149,13 +138,13 @@ export default function CarrinhoPage() {
               Limpar carrinho
             </button>
             <span className="font-display text-lg font-bold text-navy">
-              Total: {carrinhoQuery.data ? formatarMoeda(carrinhoQuery.data.total) : '—'}
+              Total: {formatarMoeda(total)}
             </span>
           </div>
 
           <Button
             className="w-full"
-            disabled={!carrinhoQuery.data || estoqueInsuficiente}
+            disabled={temItemIndisponivel || itens.length === 0}
             onClick={() => router.push('/checkout')}
           >
             Continuar para o checkout

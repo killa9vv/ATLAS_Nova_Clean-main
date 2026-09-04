@@ -10,8 +10,8 @@ import { Input } from '@/components/ui/Input';
 import { Radio } from '@/components/ui/Radio';
 import { useToast } from '@/components/ui/Toast';
 import { ApiError } from '@/lib/http';
-import { useCart } from '@/lib/cart-context';
-import { calcularCarrinho, chaveCarrinho } from '@/lib/carrinho';
+import { useCart, CHAVE_QUERY_CARRINHO } from '@/lib/cart-context';
+import { buscarCarrinho } from '@/lib/carrinho-api';
 import { buscarEnderecoPorCep, criarCliente } from '@/lib/clientes';
 import { cotarFrete } from '@/lib/frete';
 import { criarPedido, type PedidoCriado } from '@/lib/pedidos';
@@ -108,11 +108,9 @@ export default function CheckoutPage() {
     }));
   }, []);
 
-  const carrinhoQuery = useQuery({
-    queryKey: ['carrinho-calculo', chaveCarrinho(itens)],
-    queryFn: () => calcularCarrinho(itens),
-    enabled: itens.length > 0,
-  });
+  // Mesma queryKey do CartProvider — compartilha o cache (sem round-trip extra) e
+  // `.refetch()` aqui atualiza o carrinho pra qualquer outro consumidor também.
+  const carrinhoQuery = useQuery({ queryKey: CHAVE_QUERY_CARRINHO, queryFn: buscarCarrinho });
 
   const cepLimpo = somenteDigitos(form.cep);
   const freteQuery = useQuery({
@@ -247,7 +245,7 @@ export default function CheckoutPage() {
     setEnviando(true);
     try {
       const pedido = await criarPedidoNoBackend('whatsapp');
-      limpar();
+      void limpar();
       const link = montarLinkWhatsApp(WHATSAPP_NUMERO, pedido);
       window.open(link, '_blank');
       router.push('/catalogo');
@@ -318,7 +316,7 @@ export default function CheckoutPage() {
       pararPollingRef.current = acompanharPagamentoPix(pedidoId, {
         aoAtualizar: (status) => {
           if (status === 'PAGO') {
-            limpar();
+            void limpar();
             setResultadoPagamento({ tipo: 'sucesso' });
           } else if (status === 'CANCELADO' || status === 'ESTORNADO') {
             setResultadoPagamento((prev) =>
@@ -334,7 +332,7 @@ export default function CheckoutPage() {
     } else {
       // RECUSADO nunca chega aqui — o backend lança PagamentoRecusadoException (402),
       // capturado no catch do onSubmit acima e tratado via onErro.
-      limpar();
+      void limpar();
       setResultadoPagamento({ tipo: 'sucesso' });
     }
   }

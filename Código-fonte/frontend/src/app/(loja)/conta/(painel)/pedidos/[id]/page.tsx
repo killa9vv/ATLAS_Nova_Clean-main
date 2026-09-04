@@ -40,10 +40,12 @@ export default function PedidoDetalhePage() {
 
   const repetir = useMutation({
     mutationFn: () => repetirPedido(params.id),
-    onSuccess: (resultado) => {
-      resultado.itens.forEach((item) => {
-        adicionar(item.produtoId, item.nome, item.precoUnitario, item.quantidade);
-      });
+    onSuccess: async (resultado) => {
+      // Sequencial (não Promise.all) — cada POST /carrinho/itens é uma escrita no
+      // mesmo carrinho; disparar todas em paralelo arriscaria corrida entre elas.
+      for (const item of resultado.itens) {
+        await adicionar(item.produtoId, item.quantidade);
+      }
 
       if (resultado.itens.length > 0) {
         showToast(
