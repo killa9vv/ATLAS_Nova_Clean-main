@@ -6,7 +6,7 @@ import { MarcaRepository } from '../domain/marca.repository';
 export class ListarMarcasUseCase {
   constructor(private readonly marcaRepository: MarcaRepository) {}
 
-  async executar(): Promise<Marca[]> {
-    return this.marcaRepository.listarTodas();
+  async executar(ativo?: boolean): Promise<Marca[]> {
+    return this.marcaRepository.listarTodas(ativo);
   }
 }

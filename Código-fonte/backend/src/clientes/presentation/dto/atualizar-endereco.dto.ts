@@ -38,4 +38,10 @@ export class AtualizarEnderecoDto {
   @IsString()
   @MaxLength(2)
   estado?: string;
+
+  @ApiPropertyOptional({ example: 'Casa', maxLength: 40 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  apelido?: string;
 }

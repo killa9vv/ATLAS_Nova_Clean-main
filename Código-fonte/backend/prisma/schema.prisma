@@ -60,9 +60,14 @@ enum TipoMovimentacaoEstoque {
 }
 
 model Categoria {
-  id   String @id @default(uuid())
-  slug String @unique
-  nome String
+  id        String   @id @default(uuid())
+  slug      String   @unique
+  nome      String
+  // Soft delete lógico, mesmo padrão de Produto.ativo — esconde da loja sem quebrar
+  // FKs de produtos/cupons/regras de atacado já vinculados.
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   produtoTipos    ProdutoTipo[]
   produtos        Produto[]
@@ -73,11 +78,14 @@ model Categoria {
 }
 
 model Marca {
-  id        String  @id @default(uuid())
-  nome      String  @unique
+  id        String   @id @default(uuid())
+  nome      String   @unique
   // Logo servido como asset estático do frontend (public/brands/*.png) — uma marca
   // tem um logo só, não precisa de tabela relacionada tipo ImagemProduto.
-  imagemUrl String? @map("imagem_url")
+  imagemUrl String?  @map("imagem_url")
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   produtos Produto[]
 
@@ -87,19 +95,21 @@ model Marca {
 // Produto genérico (ex: "Detergente para Louça"), independente de marca. Cada
 // linha de Produto é uma variante vendável desse tipo (marca + embalagem + preço).
 model ProdutoTipo {
-  id          String  @id @default(uuid())
-  categoriaId String  @map("categoria_id")
+  id          String   @id @default(uuid())
+  categoriaId String   @map("categoria_id")
   nome        String
   // Slug estável usado pela página de detalhe de produto (/produtos/[slug] no
   // frontend) — quando importado do catálogo antigo, bate com o id original
   // (ex: "t-detergente-louca"). Opcional pra não quebrar tipos já existentes
   // sem slug; controllers/telas que dependem dele tratam null como "sem detalhe".
-  slug        String? @unique
+  slug        String?  @unique
   // Texto técnico/precauções padrão do tipo — sobreposição por variante (existe
   // no catálogo do frontend como ProductVariant.info/precautions) não tem campo
   // aqui: nenhum dado real usa isso hoje, fica pra quando existir de verdade.
-  infoTecnica String? @map("info_tecnica")
+  infoTecnica String?  @map("info_tecnica")
   precaucoes  String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   categoria Categoria @relation(fields: [categoriaId], references: [id])
   produtos  Produto[]
@@ -203,6 +213,8 @@ model Usuario {
   createdAt DateTime     @default(now()) @map("created_at")
   updatedAt DateTime     @updatedAt @map("updated_at")
 
+  transicoesPedido PedidoStatusHistorico[]
+
   @@map("usuarios")
 }
 
@@ -222,6 +234,7 @@ model Cliente {
   // null como credencial inválida — nunca compara contra hash vazio.
   senhaHash String?  @map("senha_hash")
   createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   enderecos         Endereco[]
   pedidos           Pedido[]
@@ -250,6 +263,7 @@ model TokenRecuperacaoSenha {
   cliente Cliente @relation(fields: [clienteId], references: [id])
 
   @@index([clienteId])
+  @@index([tokenHash])
   @@map("tokens_recuperacao_senha")
 }
 
@@ -267,6 +281,7 @@ model RefreshToken {
   cliente Cliente @relation(fields: [clienteId], references: [id])
 
   @@index([clienteId])
+  @@index([tokenHash])
   @@map("refresh_tokens")
 }
 
@@ -276,8 +291,8 @@ model RefreshToken {
 // já desmarca o antigo e marca o novo na mesma transação; o índice é a garantia de
 // banco contra corrida (duas requisições concorrentes marcando padrão ao mesmo tempo).
 model Endereco {
-  id          String  @id @default(uuid())
-  clienteId   String  @map("cliente_id")
+  id          String   @id @default(uuid())
+  clienteId   String   @map("cliente_id")
   cep         String
   logradouro  String
   numero      String
@@ -285,7 +300,12 @@ model Endereco {
   bairro      String
   cidade      String
   estado      String
-  padrao      Boolean @default(false)
+  padrao      Boolean  @default(false)
+  // Rótulo livre pro cliente distinguir endereços salvos ("Casa", "Trabalho") — só
+  // exibição, não entra em nenhuma lógica (frete, snapshot no Pedido etc.).
+  apelido     String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   cliente Cliente @relation(fields: [clienteId], references: [id])
 
@@ -369,8 +389,10 @@ model CupomUsoCliente {
 // Desconto automático por faixa de quantidade (ex.: "leve 12+ unidades, 10% off"),
 // sem código — bem diferente de Cupom por natureza (política de preço do produto,
 // não uma promoção pontual digitada). produtoId e categoriaId são mutuamente
-// exclusivos (exatamente um preenchido) — validado na aplicação, não no banco (Prisma
-// não expressa XOR entre colunas nullable). Aplicado antes de qualquer Cupom por
+// exclusivos (exatamente um preenchido) — reforçado por um CHECK constraint escrito
+// à mão na migration (Prisma não expressa XOR entre colunas nullable na DSL, mesmo
+// caso do índice parcial de Endereco.padrao), além de validado na aplicação.
+// Aplicado antes de qualquer Cupom por
 // código (ver ItemPrecificado/MontarCarrinhoUseCase): reduz o subtotal primeiro, o
 // cupom por código desconta em cima do que sobrar — as duas coisas se somam.
 model RegraAtacado {
@@ -440,7 +462,11 @@ model ItemCarrinho {
   quantidade Int
   createdAt  DateTime @default(now()) @map("created_at")
 
-  carrinho Carrinho @relation(fields: [carrinhoId], references: [id])
+  // Cascade de propósito: item de carrinho não tem valor sem o carrinho dono —
+  // LimpezaCarrinhosScheduler contava com apagar os itens manualmente antes do
+  // carrinho numa transação; isso garante a mesma coisa mesmo se outro código
+  // apagar um Carrinho diretamente no futuro.
+  carrinho Carrinho @relation(fields: [carrinhoId], references: [id], onDelete: Cascade)
   produto  Produto  @relation(fields: [produtoId], references: [id])
 
   @@unique([carrinhoId, produtoId])
@@ -459,13 +485,20 @@ model Pedido {
   // concorrência em mais de um lugar.
   numero String @unique
 
-  clienteId   String?      @map("cliente_id")
-  status      StatusPedido @default(CRIADO)
-  total       Decimal      @db.Decimal(10, 2)
-  desconto    Decimal      @default(0) @db.Decimal(10, 2)
-  cupomCodigo String?      @map("cupom_codigo")
-  createdAt   DateTime     @default(now()) @map("created_at")
-  updatedAt   DateTime     @updatedAt @map("updated_at")
+  clienteId       String?      @map("cliente_id")
+  status          StatusPedido @default(CRIADO)
+  total           Decimal      @db.Decimal(10, 2)
+  // Separados (em vez de um único `desconto` somado) porque têm origem e natureza
+  // diferentes — atacado é automático por regra de quantidade, cupom é por código
+  // digitado — e reporte financeiro precisa saber quanto veio de cada um. Espelha
+  // Carrinho.descontoAtacado/Carrinho.desconto (ver item-precificado.ts); somados,
+  // dão o antigo `desconto` único. Pedidos anteriores a essa coluna têm todo o valor
+  // atribuído a descontoCupom (ver migration) — não há como recuperar o split retroativamente.
+  descontoAtacado Decimal      @default(0) @map("desconto_atacado") @db.Decimal(10, 2)
+  descontoCupom   Decimal      @default(0) @map("desconto_cupom") @db.Decimal(10, 2)
+  cupomCodigo     String?      @map("cupom_codigo")
+  createdAt       DateTime     @default(now()) @map("created_at")
+  updatedAt       DateTime     @updatedAt @map("updated_at")
 
   // Entrega: RETIRADA não usa nenhum dos campos de endereço abaixo (fica tudo null,
   // valorFrete 0). Endereço é gravado como snapshot (não uma FK pra Endereco) pelo
@@ -500,6 +533,9 @@ model Pedido {
   emailsEnviados EmailEnviado[]
 
   @@index([clienteId])
+  // Suporta o filtro do painel admin (listarTodos): status + range de created_at,
+  // ordenado por created_at desc.
+  @@index([status, createdAt])
   @@map("pedidos")
 }
 
@@ -523,11 +559,17 @@ model PedidoStatusHistorico {
   pedidoId       String        @map("pedido_id")
   statusAnterior StatusPedido? @map("status_anterior")
   statusNovo     StatusPedido  @map("status_novo")
+  // Null quando a transição foi automática (webhook/polling de pagamento — ver
+  // ReconciliarPedidoService/ProcessarWebhookUseCase), preenchido só quando foi o
+  // admin quem mudou manualmente pelo painel (AtualizarStatusPedidoUseCase).
+  alteradoPor    String?       @map("alterado_por")
   alteradoEm     DateTime      @default(now()) @map("alterado_em")
 
-  pedido Pedido @relation(fields: [pedidoId], references: [id])
+  pedido  Pedido   @relation(fields: [pedidoId], references: [id])
+  usuario Usuario? @relation(fields: [alteradoPor], references: [id], onDelete: SetNull)
 
   @@index([pedidoId])
+  @@index([alteradoPor])
   @@map("pedido_status_historico")
 }
 
@@ -574,6 +616,12 @@ model Resenha {
   nome       String
   nota       Int
   comentario String
+  // Default true de propósito: não muda nada pro que já existe hoje (criação
+  // continua pública, sem checagem). Só prepara terreno pro schema já ter a coluna
+  // quando existir um painel de moderação de verdade — mesmo padrão de
+  // MovimentacaoEstoque/ProdutoTipo.infoTecnica (existe a coluna, o fluxo de
+  // aplicação vem depois). Nenhum use case lê/escreve este campo ainda.
+  aprovado   Boolean  @default(true)
   createdAt  DateTime @default(now()) @map("created_at")
 
   @@map("resenhas")

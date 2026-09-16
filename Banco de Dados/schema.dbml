@@ -10,19 +10,30 @@
 //// O prisma-dbml-generator sempre emite `>` nas Ref, mesmo quando a FK é
 //// nullable — o dbdiagram.io acusa "MISMATCHED OPTIONAL REF CONSTRAINTS"
 //// nesses casos. Depois de regenerar, troque `>` por `>?` em toda Ref cujo
-//// lado FK seja opcional (hoje: carrinhos.clienteId, pedidos.clienteId).
+//// lado FK seja opcional (hoje: produtos.produtoTipoId, produtos.marcaId,
+//// produtos.categoriaId, regras_atacado.produtoId, regras_atacado.categoriaId,
+//// carrinhos.clienteId, carrinhos.cupomCodigo, pedidos.clienteId,
+//// pedidos.cupomCodigo).
 //// ------------------------------------------------------
 
 Table categorias {
   id String [pk]
   slug String [unique, not null]
   nome String [not null]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
   produtoTipos produto_tipos [not null]
+  produtos produtos [not null]
+  cuponsRestritos cupons_categorias [not null]
+  regrasAtacado regras_atacado [not null]
 }
 
 Table marcas {
   id String [pk]
   nome String [unique, not null]
+  imagemUrl String
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
   produtos produtos [not null]
 }
 
@@ -30,8 +41,11 @@ Table produto_tipos {
   id String [pk]
   categoriaId String [not null]
   nome String [not null]
+  slug String [unique]
   infoTecnica String
   precaucoes String
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
   categoria categorias [not null]
   produtos produtos [not null]
 
@@ -42,27 +56,40 @@ Table produto_tipos {
 
 Table produtos {
   id String [pk]
-  produtoTipoId String [not null]
-  marcaId String [not null]
   nome String [not null]
-  pack String [not null]
+  pack String
   descricao String
+  slug String [unique, not null]
+  produtoTipoId String
+  marcaId String
+  categoriaId String
+  categoria String
   preco Decimal [not null]
+  precoPromocional Decimal
   estoque Int [not null, default: 0]
+  pesoKg Decimal
+  alturaCm Decimal
+  larguraCm Decimal
+  comprimentoCm Decimal
+  ativo Boolean [not null, default: true]
   createdAt DateTime [default: `now()`, not null]
   updatedAt DateTime [not null]
-  produtoTipo produto_tipos [not null]
-  marca marcas [not null]
+  produtoTipo produto_tipos
+  marca marcas
+  categoriaRel categorias
   itensPedido itens_pedido [not null]
   itensCarrinho itens_carrinho [not null]
   imagens imagens_produto [not null]
   movimentacoesEstoque movimentacoes_estoque [not null]
+  cuponsRestritos cupons_produtos [not null]
+  regrasAtacado regras_atacado [not null]
 }
 
 Table imagens_produto {
   id String [pk]
   produtoId String [not null]
   url String [not null]
+  providerId String [not null]
   ordem Int [not null, default: 0]
   produto produtos [not null]
 }
@@ -82,7 +109,7 @@ Table usuarios {
   email String [unique, not null]
   senhaHash String [not null]
   nome String [not null]
-  papel PapelUsuario [not null, default: 'ADMIN']
+  papel PapelUsuario [not null, default: 'CLIENTE']
   createdAt DateTime [default: `now()`, not null]
   updatedAt DateTime [not null]
 }
@@ -92,11 +119,37 @@ Table clientes {
   nome String [not null]
   email String [unique]
   telefone String
-  cpf String
+  cpf String [unique]
+  cnpj String [unique]
+  senhaHash String
   createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
   enderecos enderecos [not null]
   pedidos pedidos [not null]
   carrinhos carrinhos [not null]
+  tokensRecuperacao tokens_recuperacao_senha [not null]
+  refreshTokens refresh_tokens [not null]
+  usosCupom cupons_uso_cliente [not null]
+}
+
+Table tokens_recuperacao_senha {
+  id String [pk]
+  clienteId String [not null]
+  tokenHash String [not null]
+  expiraEm DateTime [not null]
+  usadoEm DateTime
+  createdAt DateTime [default: `now()`, not null]
+  cliente clientes [not null]
+}
+
+Table refresh_tokens {
+  id String [pk]
+  clienteId String [not null]
+  tokenHash String [not null]
+  expiraEm DateTime [not null]
+  revogadoEm DateTime
+  createdAt DateTime [default: `now()`, not null]
+  cliente clientes [not null]
 }
 
 Table enderecos {
@@ -109,6 +162,9 @@ Table enderecos {
   bairro String [not null]
   cidade String [not null]
   estado String [not null]
+  padrao Boolean [not null, default: false]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
   cliente clientes [not null]
 }
 
@@ -121,17 +177,86 @@ Table cupons {
   validoAte DateTime
   usoMaximo Int
   usosCount Int [not null, default: 0]
+  valorMinimoPedido Decimal
+  limiteUsoPorCliente Int
   createdAt DateTime [default: `now()`, not null]
+  pedidos pedidos [not null]
+  carrinhos carrinhos [not null]
+  categorias cupons_categorias [not null]
+  produtos cupons_produtos [not null]
+  usosPorCliente cupons_uso_cliente [not null]
+}
+
+Table cupons_categorias {
+  cupomCodigo String [not null]
+  categoriaId String [not null]
+  cupom cupons [not null]
+  categoria categorias [not null]
+
+  indexes {
+    (cupomCodigo, categoriaId) [pk]
+  }
+}
+
+Table cupons_produtos {
+  cupomCodigo String [not null]
+  produtoId String [not null]
+  cupom cupons [not null]
+  produto produtos [not null]
+
+  indexes {
+    (cupomCodigo, produtoId) [pk]
+  }
+}
+
+Table cupons_uso_cliente {
+  cupomCodigo String [not null]
+  clienteId String [not null]
+  usos Int [not null, default: 0]
+  cupom cupons [not null]
+  cliente clientes [not null]
+
+  indexes {
+    (cupomCodigo, clienteId) [pk]
+  }
+}
+
+Table regras_atacado {
+  id String [pk]
+  produtoId String
+  categoriaId String
+  quantidadeMinima Int [not null]
+  tipoDesconto TipoDesconto [not null]
+  valor Decimal [not null]
+  ativo Boolean [not null, default: true]
+  createdAt DateTime [default: `now()`, not null]
+  produto produtos
+  categoria categorias
+
+  Note: 'produtoId e categoriaId são mutuamente exclusivos (XOR), reforçado por CHECK constraint no banco (num_nonnulls = 1)'
+}
+
+Table banners {
+  id String [pk]
+  titulo String [not null]
+  imagemUrl String
+  linkUrl String
+  ordem Int [not null, default: 0]
+  ativo Boolean [not null, default: true]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
 }
 
 Table carrinhos {
   id String [pk]
   clienteId String
   sessionToken String [unique, not null]
+  cupomCodigo String
   expiraEm DateTime
   createdAt DateTime [default: `now()`, not null]
   updatedAt DateTime [not null]
   cliente clientes
+  cupom cupons
   itens itens_carrinho [not null]
 }
 
@@ -151,6 +276,7 @@ Table itens_carrinho {
 
 Table pedidos {
   id String [pk]
+  numero String [unique, not null]
   clienteId String
   status StatusPedido [not null, default: 'CRIADO']
   total Decimal [not null]
@@ -158,9 +284,43 @@ Table pedidos {
   cupomCodigo String
   createdAt DateTime [default: `now()`, not null]
   updatedAt DateTime [not null]
+  tipoEntrega TipoEntrega [not null, default: 'ENTREGA']
+  valorFrete Decimal [not null, default: 0]
+  enderecoCep String
+  enderecoLogradouro String
+  enderecoNumero String
+  enderecoComplemento String
+  enderecoBairro String
+  enderecoCidade String
+  enderecoEstado String
+  codigoRastreio String
+  contatoNome String
+  contatoEmail String
+  contatoTelefone String
   cliente clientes
+  cupom cupons
   itens itens_pedido [not null]
   pagamentos pagamentos [not null]
+  historico pedido_status_historico [not null]
+  emailsEnviados emails_enviados [not null]
+
+  indexes {
+    (status, createdAt)
+  }
+}
+
+Table pedido_numero_sequencial {
+  ano Int [pk]
+  ultimoValor Int [not null, default: 0]
+}
+
+Table pedido_status_historico {
+  id String [pk]
+  pedidoId String [not null]
+  statusAnterior StatusPedido
+  statusNovo StatusPedido [not null]
+  alteradoEm DateTime [default: `now()`, not null]
+  pedido pedidos [not null]
 }
 
 Table itens_pedido {
@@ -170,6 +330,7 @@ Table itens_pedido {
   nome String [not null]
   quantidade Int [not null]
   precoUnitario Decimal [not null]
+  freteRateado Decimal [not null, default: 0]
   pedido pedidos [not null]
   produto produtos [not null]
 }
@@ -187,12 +348,42 @@ Table pagamentos {
   pedido pedidos [not null]
 }
 
+Table resenhas {
+  id String [pk]
+  nome String [not null]
+  nota Int [not null]
+  comentario String [not null]
+  createdAt DateTime [default: `now()`, not null]
+}
+
+Table emails_enviados {
+  id String [pk]
+  tipo TipoEmail [not null]
+  pedidoId String [not null]
+  destinatario String [not null]
+  enviadoEm DateTime [default: `now()`, not null]
+  pedido pedidos [not null]
+
+  indexes {
+    (tipo, pedidoId) [unique]
+  }
+}
+
 Enum StatusPedido {
   CRIADO
   AGUARDANDO_PAGAMENTO
+  AGUARDANDO_CONTATO
   PAGO
+  SEPARACAO
+  ENVIADO
+  ENTREGUE
   CANCELADO
   ESTORNADO
+}
+
+Enum TipoEntrega {
+  ENTREGA
+  RETIRADA
 }
 
 Enum StatusPagamento {
@@ -212,6 +403,7 @@ Enum MetodoPagamento {
 
 Enum PapelUsuario {
   ADMIN
+  CLIENTE
 }
 
 Enum TipoDesconto {
@@ -225,28 +417,64 @@ Enum TipoMovimentacaoEstoque {
   AJUSTE
 }
 
+Enum TipoEmail {
+  CONFIRMACAO_PEDIDO
+  PAGAMENTO_APROVADO
+  PEDIDO_ENVIADO
+}
+
 Ref: produto_tipos.categoriaId > categorias.id
 
-Ref: produtos.produtoTipoId > produto_tipos.id
+Ref: produtos.produtoTipoId >? produto_tipos.id
 
-Ref: produtos.marcaId > marcas.id
+Ref: produtos.marcaId >? marcas.id
+
+Ref: produtos.categoriaId >? categorias.id
 
 Ref: imagens_produto.produtoId > produtos.id
 
 Ref: movimentacoes_estoque.produtoId > produtos.id
 
+Ref: tokens_recuperacao_senha.clienteId > clientes.id
+
+Ref: refresh_tokens.clienteId > clientes.id
+
 Ref: enderecos.clienteId > clientes.id
+
+Ref: cupons_categorias.cupomCodigo > cupons.codigo [delete: Cascade]
+
+Ref: cupons_categorias.categoriaId > categorias.id [delete: Cascade]
+
+Ref: cupons_produtos.cupomCodigo > cupons.codigo [delete: Cascade]
+
+Ref: cupons_produtos.produtoId > produtos.id [delete: Cascade]
+
+Ref: cupons_uso_cliente.cupomCodigo > cupons.codigo [delete: Cascade]
+
+Ref: cupons_uso_cliente.clienteId > clientes.id [delete: Cascade]
+
+Ref: regras_atacado.produtoId >? produtos.id [delete: Cascade]
+
+Ref: regras_atacado.categoriaId >? categorias.id [delete: Cascade]
 
 Ref: carrinhos.clienteId >? clientes.id
 
-Ref: itens_carrinho.carrinhoId > carrinhos.id
+Ref: carrinhos.cupomCodigo >? cupons.codigo
+
+Ref: itens_carrinho.carrinhoId > carrinhos.id [delete: Cascade]
 
 Ref: itens_carrinho.produtoId > produtos.id
 
 Ref: pedidos.clienteId >? clientes.id
+
+Ref: pedidos.cupomCodigo >? cupons.codigo
+
+Ref: pedido_status_historico.pedidoId > pedidos.id
 
 Ref: itens_pedido.pedidoId > pedidos.id
 
 Ref: itens_pedido.produtoId > produtos.id
 
 Ref: pagamentos.pedidoId > pedidos.id
+
+Ref: emails_enviados.pedidoId > pedidos.id

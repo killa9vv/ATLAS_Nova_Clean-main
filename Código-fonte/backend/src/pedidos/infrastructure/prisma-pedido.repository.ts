@@ -47,7 +47,8 @@ export class PrismaPedidoRepository extends PedidoRepository {
     clienteId?: string,
     statusInicial?: StatusPedido,
     contexto?: unknown,
-    desconto?: number,
+    descontoAtacado?: number,
+    descontoCupom?: number,
     cupomCodigo?: string,
   ): Promise<Pedido> {
     const cliente = (contexto as ClientePrisma | undefined) ?? this.prisma;
@@ -57,7 +58,8 @@ export class PrismaPedidoRepository extends PedidoRepository {
       data: {
         numero,
         total,
-        desconto,
+        descontoAtacado,
+        descontoCupom,
         cupomCodigo,
         status: statusInicial as unknown as StatusPedidoPrisma | undefined,
         clienteId,
@@ -180,7 +182,12 @@ export class PrismaPedidoRepository extends PedidoRepository {
     return historico.map((item) => this.historicoParaDominio(item));
   }
 
-  async atualizarStatus(id: string, status: StatusPedido, contexto?: unknown): Promise<Pedido> {
+  async atualizarStatus(
+    id: string,
+    status: StatusPedido,
+    contexto?: unknown,
+    alteradoPor?: string,
+  ): Promise<Pedido> {
     const cliente = (contexto as ClientePrisma | undefined) ?? this.prisma;
 
     // Lê o status atual antes de sobrescrever — precisa dele pra registrar
@@ -203,6 +210,7 @@ export class PrismaPedidoRepository extends PedidoRepository {
         pedidoId: id,
         statusAnterior: atual.status,
         statusNovo: status as unknown as StatusPedidoPrisma,
+        alteradoPor,
       },
     });
 
@@ -265,7 +273,8 @@ export class PrismaPedidoRepository extends PedidoRepository {
       pedido.codigoRastreio ?? undefined,
       contato,
       pedido.clienteId ?? undefined,
-      Number(pedido.desconto),
+      Number(pedido.descontoAtacado),
+      Number(pedido.descontoCupom),
       pedido.cupomCodigo ?? undefined,
     );
   }
@@ -277,6 +286,7 @@ export class PrismaPedidoRepository extends PedidoRepository {
       historico.statusNovo as unknown as StatusPedido,
       historico.alteradoEm,
       (historico.statusAnterior as unknown as StatusPedido) ?? undefined,
+      historico.alteradoPor ?? undefined,
     );
   }
 }

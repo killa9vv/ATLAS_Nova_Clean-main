@@ -26,6 +26,7 @@ export class PrismaEnderecoRepository extends EnderecoRepository {
         cidade: dados.cidade,
         estado: dados.estado,
         padrao: dados.padrao ?? false,
+        apelido: dados.apelido,
       },
     });
     return this.paraDominio(endereco);
@@ -89,6 +90,7 @@ export class PrismaEnderecoRepository extends EnderecoRepository {
       endereco.estado,
       endereco.padrao,
       endereco.complemento ?? undefined,
+      endereco.apelido ?? undefined,
     );
   }
 }

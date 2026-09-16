@@ -6,7 +6,7 @@ import { CategoriaRepository } from '../domain/categoria.repository';
 export class ListarCategoriasUseCase {
   constructor(private readonly categoriaRepository: CategoriaRepository) {}
 
-  async executar(): Promise<Categoria[]> {
-    return this.categoriaRepository.listarTodas();
+  async executar(ativo?: boolean): Promise<Categoria[]> {
+    return this.categoriaRepository.listarTodas(ativo);
   }
 }

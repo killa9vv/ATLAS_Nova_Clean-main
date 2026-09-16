@@ -7,9 +7,10 @@ import {
   Param,
   Post,
   Put,
+  Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ListarCategoriasUseCase } from '../application/listar-categorias.use-case';
 import { CriarCategoriaUseCase } from '../application/criar-categoria.use-case';
 import { AtualizarCategoriaUseCase } from '../application/atualizar-categoria.use-case';
@@ -33,8 +34,15 @@ export class CategoriasController {
   ) {}
 
   @Get()
-  async listar(): Promise<CategoriaResponseDto[]> {
-    const categorias = await this.listarCategoriasUseCase.executar();
+  @ApiQuery({
+    name: 'ativo',
+    required: false,
+    description: 'String "true"/"false". Se omitido, retorna ativas e inativas.',
+  })
+  async listar(@Query('ativo') ativo?: string): Promise<CategoriaResponseDto[]> {
+    const categorias = await this.listarCategoriasUseCase.executar(
+      ativo !== undefined ? ativo === 'true' : undefined,
+    );
     return categorias.map(CategoriaResponseDto.fromDomain);
   }
 
@@ -55,7 +63,7 @@ export class CategoriasController {
     @Param('id') id: string,
     @Body() dto: AtualizarCategoriaDto,
   ): Promise<CategoriaResponseDto> {
-    const categoria = await this.atualizarCategoriaUseCase.executar(id, dto.nome);
+    const categoria = await this.atualizarCategoriaUseCase.executar(id, dto.nome, dto.ativo);
     return CategoriaResponseDto.fromDomain(categoria);
   }
 

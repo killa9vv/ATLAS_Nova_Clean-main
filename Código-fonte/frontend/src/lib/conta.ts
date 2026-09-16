@@ -73,6 +73,7 @@ export interface Endereco {
   cidade: string;
   estado: string;
   padrao: boolean;
+  apelido?: string;
 }
 
 export interface DadosEndereco {
@@ -83,6 +84,7 @@ export interface DadosEndereco {
   bairro: string;
   cidade: string;
   estado: string;
+  apelido?: string;
 }
 
 export function listarMeusEnderecos(): Promise<Endereco[]> {

@@ -29,6 +29,9 @@ export class EnderecoResponseDto {
   @ApiProperty({ example: true })
   padrao: boolean;
 
+  @ApiPropertyOptional({ example: 'Casa' })
+  apelido?: string;
+
   static fromDomain(endereco: Endereco): EnderecoResponseDto {
     const dto = new EnderecoResponseDto();
     dto.id = endereco.id;
@@ -40,6 +43,7 @@ export class EnderecoResponseDto {
     dto.cidade = endereco.cidade;
     dto.estado = endereco.estado;
     dto.padrao = endereco.padrao;
+    dto.apelido = endereco.apelido;
     return dto;
   }
 }

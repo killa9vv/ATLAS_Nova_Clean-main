@@ -14,8 +14,11 @@ export class PrismaCategoriaRepository extends CategoriaRepository {
     super();
   }
 
-  async listarTodas(): Promise<Categoria[]> {
-    const categorias = await this.prisma.categoria.findMany({ orderBy: { nome: 'asc' } });
+  async listarTodas(ativo?: boolean): Promise<Categoria[]> {
+    const categorias = await this.prisma.categoria.findMany({
+      where: ativo !== undefined ? { ativo } : undefined,
+      orderBy: { nome: 'asc' },
+    });
     return categorias.map((categoria) => this.paraDominio(categoria));
   }
 
@@ -39,7 +42,7 @@ export class PrismaCategoriaRepository extends CategoriaRepository {
   async atualizar(id: string, dados: DadosAtualizacaoCategoria): Promise<Categoria> {
     const categoria = await this.prisma.categoria.update({
       where: { id },
-      data: { nome: dados.nome },
+      data: { nome: dados.nome, ativo: dados.ativo },
     });
     return this.paraDominio(categoria);
   }
@@ -57,6 +60,6 @@ export class PrismaCategoriaRepository extends CategoriaRepository {
   }
 
   private paraDominio(categoria: CategoriaPrisma): Categoria {
-    return new Categoria(categoria.id, categoria.slug, categoria.nome);
+    return new Categoria(categoria.id, categoria.slug, categoria.nome, categoria.ativo);
   }
 }

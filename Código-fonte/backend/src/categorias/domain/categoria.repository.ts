@@ -7,10 +7,12 @@ export interface DadosCriacaoCategoria {
 
 export interface DadosAtualizacaoCategoria {
   nome: string;
+  ativo?: boolean;
 }
 
 export abstract class CategoriaRepository {
-  abstract listarTodas(): Promise<Categoria[]>;
+  /** `ativo` omitido retorna ativas e inativas — quem precisa só das ativas (loja) passa `true`. */
+  abstract listarTodas(ativo?: boolean): Promise<Categoria[]>;
   abstract buscarPorId(id: string): Promise<Categoria | null>;
   abstract buscarPorSlug(slug: string): Promise<Categoria | null>;
   abstract criar(dados: DadosCriacaoCategoria): Promise<Categoria>;

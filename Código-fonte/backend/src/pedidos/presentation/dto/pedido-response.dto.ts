@@ -75,7 +75,16 @@ export class PedidoResponseDto {
   @ApiProperty({ example: 25.8, description: 'Total dos itens - desconto + valorFrete.' })
   total!: number;
 
+  @ApiProperty({ example: 0, description: '0 quando nenhuma regra de atacado se aplicou.' })
+  descontoAtacado!: number;
+
   @ApiProperty({ example: 0, description: '0 quando nenhum cupom foi usado.' })
+  descontoCupom!: number;
+
+  @ApiProperty({
+    example: 0,
+    description: 'descontoAtacado + descontoCupom, pra quem só precisa do total descontado.',
+  })
   desconto!: number;
 
   @ApiPropertyOptional({ example: 'BEMVINDO10' })
@@ -119,6 +128,8 @@ export class PedidoResponseDto {
       freteRateado: item.freteRateado,
     }));
     dto.total = pedido.total;
+    dto.descontoAtacado = pedido.descontoAtacado;
+    dto.descontoCupom = pedido.descontoCupom;
     dto.desconto = pedido.desconto;
     dto.cupomCodigo = pedido.cupomCodigo;
     dto.tipoEntrega = pedido.tipoEntrega;

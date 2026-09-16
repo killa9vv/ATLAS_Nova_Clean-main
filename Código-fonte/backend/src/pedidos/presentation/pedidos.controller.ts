@@ -18,7 +18,10 @@ import { RolesGuard } from '../../auth/presentation/guards/roles.guard';
 import { Roles } from '../../auth/presentation/decorators/roles.decorator';
 import { PapelUsuario } from '../../auth/domain/papel-usuario.enum';
 
-interface RequisicaoComClienteOpcional {
+// Shape genérico do request.user preenchido pelo JwtStrategy — tanto pra um Cliente
+// (checkout, campo opcional já que o canal aceita convidado) quanto pra um Usuario
+// admin (atualizarStatus, sempre presente ali graças ao RolesGuard).
+interface RequisicaoComUsuarioAutenticado {
   user?: { id: string; papel: string };
 }
 
@@ -62,7 +65,7 @@ export class PedidosController {
   @UseGuards(OptionalJwtAuthGuard)
   async criar(
     @Body() dto: CriarPedidoDto,
-    @Req() request: RequisicaoComClienteOpcional,
+    @Req() request: RequisicaoComUsuarioAutenticado,
   ): Promise<PedidoResponseDto> {
     const clienteId =
       request.user?.papel === PapelUsuario.CLIENTE ? request.user.id : dto.clienteId;
@@ -112,8 +115,13 @@ export class PedidosController {
   async atualizarStatus(
     @Param('id') id: string,
     @Body() dto: AtualizarStatusPedidoDto,
+    @Req() request: RequisicaoComUsuarioAutenticado,
   ): Promise<PedidoResponseDto> {
-    const pedido = await this.atualizarStatusPedidoUseCase.executar(id, dto.status);
+    const pedido = await this.atualizarStatusPedidoUseCase.executar(
+      id,
+      dto.status,
+      request.user?.id,
+    );
     return PedidoResponseDto.fromDomain(pedido);
   }
 

@@ -7,7 +7,7 @@ import { CategoriaNaoEncontradaException } from '../domain/categorias.exceptions
 export class AtualizarCategoriaUseCase {
   constructor(private readonly categoriaRepository: CategoriaRepository) {}
 
-  async executar(id: string, nome: string): Promise<Categoria> {
+  async executar(id: string, nome: string, ativo?: boolean): Promise<Categoria> {
     const existente = await this.categoriaRepository.buscarPorId(id);
     if (!existente) {
       throw new CategoriaNaoEncontradaException(id);
@@ -15,6 +15,6 @@ export class AtualizarCategoriaUseCase {
 
     // O slug não muda depois de criado — evita quebrar links/filtros já em uso
     // que referenciam a categoria pelo slug.
-    return this.categoriaRepository.atualizar(id, { nome });
+    return this.categoriaRepository.atualizar(id, { nome, ativo });
   }
 }

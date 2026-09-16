@@ -1,5 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, MaxLength } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsBoolean, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class AtualizarCategoriaDto {
   @ApiProperty({ example: 'Limpeza', maxLength: 150 })
@@ -7,4 +7,9 @@ export class AtualizarCategoriaDto {
   @IsNotEmpty()
   @MaxLength(150)
   nome: string;
+
+  @ApiPropertyOptional({ example: true, description: 'Categorias inativas somem da loja.' })
+  @IsOptional()
+  @IsBoolean()
+  ativo?: boolean;
 }

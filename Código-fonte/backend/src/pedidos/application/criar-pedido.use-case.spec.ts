@@ -121,6 +121,7 @@ describe('CriarPedidoUseCase', () => {
       undefined,
       undefined,
       undefined,
+      carrinho.descontoAtacado,
       carrinho.desconto,
       carrinho.cupomCodigo,
     );
@@ -169,6 +170,7 @@ describe('CriarPedidoUseCase', () => {
       undefined,
       undefined,
       undefined,
+      carrinho.descontoAtacado,
       carrinho.desconto,
       carrinho.cupomCodigo,
     );
@@ -204,6 +206,7 @@ describe('CriarPedidoUseCase', () => {
       undefined,
       undefined,
       undefined,
+      carrinhoComPeso.descontoAtacado,
       carrinhoComPeso.desconto,
       carrinhoComPeso.cupomCodigo,
     );
@@ -241,6 +244,7 @@ describe('CriarPedidoUseCase', () => {
       undefined,
       undefined,
       undefined,
+      carrinhoSemPeso.descontoAtacado,
       carrinhoSemPeso.desconto,
       carrinhoSemPeso.cupomCodigo,
     );
@@ -271,6 +275,7 @@ describe('CriarPedidoUseCase', () => {
       undefined,
       StatusPedido.AGUARDANDO_CONTATO,
       undefined,
+      carrinho.descontoAtacado,
       carrinho.desconto,
       carrinho.cupomCodigo,
     );
@@ -295,6 +300,7 @@ describe('CriarPedidoUseCase', () => {
       'cliente-1',
       undefined,
       undefined,
+      carrinho.descontoAtacado,
       carrinho.desconto,
       carrinho.cupomCodigo,
     );
@@ -346,6 +352,7 @@ describe('CriarPedidoUseCase', () => {
       undefined,
       undefined,
       undefined,
+      0,
       2,
       'DESCONTO10',
     );

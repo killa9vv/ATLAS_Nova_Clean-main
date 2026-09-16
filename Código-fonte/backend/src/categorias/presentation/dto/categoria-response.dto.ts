@@ -11,11 +11,15 @@ export class CategoriaResponseDto {
   @ApiProperty({ example: 'Limpeza' })
   nome: string;
 
+  @ApiProperty({ example: true })
+  ativo: boolean;
+
   static fromDomain(categoria: Categoria): CategoriaResponseDto {
     const dto = new CategoriaResponseDto();
     dto.id = categoria.id;
     dto.slug = categoria.slug;
     dto.nome = categoria.nome;
+    dto.ativo = categoria.ativo;
     return dto;
   }
 }

@@ -10,5 +10,6 @@ export class Endereco {
     public readonly estado: string,
     public readonly padrao: boolean,
     public readonly complemento?: string,
+    public readonly apelido?: string,
   ) {}
 }

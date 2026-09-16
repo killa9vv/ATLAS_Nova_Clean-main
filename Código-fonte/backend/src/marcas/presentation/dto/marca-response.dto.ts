@@ -11,11 +11,15 @@ export class MarcaResponseDto {
   @ApiPropertyOptional({ example: '/brands/ype.png' })
   imagemUrl?: string;
 
+  @ApiProperty({ example: true })
+  ativo: boolean;
+
   static fromDomain(marca: Marca): MarcaResponseDto {
     const dto = new MarcaResponseDto();
     dto.id = marca.id;
     dto.nome = marca.nome;
     dto.imagemUrl = marca.imagemUrl;
+    dto.ativo = marca.ativo;
     return dto;
   }
 }

@@ -27,6 +27,7 @@ const ENDERECO_VAZIO: DadosEndereco = {
   bairro: '',
   cidade: '',
   estado: '',
+  apelido: '',
 };
 
 function somenteDigitos(valor: string): string {
@@ -95,6 +96,9 @@ export default function EnderecosPage() {
                 <span className="mb-1.5 inline-block rounded-full bg-navy px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
                   Padrão
                 </span>
+              )}
+              {endereco.apelido && (
+                <p className="text-[13.5px] font-semibold text-ink">{endereco.apelido}</p>
               )}
               <p className="text-[13.5px] text-ink">
                 {endereco.logradouro}, {endereco.numero}
@@ -204,6 +208,13 @@ function EnderecoForm({
 
   return (
     <form onSubmit={aoEnviar} className="flex flex-col gap-3.5">
+      <Input
+        label="Apelido (opcional)"
+        placeholder="Casa, Trabalho..."
+        maxLength={40}
+        value={form.apelido ?? ''}
+        onChange={(e) => setForm({ ...form, apelido: e.target.value })}
+      />
       <Input
         label="CEP"
         required

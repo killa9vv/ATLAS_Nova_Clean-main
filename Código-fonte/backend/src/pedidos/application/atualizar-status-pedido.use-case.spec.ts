@@ -42,6 +42,7 @@ describe('AtualizarStatusPedidoUseCase', () => {
       undefined,
       undefined,
       0,
+      0,
       cupomCodigo,
     );
   }
@@ -93,9 +94,24 @@ describe('AtualizarStatusPedidoUseCase', () => {
     expect(pedidoRepository.atualizarStatus).toHaveBeenCalledWith(
       'pedido-1',
       StatusPedido.CANCELADO,
+      undefined,
+      undefined,
     );
     expect(produtoRepository.incrementarEstoque).not.toHaveBeenCalled();
     expect(transactionManager.executar).not.toHaveBeenCalled();
+  });
+
+  it('repassa o id do admin autenticado como ator da transição', async () => {
+    pedidoRepository.buscarPorId.mockResolvedValue(criarPedido(StatusPedido.CRIADO));
+
+    await useCase.executar('pedido-1', StatusPedido.CANCELADO, 'usuario-admin-1');
+
+    expect(pedidoRepository.atualizarStatus).toHaveBeenCalledWith(
+      'pedido-1',
+      StatusPedido.CANCELADO,
+      undefined,
+      'usuario-admin-1',
+    );
   });
 
   it('AGUARDANDO_CONTATO → PAGO: decrementa estoque e marca PAGO na mesma transação', async () => {
@@ -111,6 +127,7 @@ describe('AtualizarStatusPedidoUseCase', () => {
       'pedido-1',
       StatusPedido.PAGO,
       contextoFalso,
+      undefined,
     );
     expect(emailQueue.enfileirar).toHaveBeenCalledWith({
       tipo: 'PAGAMENTO_APROVADO',
@@ -127,6 +144,7 @@ describe('AtualizarStatusPedidoUseCase', () => {
       'pedido-1',
       StatusPedido.ESTORNADO,
       contextoFalso,
+      undefined,
     );
     expect(produtoRepository.incrementarEstoque).toHaveBeenCalledWith(
       [{ produtoId: 'produto-1', quantidade: 2 }],
@@ -150,6 +168,8 @@ describe('AtualizarStatusPedidoUseCase', () => {
     expect(pedidoRepository.atualizarStatus).toHaveBeenCalledWith(
       'pedido-1',
       StatusPedido.SEPARACAO,
+      undefined,
+      undefined,
     );
     expect(produtoRepository.incrementarEstoque).not.toHaveBeenCalled();
     expect(transactionManager.executar).not.toHaveBeenCalled();
@@ -158,7 +178,12 @@ describe('AtualizarStatusPedidoUseCase', () => {
   it('SEPARACAO → ENVIADO → ENTREGUE: esteira de cumprimento avança sem tocar em estoque', async () => {
     pedidoRepository.buscarPorId.mockResolvedValue(criarPedido(StatusPedido.SEPARACAO));
     await useCase.executar('pedido-1', StatusPedido.ENVIADO);
-    expect(pedidoRepository.atualizarStatus).toHaveBeenCalledWith('pedido-1', StatusPedido.ENVIADO);
+    expect(pedidoRepository.atualizarStatus).toHaveBeenCalledWith(
+      'pedido-1',
+      StatusPedido.ENVIADO,
+      undefined,
+      undefined,
+    );
     expect(emailQueue.enfileirar).toHaveBeenCalledWith({
       tipo: 'PEDIDO_ENVIADO',
       pedidoId: 'pedido-1',
@@ -169,6 +194,8 @@ describe('AtualizarStatusPedidoUseCase', () => {
     expect(pedidoRepository.atualizarStatus).toHaveBeenCalledWith(
       'pedido-1',
       StatusPedido.ENTREGUE,
+      undefined,
+      undefined,
     );
 
     expect(produtoRepository.incrementarEstoque).not.toHaveBeenCalled();
