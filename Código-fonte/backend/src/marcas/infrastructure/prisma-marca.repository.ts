@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { Marca } from '../domain/marca.entity';
-import { MarcaRepository } from '../domain/marca.repository';
+import { DadosAtualizacaoMarca, MarcaRepository } from '../domain/marca.repository';
 import type { Marca as MarcaPrisma } from '@prisma/client';
 
 @Injectable()
@@ -10,8 +10,11 @@ export class PrismaMarcaRepository extends MarcaRepository {
     super();
   }
 
-  async listarTodas(): Promise<Marca[]> {
-    const marcas = await this.prisma.marca.findMany({ orderBy: { nome: 'asc' } });
+  async listarTodas(ativo?: boolean): Promise<Marca[]> {
+    const marcas = await this.prisma.marca.findMany({
+      where: ativo !== undefined ? { ativo } : undefined,
+      orderBy: { nome: 'asc' },
+    });
     return marcas.map((marca) => this.paraDominio(marca));
   }
 
@@ -30,8 +33,11 @@ export class PrismaMarcaRepository extends MarcaRepository {
     return this.paraDominio(marca);
   }
 
-  async atualizar(id: string, nome: string): Promise<Marca> {
-    const marca = await this.prisma.marca.update({ where: { id }, data: { nome } });
+  async atualizar(id: string, dados: DadosAtualizacaoMarca): Promise<Marca> {
+    const marca = await this.prisma.marca.update({
+      where: { id },
+      data: { nome: dados.nome, ativo: dados.ativo },
+    });
     return this.paraDominio(marca);
   }
 
@@ -45,6 +51,6 @@ export class PrismaMarcaRepository extends MarcaRepository {
   }
 
   private paraDominio(marca: MarcaPrisma): Marca {
-    return new Marca(marca.id, marca.nome, marca.imagemUrl ?? undefined);
+    return new Marca(marca.id, marca.nome, marca.imagemUrl ?? undefined, marca.ativo);
   }
 }

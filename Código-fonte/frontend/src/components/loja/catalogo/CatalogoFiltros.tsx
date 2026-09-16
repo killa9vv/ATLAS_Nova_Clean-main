@@ -28,7 +28,7 @@ export function CatalogoFiltros({
 }: CatalogoFiltrosProps) {
   const { data: categorias } = useQuery({
     queryKey: ['categorias'],
-    queryFn: ({ signal }) => listarCategorias({ signal }),
+    queryFn: ({ signal }) => listarCategorias({ ativo: true }, { signal }),
     staleTime: STALE_TIME_MS,
   });
   const { data: marcas } = useQuery({

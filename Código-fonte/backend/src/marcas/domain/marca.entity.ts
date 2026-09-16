@@ -3,5 +3,6 @@ export class Marca {
     public readonly id: string,
     public readonly nome: string,
     public readonly imagemUrl?: string,
+    public readonly ativo: boolean = true,
   ) {}
 }

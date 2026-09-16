@@ -66,12 +66,19 @@ export class Pedido {
     public readonly codigoRastreio?: string,
     public readonly contato?: ContatoPedido,
     public readonly clienteId?: string,
+    /** 0 quando nenhuma regra de atacado se aplicou. */
+    public readonly descontoAtacado: number = 0,
     /** 0 quando nenhum cupom foi usado. */
-    public readonly desconto: number = 0,
+    public readonly descontoCupom: number = 0,
     public readonly cupomCodigo?: string,
   ) {}
 
   estaAguardandoPagamento(): boolean {
     return this.status === StatusPedido.CRIADO || this.status === StatusPedido.AGUARDANDO_PAGAMENTO;
+  }
+
+  /** Os dois descontos juntos — equivalente ao antigo campo único `desconto`. */
+  get desconto(): number {
+    return Number((this.descontoAtacado + this.descontoCupom).toFixed(2));
   }
 }

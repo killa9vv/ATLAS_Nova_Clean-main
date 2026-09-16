@@ -8,7 +8,10 @@ const REVALIDATE_SEGUNDOS = 3600;
 export async function CategoriaAtalhos() {
   let categorias;
   try {
-    categorias = await listarCategorias({ next: { revalidate: REVALIDATE_SEGUNDOS } });
+    categorias = await listarCategorias(
+      { ativo: true },
+      { next: { revalidate: REVALIDATE_SEGUNDOS } },
+    );
   } catch {
     // Isolado: se /categorias falhar, some só esse bloco — o resto da home segue.
     return null;

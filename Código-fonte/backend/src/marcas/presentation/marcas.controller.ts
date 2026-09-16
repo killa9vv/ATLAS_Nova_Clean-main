@@ -7,9 +7,10 @@ import {
   Param,
   Post,
   Put,
+  Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ListarMarcasUseCase } from '../application/listar-marcas.use-case';
 import { CriarMarcaUseCase } from '../application/criar-marca.use-case';
 import { AtualizarMarcaUseCase } from '../application/atualizar-marca.use-case';
@@ -33,8 +34,15 @@ export class MarcasController {
   ) {}
 
   @Get()
-  async listar(): Promise<MarcaResponseDto[]> {
-    const marcas = await this.listarMarcasUseCase.executar();
+  @ApiQuery({
+    name: 'ativo',
+    required: false,
+    description: 'String "true"/"false". Se omitido, retorna ativas e inativas.',
+  })
+  async listar(@Query('ativo') ativo?: string): Promise<MarcaResponseDto[]> {
+    const marcas = await this.listarMarcasUseCase.executar(
+      ativo !== undefined ? ativo === 'true' : undefined,
+    );
     return marcas.map(MarcaResponseDto.fromDomain);
   }
 
@@ -55,7 +63,7 @@ export class MarcasController {
     @Param('id') id: string,
     @Body() dto: AtualizarMarcaDto,
   ): Promise<MarcaResponseDto> {
-    const marca = await this.atualizarMarcaUseCase.executar(id, dto.nome);
+    const marca = await this.atualizarMarcaUseCase.executar(id, dto.nome, dto.ativo);
     return MarcaResponseDto.fromDomain(marca);
   }
 

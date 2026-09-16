@@ -47,7 +47,8 @@ export abstract class PedidoRepository {
     clienteId?: string,
     statusInicial?: StatusPedido,
     contexto?: unknown,
-    desconto?: number,
+    descontoAtacado?: number,
+    descontoCupom?: number,
     cupomCodigo?: string,
   ): Promise<Pedido>;
   abstract buscarPorId(id: string): Promise<Pedido | null>;
@@ -69,7 +70,12 @@ export abstract class PedidoRepository {
    * `TransactionManager.executar` — usado para atualizar o status do pedido na mesma
    * transação do decremento/devolução de estoque correspondente.
    */
-  abstract atualizarStatus(id: string, status: StatusPedido, contexto?: unknown): Promise<Pedido>;
+  abstract atualizarStatus(
+    id: string,
+    status: StatusPedido,
+    contexto?: unknown,
+    alteradoPor?: string,
+  ): Promise<Pedido>;
 
   /** Admin-only — ver PedidosController. `codigoRastreio: null` limpa o campo. */
   abstract atualizarRastreio(id: string, codigoRastreio: string | null): Promise<Pedido>;

@@ -7,7 +7,7 @@ import { MarcaDuplicadaException, MarcaNaoEncontradaException } from '../domain/
 export class AtualizarMarcaUseCase {
   constructor(private readonly marcaRepository: MarcaRepository) {}
 
-  async executar(id: string, nome: string): Promise<Marca> {
+  async executar(id: string, nome: string, ativo?: boolean): Promise<Marca> {
     const existente = await this.marcaRepository.buscarPorId(id);
     if (!existente) {
       throw new MarcaNaoEncontradaException(id);
@@ -18,6 +18,6 @@ export class AtualizarMarcaUseCase {
       throw new MarcaDuplicadaException(nome);
     }
 
-    return this.marcaRepository.atualizar(id, nome);
+    return this.marcaRepository.atualizar(id, { nome, ativo });
   }
 }

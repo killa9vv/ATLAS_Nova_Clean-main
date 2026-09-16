@@ -9,5 +9,8 @@ export class HistoricoStatusPedido {
     public readonly statusNovo: StatusPedido,
     public readonly alteradoEm: Date,
     public readonly statusAnterior?: StatusPedido,
+    /** Usuario.id do admin que fez a transição manual — undefined quando foi
+     * automática (webhook/polling de pagamento). */
+    public readonly alteradoPor?: string,
   ) {}
 }

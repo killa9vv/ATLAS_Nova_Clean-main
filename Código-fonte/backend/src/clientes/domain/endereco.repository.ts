@@ -11,6 +11,7 @@ export interface DadosCriacaoEndereco {
   estado: string;
   /** Primeiro endereço do cliente vira padrão automaticamente mesmo sem pedir (ver CriarEnderecoUseCase). */
   padrao?: boolean;
+  apelido?: string;
 }
 
 export interface DadosAtualizacaoEndereco {
@@ -21,6 +22,7 @@ export interface DadosAtualizacaoEndereco {
   bairro?: string;
   cidade?: string;
   estado?: string;
+  apelido?: string;
 }
 
 export abstract class EnderecoRepository {

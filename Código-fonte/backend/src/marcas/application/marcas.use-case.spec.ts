@@ -55,7 +55,7 @@ describe('AtualizarMarcaUseCase', () => {
     const useCase = new AtualizarMarcaUseCase(marcaRepository);
     await useCase.executar('marca-1', 'Ypê');
 
-    expect(marcaRepository.atualizar).toHaveBeenCalledWith('marca-1', 'Ypê');
+    expect(marcaRepository.atualizar).toHaveBeenCalledWith('marca-1', { nome: 'Ypê' });
   });
 
   it('permite manter o próprio nome (não conflita consigo mesma)', async () => {

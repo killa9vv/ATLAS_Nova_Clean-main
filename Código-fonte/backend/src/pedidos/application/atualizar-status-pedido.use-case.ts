@@ -29,7 +29,7 @@ export class AtualizarStatusPedidoUseCase {
     private readonly emailQueue: EmailQueuePort,
   ) {}
 
-  async executar(id: string, novoStatus: StatusPedido): Promise<Pedido> {
+  async executar(id: string, novoStatus: StatusPedido, usuarioId?: string): Promise<Pedido> {
     const pedido = await this.pedidoRepository.buscarPorId(id);
     if (!pedido) {
       throw new PedidoNaoEncontradoException(id);
@@ -62,7 +62,7 @@ export class AtualizarStatusPedidoUseCase {
             );
           }
         }
-        return this.pedidoRepository.atualizarStatus(id, novoStatus, contexto);
+        return this.pedidoRepository.atualizarStatus(id, novoStatus, contexto, usuarioId);
       });
       // Fora da transação, igual ReconciliarPedidoService — a dedup em EmailEnviadoRepository
       // cobre o caso de o pedido também ter sido confirmado pelo fluxo de pagamento online.
@@ -74,7 +74,12 @@ export class AtualizarStatusPedidoUseCase {
       pedido.status === StatusPedido.PAGO && STATUS_DEVOLVEM_ESTOQUE_DE_PAGO.has(novoStatus);
 
     if (!precisaDevolverEstoque) {
-      const atualizado = await this.pedidoRepository.atualizarStatus(id, novoStatus);
+      const atualizado = await this.pedidoRepository.atualizarStatus(
+        id,
+        novoStatus,
+        undefined,
+        usuarioId,
+      );
       if (novoStatus === StatusPedido.ENVIADO) {
         await this.emailQueue.enfileirar({ tipo: 'PEDIDO_ENVIADO', pedidoId: atualizado.id });
       }
@@ -82,7 +87,12 @@ export class AtualizarStatusPedidoUseCase {
     }
 
     return this.transactionManager.executar(async (contexto) => {
-      const atualizado = await this.pedidoRepository.atualizarStatus(id, novoStatus, contexto);
+      const atualizado = await this.pedidoRepository.atualizarStatus(
+        id,
+        novoStatus,
+        contexto,
+        usuarioId,
+      );
       await this.produtoRepository.incrementarEstoque(
         pedido.itens.map((item) => ({ produtoId: item.produtoId, quantidade: item.quantidade })),
         contexto,

@@ -134,7 +134,8 @@ export class CriarPedidoUseCase {
       clienteId,
       statusInicial,
       undefined,
-      carrinho.descontoTotal,
+      carrinho.descontoAtacado,
+      carrinho.desconto,
       carrinho.cupomCodigo,
     );
 
