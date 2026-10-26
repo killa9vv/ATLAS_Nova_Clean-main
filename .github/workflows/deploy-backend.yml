@@ -1,4 +1,9 @@
 name: Deploy backend
+# Workflow permissions do repo (Settings → Actions → General) estava em "Read
+# repository contents and packages permissions" (packages só leitura) — o job
+# abaixo pede packages: write, então todas as execuções anteriores falhavam na
+# hora, sem rodar nenhum job. Corrigido pra "Read and write permissions". Esse
+# comentário força um novo push pra disparar uma execução fresca com a permissão certa.
 
 # Roda só depois de um push em main (ou seja, depois que uma PR já passou pelo
 # gate de qualidade em ci.yml — este workflow não repete lint/testes, só builda
