@@ -1,9 +1,17 @@
 # Deploy do backend
 
 Este documento descreve a esteira de CI/CD do backend (`.github/workflows/ci.yml` +
-`.github/workflows/deploy-backend.yml`), a imagem Docker de produção (`Dockerfile`), e
+`.github/workflows/release-backend.yml`), a imagem Docker de produção (`Dockerfile`), e
 o processo de rollback. Ambiente local (Docker Compose) é outro documento —
 ver [local-setup.md](./local-setup.md).
+
+> O workflow de deploy já se chamou `deploy-backend.yml`. Foi renomeado pra
+> `release-backend.yml` porque o registro desse workflow no GitHub ficou travado
+> (toda execução falhava instantaneamente, 0 jobs, sem log — causa real era
+> "Workflow permissions" do repo em somente-leitura pra `packages`, mas mesmo
+> corrigindo isso o `workflow_id` antigo continuou preso nesse estado; só um
+> caminho de arquivo novo resolveu). Se isso acontecer de novo com outro
+> workflow, renomear o arquivo é o jeito mais rápido de confirmar/resolver.
 
 ## Visão geral: CI vs CD
 
@@ -14,7 +22,7 @@ Dois workflows, dois momentos diferentes:
   (com piso de cobertura no domínio), testes e2e, e o build de produção
   (`npm run build`). Falha em qualquer etapa bloqueia o merge — não existe passo que
   "sempre passa" pra mascarar teste quebrado ou lint falhando.
-- **`deploy-backend.yml`** — só roda depois de um push em `main` (ou seja, depois que
+- **`release-backend.yml`** — só roda depois de um push em `main` (ou seja, depois que
   o PR já passou pelo `ci.yml`). Builda a imagem Docker de produção, publica no
   GitHub Container Registry, e tem dois jobs seguintes (`migrate` e `deploy`) que
   **ainda ficam parados** até o host de produção ser decidido — ver
@@ -62,7 +70,7 @@ docker run --rm -p 3000:3000 \
 
 ### Publicação (GitHub Container Registry)
 
-`deploy-backend.yml` builda e publica em `ghcr.io/killa9vv/atlas_nova_clean-main/backend`,
+`release-backend.yml` builda e publica em `ghcr.io/killa9vv/atlas_nova_clean-main/backend`,
 tagueada com o SHA do commit **e** `latest`:
 
 ```
@@ -84,7 +92,7 @@ não pede confirmação interativa, só aplica o que já está commitado em
 `scripts/docker-entrypoint.dev.sh` pro ambiente de dev via Docker Compose.
 
 Em produção, a migration roda como um **job separado do pipeline** (`migrate` em
-`deploy-backend.yml`) — não dentro do container da aplicação. Motivos:
+`release-backend.yml`) — não dentro do container da aplicação. Motivos:
 
 - Evita que múltiplas réplicas da imagem rodem `migrate deploy` simultaneamente na
   inicialização (condição de corrida se o host escolhido rodar mais de uma
@@ -155,7 +163,7 @@ Estes itens dependem do card "Deploy backend + banco gerenciado" (ainda não
 iniciado) — nenhum foi inventado ou decidido aqui:
 
 1. **Host de produção** (Railway, Render, Fly.io, VPS próprio, ou outro) — decide
-   o comando exato do job `deploy` em `deploy-backend.yml` (hoje é um placeholder
+   o comando exato do job `deploy` em `release-backend.yml` (hoje é um placeholder
    que só imprime um aviso e a tag da imagem já publicada).
 2. **Banco gerenciado de produção** — decide o valor do secret
    `PRODUCTION_DATABASE_URL` (formato `postgresql://usuario:senha@host:porta/banco`),

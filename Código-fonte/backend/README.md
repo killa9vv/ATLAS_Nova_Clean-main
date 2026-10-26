@@ -59,7 +59,7 @@ typecheck e as duas suítes acima em todo push/PR pra `main`.
 ## Deploy
 
 Imagem Docker de produção (`Dockerfile`, multi-stage) + pipeline de CI/CD
-(`.github/workflows/deploy-backend.yml`): build, publicação no GitHub Container
+(`.github/workflows/release-backend.yml`): build, publicação no GitHub Container
 Registry, estratégia de migrations e rollback documentados em
 [`docs/deploy.md`](docs/deploy.md).
 
