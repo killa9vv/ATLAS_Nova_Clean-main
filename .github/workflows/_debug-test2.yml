@@ -1,0 +1,12 @@
+name: Debug test 2 paths
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Código-fonte/backend/**'
+
+jobs:
+  hello:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "hello"
