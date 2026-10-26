@@ -19,7 +19,12 @@ concurrency:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}/backend
+  # Fixo em minúsculas (não `${{ github.repository }}`) de propósito — registries
+  # OCI exigem nome de repositório 100% minúsculo, e o nome real do repo no GitHub
+  # tem maiúsculas ("ATLAS_Nova_Clean-main"). Actions não tem função toLower() nas
+  # expressões, então usar github.repository aqui faz o push falhar sempre — foi
+  # exatamente isso que aconteceu nas 11 execuções anteriores deste workflow.
+  IMAGE_NAME: killa9vv/atlas_nova_clean-main/backend
 
 jobs:
   build-and-push:
