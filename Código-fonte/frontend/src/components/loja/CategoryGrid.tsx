@@ -85,8 +85,8 @@ export function CategoryGrid({ produtos }: CategoryGridProps) {
         <p className="py-6 text-center text-[13px] text-muted">Nenhum produto encontrado.</p>
       ) : (
         <div
-          className="grid gap-[18px]"
-          style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))' }}
+          className="grid gap-3.5"
+          style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))' }}
         >
           {marcaAtiva
             ? filtrados
@@ -110,7 +110,7 @@ export function CategoryGrid({ produtos }: CategoryGridProps) {
                     quantidadeVariantes={grupo.variantes.length}
                     quantidadeMarcas={marcasDistintas}
                     precoMinimo={precoMinimo}
-                    produtoRepresentativoId={primeira.id}
+                    imagemThumbnailUrl={primeira.imagemPrincipalThumbnailUrl}
                     indice={i}
                   />
                 );

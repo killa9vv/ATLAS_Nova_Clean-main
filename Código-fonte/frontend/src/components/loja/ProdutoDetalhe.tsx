@@ -54,20 +54,35 @@ export function ProdutoDetalhe({ variantes }: ProdutoDetalheProps) {
           {selecionado.pack && <p className="mt-1 text-[13px] text-muted">{selecionado.pack}</p>}
 
           {variantes.length > 1 && (
-            <label className="mt-5 block text-[13px] font-semibold text-navy">
-              Escolha a marca
-              <select
-                value={selecionadoId}
-                onChange={(e) => aoTrocarVariante(e.target.value)}
-                className="mt-1.5 w-full rounded-atlas-sm border border-line bg-white px-3.5 py-2.5 text-[13px] text-ink focus:outline-none focus:ring-2 focus:ring-blue/40"
+            <div className="mt-5">
+              <p className="mb-1.5 text-[13px] font-semibold text-navy">Escolha a marca</p>
+              <div
+                role="radiogroup"
+                aria-label="Escolha a marca"
+                className="flex flex-wrap gap-1.5"
               >
-                {variantes.map((variante) => (
-                  <option key={variante.id} value={variante.id}>
-                    {variante.marca?.nome ?? 'Genérico'} — {variante.pack ?? variante.nome}
-                  </option>
-                ))}
-              </select>
-            </label>
+                {variantes.map((variante) => {
+                  const ativo = variante.id === selecionadoId;
+                  return (
+                    <button
+                      key={variante.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={ativo}
+                      onClick={() => aoTrocarVariante(variante.id)}
+                      className={[
+                        'rounded-[14px] px-2.5 py-1.5 text-[11.5px] font-bold',
+                        ativo
+                          ? 'bg-navy text-white'
+                          : 'bg-sky text-navy hover:bg-navy hover:text-white',
+                      ].join(' ')}
+                    >
+                      {variante.marca?.nome ?? 'Genérico'} — {variante.pack ?? variante.nome}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           )}
 
           <div className="mt-5 flex flex-col gap-4 rounded-atlas border border-line bg-white p-4 shadow-atlas">

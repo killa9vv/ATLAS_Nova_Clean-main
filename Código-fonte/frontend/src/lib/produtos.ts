@@ -32,6 +32,11 @@ export interface Produto {
   pack?: string;
   marca?: MarcaDoProduto;
   produtoTipo?: ProdutoTipoDoProduto;
+  /** Thumbnail 300x300 da imagem de ordem 0, se houver — já vem na listagem pra
+   * card não precisar de uma chamada GET /produtos/:id/imagens cada (ver
+   * useImagemPrincipal, que continua existindo só pra onde não há um Produto
+   * completo em mãos, ex.: CarrinhoItemImagem). */
+  imagemPrincipalThumbnailUrl?: string;
 }
 
 export interface ProdutoPaginado {

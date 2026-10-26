@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { listarProdutos, listarImagensProduto } from '@/lib/produtos';
+import { listarProdutos, listarImagensProduto, type Produto } from '@/lib/produtos';
 import { ProdutoDetalhe } from '@/components/loja/ProdutoDetalhe';
 import { ProdutosRelacionados } from '@/components/loja/produto/ProdutosRelacionados';
+import { JsonLd } from '@/components/JsonLd';
+import { SITE_URL } from '@/lib/site';
 
 // Estoque/preço/promoção mudam via admin a qualquer momento — revalidate curto,
 // mesmo padrão usado nas outras seções de produtos (Home/Catálogo). O slug é do
@@ -58,6 +60,34 @@ export async function generateMetadata({
   };
 }
 
+async function montarProductJsonLd(produto: Produto, slug: string) {
+  let imagemUrl: string | undefined;
+  try {
+    const imagens = await listarImagensProduto(produto.id);
+    imagemUrl = imagens.find((img) => img.principal)?.url ?? imagens[0]?.url;
+  } catch {
+    // Sem imagem cadastrada — Product aceita sem `image`, não é obrigatório.
+  }
+
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: produto.produtoTipo?.nome ?? produto.nome,
+    description: produto.descricao ?? produto.produtoTipo?.infoTecnica,
+    image: imagemUrl,
+    sku: produto.id,
+    ...(produto.marca ? { brand: { '@type': 'Brand', name: produto.marca.nome } } : {}),
+    offers: {
+      '@type': 'Offer',
+      url: `${SITE_URL}/produtos/${slug}`,
+      priceCurrency: 'BRL',
+      price: produto.precoPromocional ?? produto.preco,
+      availability:
+        produto.estoque > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+    },
+  };
+}
+
 export default async function Page({ params }: PageProps<'/produtos/[slug]'>) {
   const { slug } = await params;
   const variantes = await buscarVariantes(slug);
@@ -66,8 +96,11 @@ export default async function Page({ params }: PageProps<'/produtos/[slug]'>) {
     notFound();
   }
 
+  const jsonLd = await montarProductJsonLd(variantes[0], slug);
+
   return (
     <>
+      <JsonLd data={jsonLd} />
       <ProdutoDetalhe variantes={variantes} />
       <div className="mx-auto max-w-[1180px] px-5 pb-10">
         <ProdutosRelacionados

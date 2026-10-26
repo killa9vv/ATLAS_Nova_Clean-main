@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { MegaMenu } from './MegaMenu';
 import { CartButton } from './CartButton';
 import { ContaLink } from './ContaLink';
+import { HeaderSearch } from './HeaderSearch';
 import { useCart } from '@/lib/cart-context';
 
 const NAV_LINK_CLASS =
@@ -44,22 +45,7 @@ export function HeaderNav() {
       </nav>
 
       <div className="flex shrink-0 items-center gap-2.5">
-        <form action="/catalogo" className="relative hidden nav:block">
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            className="pointer-events-none absolute left-[11px] top-[9px] h-3.5 w-3.5 stroke-muted"
-          >
-            <circle cx="11" cy="11" r="7" strokeWidth="2" />
-            <path d="M21 21l-4-4" strokeWidth="2" strokeLinecap="round" />
-          </svg>
-          <input
-            type="text"
-            name="q"
-            placeholder="Buscar produto..."
-            className="w-[180px] rounded-[20px] border border-line bg-white py-2 pl-[34px] pr-3 font-sans text-[13px]"
-          />
-        </form>
+        <HeaderSearch />
 
         <ContaLink />
 

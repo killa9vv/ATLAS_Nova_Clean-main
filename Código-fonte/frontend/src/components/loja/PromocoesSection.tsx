@@ -29,8 +29,8 @@ export async function PromocoesSection() {
       </p>
       <h2 className="mb-6 font-display text-xl font-bold text-navy">Promoções</h2>
       <div
-        className="grid gap-[18px]"
-        style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))' }}
+        className="grid gap-3.5"
+        style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))' }}
       >
         {itens.map((produto, indice) => (
           <ProductCard key={produto.id} produto={produto} indice={indice} />

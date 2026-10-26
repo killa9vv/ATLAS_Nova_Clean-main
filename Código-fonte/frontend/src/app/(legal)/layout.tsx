@@ -1,12 +1,17 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
+import { SITE_URL } from '@/lib/site';
 import { fontVariables } from '@/lib/fonts';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import '../globals.css';
 
 export const metadata: Metadata = {
-  title: 'Atlas Nova Clean',
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: 'Atlas Nova Clean',
+    template: '%s | Atlas Nova Clean',
+  },
   icons: {
     icon: '/logo.png',
     apple: '/logo.png',

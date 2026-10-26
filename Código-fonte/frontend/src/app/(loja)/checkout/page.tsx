@@ -751,6 +751,8 @@ export default function CheckoutPage() {
                     Escaneie o QR Code ou copie o código Pix abaixo.
                   </p>
                   {resultadoPagamento.qrCodeBase64 && (
+                    // next/image otimiza imagem remota (lazy load, formato, cache) — nada disso
+                    // se aplica a um data: URI gerado na hora pelo Mercado Pago, então fica <img>.
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={`data:image/png;base64,${resultadoPagamento.qrCodeBase64}`}

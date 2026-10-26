@@ -28,7 +28,7 @@ export function CarrinhoItemImagem({ produtoId, nome, tamanho = 56 }: CarrinhoIt
           alt={nome}
           fill
           sizes={`${tamanho}px`}
-          className="object-cover"
+          className="object-contain p-1"
         />
       ) : (
         <span className="text-lg opacity-60" aria-hidden="true">

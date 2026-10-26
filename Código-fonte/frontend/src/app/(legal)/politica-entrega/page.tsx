@@ -1,4 +1,7 @@
+import type { Metadata } from 'next';
 import { LegalArticle } from '@/components/layout/LegalArticle';
+
+export const metadata: Metadata = { title: 'Política de Entrega' };
 
 export default function Page() {
   return (

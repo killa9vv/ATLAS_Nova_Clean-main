@@ -7,7 +7,10 @@
 @theme {
   --color-navy: #0b1f4d;
   --color-navy-2: #132a63;
-  --color-blue: #2e9bf5;
+  /* #2e9bf5 original falha WCAG AA (contraste ~2.9:1) em quase todo uso como texto
+     (labels, links) sobre fundo claro — essa versão mais escura passa 4.5:1+ mantendo
+     o mesmo tom de azul da marca. */
+  --color-blue: #1565c0;
   --color-sky: #eaf4ff;
   --color-paper: #f7f9fc;
   --color-ink: #0a0e1a;

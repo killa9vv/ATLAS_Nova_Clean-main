@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useImagemPrincipal } from '@/hooks/use-imagem-principal';
+import Image from 'next/image';
 import { corDaCategoria, iconeDaCategoria } from '@/lib/categoria-visual';
 
 function formatarMoeda(valor: number): string {
@@ -18,9 +18,8 @@ export interface ProductTypeCardProps {
    * uma marca, isso é sempre 1 mesmo com várias embalagens/aromas da mesma marca. */
   quantidadeMarcas: number;
   precoMinimo: number;
-  /** Id de uma das variantes do grupo (a primeira) — usado só pra buscar uma foto
-   * real pra representar o card, se existir. */
-  produtoRepresentativoId: string;
+  /** Thumbnail de uma das variantes do grupo (a primeira) — representa o card, se existir. */
+  imagemThumbnailUrl?: string;
   indice?: number;
 }
 
@@ -35,13 +34,12 @@ export function ProductTypeCard({
   quantidadeVariantes,
   quantidadeMarcas,
   precoMinimo,
-  produtoRepresentativoId,
+  imagemThumbnailUrl,
   indice = 0,
 }: ProductTypeCardProps) {
   const corFundo = corDaCategoria(categoria);
   const icone = iconeDaCategoria(categoria);
   const delayMs = Math.min(indice, 7) * 30;
-  const { principal: imagemProduto } = useImagemPrincipal(produtoRepresentativoId);
 
   return (
     <Link
@@ -56,9 +54,14 @@ export function ProductTypeCard({
         <span className="absolute left-2 top-2 rounded-atlas-sm bg-white/80 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-navy">
           {categoria ?? 'produto'}
         </span>
-        {imagemProduto ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={imagemProduto.thumbnailUrl} alt={nome} className="h-full w-full object-cover" />
+        {imagemThumbnailUrl ? (
+          <Image
+            src={imagemThumbnailUrl}
+            alt={nome}
+            fill
+            sizes="(min-width: 1024px) 220px, 45vw"
+            className="object-contain p-2"
+          />
         ) : (
           <span className="text-4xl opacity-70" aria-hidden="true">
             {icone}

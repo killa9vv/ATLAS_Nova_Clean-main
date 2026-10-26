@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { BANNER_SLIDES } from '@/data/banners';
+import { hrefWhatsApp } from '@/lib/whatsapp';
 
 const INTERVALO_AUTOPLAY_MS = 6000;
 
@@ -11,11 +12,6 @@ const STAT_PILLS = [
   { icone: '💳', texto: 'Pix, cartão ou combinado no WhatsApp' },
   { icone: '📦', texto: 'Atacado e varejo' },
 ];
-
-function hrefWhatsApp(): string {
-  const numero = process.env.NEXT_PUBLIC_WHATSAPP_NUMERO ?? '';
-  return `https://wa.me/${numero}`;
-}
 
 export function Hero() {
   const total = BANNER_SLIDES.length;
@@ -93,7 +89,7 @@ export function Hero() {
               aria-hidden={!ativo}
               className={[
                 'transition-opacity duration-500 motion-reduce:transition-none',
-                ativo ? 'relative opacity-100' : 'absolute inset-0 opacity-0',
+                ativo ? 'relative opacity-100' : 'pointer-events-none absolute inset-0 opacity-0',
               ].join(' ')}
             >
               {/* Palco dos blobs sem overflow-hidden próprio (só a section tem) — assim eles
@@ -156,11 +152,18 @@ export function Hero() {
                   aria-label={`Ir para o banner ${indice + 1} de ${total}`}
                   aria-current={indice === indiceAtivo}
                   onClick={() => irPara(indice)}
-                  className={[
-                    'h-2.5 rounded-full transition-all',
-                    indice === indiceAtivo ? 'w-6 bg-navy' : 'w-2.5 bg-line hover:bg-navy/40',
-                  ].join(' ')}
-                />
+                  // Área de toque de 24x24 (padding invisível) em volta do pontinho visual,
+                  // que continua pequeno — só o alvo clicável cresce.
+                  className="flex h-6 w-6 items-center justify-center"
+                >
+                  <span
+                    aria-hidden="true"
+                    className={[
+                      'h-2.5 rounded-full transition-all',
+                      indice === indiceAtivo ? 'w-6 bg-navy' : 'w-2.5 bg-line hover:bg-navy/40',
+                    ].join(' ')}
+                  />
+                </button>
               ))}
             </div>
             <button

@@ -16,6 +16,15 @@ function formatarMoeda(valor: number): string {
   return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
+// Link genérico pro WhatsApp da loja, sempre a partir de NEXT_PUBLIC_WHATSAPP_NUMERO
+// — nunca hardcoded, pra não divergir do número real configurado em .env.
+export function hrefWhatsApp(mensagem?: string): string {
+  const numero = process.env.NEXT_PUBLIC_WHATSAPP_NUMERO ?? '';
+  return mensagem
+    ? `https://wa.me/${numero}?text=${encodeURIComponent(mensagem)}`
+    : `https://wa.me/${numero}`;
+}
+
 // numero deve estar em E.164 sem "+" (ex.: 5522999998888) — vem de
 // NEXT_PUBLIC_WHATSAPP_NUMERO.
 export function montarLinkWhatsApp(numero: string, pedido: PedidoParaWhatsApp): string {

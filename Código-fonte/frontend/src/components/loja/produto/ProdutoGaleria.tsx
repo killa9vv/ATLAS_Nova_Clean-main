@@ -89,10 +89,11 @@ export function ProdutoGaleria({
             />
           </>
         ) : marcaImagemUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <Image
             src={marcaImagemUrl}
             alt={marcaNome ?? nome}
+            width={200}
+            height={96}
             className="h-24 w-auto object-contain p-10 opacity-70"
           />
         ) : (
@@ -116,7 +117,13 @@ export function ProdutoGaleria({
                 indice === indiceSelecionado ? 'border-blue' : 'border-line hover:border-muted',
               ].join(' ')}
             >
-              <Image src={imagem.thumbnailUrl} alt="" fill sizes="64px" className="object-cover" />
+              <Image
+                src={imagem.thumbnailUrl}
+                alt=""
+                fill
+                sizes="64px"
+                className="object-contain p-1"
+              />
             </button>
           ))}
         </div>

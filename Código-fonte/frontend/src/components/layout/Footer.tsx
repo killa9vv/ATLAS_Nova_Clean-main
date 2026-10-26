@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { hrefWhatsApp } from '@/lib/whatsapp';
 
 export interface FooterProps {
   /**
@@ -16,13 +17,10 @@ const CATEGORY_LINKS = [
 ];
 
 const SUPPORT_LINKS = [
-  {
-    label: 'Entre em contato',
-    href: 'https://wa.me/5522997805258?text=Ol%C3%A1%2C%20preciso%20de%20ajuda',
-  },
+  { label: 'Entre em contato', href: hrefWhatsApp('Olá, preciso de ajuda') },
   {
     label: 'Solicitar devolução',
-    href: 'https://wa.me/5522997805258?text=Ol%C3%A1%2C%20quero%20solicitar%20uma%20devolu%C3%A7%C3%A3o%20ou%20troca',
+    href: hrefWhatsApp('Olá, quero solicitar uma devolução ou troca'),
   },
   { label: 'Avaliações de clientes', href: '/#avaliacoes' },
 ];
@@ -56,7 +54,7 @@ export function Footer({ variant }: FooterProps) {
     <footer className="bg-ink px-5 pb-6 pt-12 text-[#B9C8E8]">
       <div className="mx-auto grid max-w-[1180px] grid-cols-1 gap-[30px] nav:grid-cols-[1.6fr_1fr_1fr_1fr]">
         <div>
-          <h4 className="mb-3 font-display text-sm text-white">Atlas Nova Clean</h4>
+          <h2 className="mb-3 font-display text-sm text-white">Atlas Nova Clean</h2>
           <p className="text-[13px] leading-[1.7] text-[#94A6CC]">
             Av. Arthur Bernardes, 619 — Campos dos Goytacazes, RJ
             <br />
@@ -103,7 +101,7 @@ export function Footer({ variant }: FooterProps) {
               </svg>
             </a>
             <a
-              href="https://wa.me/5522997805258"
+              href={hrefWhatsApp()}
               target="_blank"
               rel="noopener"
               aria-label="WhatsApp da Atlas Nova Clean"
@@ -117,11 +115,11 @@ export function Footer({ variant }: FooterProps) {
         </div>
 
         <nav aria-label="Categorias">
-          <h4 className="mb-3 font-display text-sm text-white">Categorias</h4>
+          <h2 className="mb-3 font-display text-sm text-white">Categorias</h2>
           <ul className="list-none space-y-0 p-0 [&>li]:text-[13px] [&>li]:leading-[1.7] [&>li]:text-[#94A6CC]">
             {CATEGORY_LINKS.map((link) => (
               <li key={link.href}>
-                <Link href={link.href} className="hover:text-white hover:underline">
+                <Link href={link.href} className="block py-1 hover:text-white hover:underline">
                   {link.label}
                 </Link>
               </li>
@@ -130,7 +128,7 @@ export function Footer({ variant }: FooterProps) {
         </nav>
 
         <nav aria-label="Atendimento">
-          <h4 className="mb-3 font-display text-sm text-white">Atendimento</h4>
+          <h2 className="mb-3 font-display text-sm text-white">Atendimento</h2>
           <ul className="list-none space-y-0 p-0 [&>li]:text-[13px] [&>li]:leading-[1.7] [&>li]:text-[#94A6CC]">
             {SUPPORT_LINKS.map((link) => (
               <li key={link.href}>
@@ -138,7 +136,7 @@ export function Footer({ variant }: FooterProps) {
                   href={link.href}
                   target={link.href.startsWith('http') ? '_blank' : undefined}
                   rel={link.href.startsWith('http') ? 'noopener' : undefined}
-                  className="hover:text-white hover:underline"
+                  className="block py-1 hover:text-white hover:underline"
                 >
                   {link.label}
                 </a>
@@ -148,11 +146,11 @@ export function Footer({ variant }: FooterProps) {
         </nav>
 
         <nav aria-label="Políticas">
-          <h4 className="mb-3 font-display text-sm text-white">Políticas</h4>
+          <h2 className="mb-3 font-display text-sm text-white">Políticas</h2>
           <ul className="list-none space-y-0 p-0 [&>li]:text-[13px] [&>li]:leading-[1.7] [&>li]:text-[#94A6CC]">
             {POLICY_LINKS.map((link) => (
               <li key={link.href}>
-                <Link href={link.href} className="hover:text-white hover:underline">
+                <Link href={link.href} className="block py-1 hover:text-white hover:underline">
                   {link.label}
                 </Link>
               </li>

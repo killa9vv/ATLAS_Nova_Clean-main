@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import Link from 'next/link';
 import { BRANDS, CATEGORIES, PRODUCT_TYPES, type Category } from '@/data/products';
 
@@ -34,6 +34,17 @@ const topBrands = BRANDS.slice(0, TOP_BRANDS_COUNT);
 
 export function MegaMenu() {
   const [open, setOpen] = useState(false);
+  // true logo depois de Esc fechar o menu — suprime nav:group-hover/focus-within
+  // (que senão reabririam o painel na hora, já que o foco costuma voltar pro
+  // próprio botão gatilho, que está dentro do `group`). Limpo no próximo
+  // mouseenter/clique/foco genuíno no gatilho, não no refoco que o próprio Esc causa.
+  const [suprimido, setSuprimido] = useState(false);
+  const gatilhoRef = useRef<HTMLButtonElement>(null);
+  // Janela depois de Esc em que o foco-de-volta pro gatilho (causado por nós mesmos,
+  // dentro do handler de Esc) não deve por si só limpar `suprimido` — um refoco
+  // genuíno do usuário (ex.: Shift+Tab de volta bem depois) sempre acontece fora
+  // dessa janela e limpa normalmente.
+  const suprimidoAteRef = useRef(0);
   // No desktop as colunas ficam sempre visíveis (ver comentário do nav.js
   // original); esse estado só importa no mobile, onde cada coluna abre
   // independente via seu próprio caret.
@@ -54,18 +65,37 @@ export function MegaMenu() {
     setOpen(false);
   }
 
+  function aoTeclaNoGrupo(evento: React.KeyboardEvent) {
+    if (evento.key !== 'Escape') return;
+    setOpen(false);
+    setSuprimido(true);
+    suprimidoAteRef.current = Date.now() + 300;
+    gatilhoRef.current?.focus();
+  }
+
+  function aoFocarGatilho() {
+    if (Date.now() > suprimidoAteRef.current) setSuprimido(false);
+  }
+
   return (
     <div
       className="group relative flex flex-col items-stretch border-b border-line nav:flex-row nav:items-center nav:border-b-0"
       onMouseLeave={() => setOpen(false)}
+      onMouseEnter={() => setSuprimido(false)}
+      onKeyDown={aoTeclaNoGrupo}
     >
       <button
+        ref={gatilhoRef}
         type="button"
         className="flex w-full items-center justify-between gap-1.5 whitespace-nowrap rounded-none px-5 py-3.5 text-[13px] font-semibold text-navy hover:bg-sky nav:w-auto nav:justify-start nav:rounded-[20px] nav:px-3 nav:py-2"
         aria-expanded={open}
         aria-haspopup="true"
         aria-controls="nav-mega-panel"
-        onClick={() => setOpen((v) => !v)}
+        onFocus={aoFocarGatilho}
+        onClick={() => {
+          setSuprimido(false);
+          setOpen((v) => !v);
+        }}
       >
         Produtos
         <ChevronIcon
@@ -79,7 +109,7 @@ export function MegaMenu() {
         aria-label="Categorias de produtos"
         className={[
           open ? 'grid' : 'hidden',
-          'nav:group-hover:grid nav:group-focus-within:grid',
+          suprimido ? '' : 'nav:group-hover:grid nav:group-focus-within:grid',
           'w-full grid-cols-1 gap-0 bg-sky',
           'nav:absolute nav:left-0 nav:top-full nav:z-[200] nav:mt-2 nav:w-max nav:max-w-[920px] nav:grid-cols-[repeat(3,minmax(190px,1fr))_minmax(170px,200px)] nav:gap-[26px] nav:rounded-atlas nav:border nav:border-line nav:bg-white nav:p-[22px] nav:shadow-atlas-lg',
         ].join(' ')}
@@ -154,6 +184,13 @@ export function MegaMenu() {
             className="mt-auto text-xs font-bold text-blue hover:underline"
           >
             Ver todas as marcas →
+          </Link>
+          <Link
+            href="/catalogo"
+            onClick={closeOnNavigate}
+            className="mt-2 text-xs font-bold text-blue hover:underline"
+          >
+            Ver catálogo completo →
           </Link>
         </div>
       </div>

@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
@@ -37,11 +38,28 @@ export function CartDrawer() {
   const temItemIndisponivel =
     itensIndisponiveis.length > 0 || itens.some((item) => !item.disponivel);
 
+  // Listener global (não local ao <aside>) porque o foco pode estar em qualquer
+  // elemento do drawer — um onKeyDown preso só ao container dependeria do evento
+  // borbulhar até ele, mais frágil que ouvir no document enquanto está aberto.
+  useEffect(() => {
+    if (!drawerAberto) return;
+    function aoTecla(evento: KeyboardEvent) {
+      if (evento.key === 'Escape') fecharDrawer();
+    }
+    document.addEventListener('keydown', aoTecla);
+    return () => document.removeEventListener('keydown', aoTecla);
+  }, [drawerAberto, fecharDrawer]);
+
   if (!hidratado) return null;
 
   function irParaCheckout() {
     fecharDrawer();
     router.push('/checkout');
+  }
+
+  function removerIndisponiveis() {
+    for (const item of itensIndisponiveis) remover(item.produtoId);
+    for (const item of itens) if (!item.disponivel) remover(item.produtoId);
   }
 
   return (
@@ -93,11 +111,21 @@ export function CartDrawer() {
             </div>
           ) : (
             <>
-              {itensIndisponiveis.length > 0 && (
-                <p className="mb-4 rounded-atlas-sm bg-red-50 px-3.5 py-2.5 text-[12.5px] text-red-600">
-                  {itensIndisponiveis.map((item) => item.nome ?? 'Um item').join(', ')} não está
-                  mais disponível.
-                </p>
+              {temItemIndisponivel && (
+                <div className="mb-4 rounded-atlas-sm bg-red-50 px-3.5 py-2.5 text-[12.5px] text-red-600">
+                  <p>
+                    {itensIndisponiveis.length > 0
+                      ? `${itensIndisponiveis.map((item) => item.nome ?? 'Um item').join(', ')} não está mais disponível.`
+                      : 'Alguns itens têm estoque insuficiente.'}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={removerIndisponiveis}
+                    className="mt-1.5 font-bold underline hover:no-underline"
+                  >
+                    Remover indisponíveis
+                  </button>
+                </div>
               )}
               <div className="flex flex-col">
                 {itens.map((item) => (

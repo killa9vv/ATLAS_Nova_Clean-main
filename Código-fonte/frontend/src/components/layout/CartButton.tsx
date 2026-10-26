@@ -13,7 +13,7 @@ export function CartButton({ count = 0, onClick }: CartButtonProps) {
     <button
       type="button"
       onClick={onClick}
-      aria-label={`Ver carrinho, ${count} ${count === 1 ? 'item' : 'itens'}`}
+      aria-label={`Sua lista, ${count} ${count === 1 ? 'item' : 'itens'}`}
       className="flex items-center gap-2 rounded-[20px] bg-navy py-[9px] pl-3.5 pr-4 text-[13px] font-semibold text-white hover:bg-navy-2 max-[360px]:gap-1.5 max-[360px]:px-3"
     >
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">

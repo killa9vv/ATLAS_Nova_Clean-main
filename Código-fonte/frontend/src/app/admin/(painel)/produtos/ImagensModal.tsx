@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import Image from 'next/image';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
@@ -89,14 +90,13 @@ export function ImagensModal({ produto, onClose }: ImagensModalProps) {
 
           <div className="grid grid-cols-3 gap-3">
             {imagensQuery.data?.map((imagem) => (
-              <div key={imagem.id} className="relative">
-                {/* Vem do Cloudinary (domínio externo) — img simples em vez de next/image,
-                    que exigiria configurar remotePatterns pra um domínio dinâmico por conta. */}
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+              <div key={imagem.id} className="relative aspect-square">
+                <Image
                   src={imagem.thumbnailUrl}
                   alt=""
-                  className="aspect-square w-full rounded-atlas-sm border border-line object-cover"
+                  fill
+                  sizes="33vw"
+                  className="rounded-atlas-sm border border-line object-cover"
                 />
                 {imagem.principal && (
                   <span className="absolute left-1.5 top-1.5 rounded-full bg-green px-2 py-0.5 text-[10px] font-bold text-white">

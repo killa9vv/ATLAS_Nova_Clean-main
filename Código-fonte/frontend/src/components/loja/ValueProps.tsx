@@ -30,9 +30,7 @@ export function ValueProps() {
             key={prop.titulo}
             className={[
               'rounded-atlas p-6 shadow-atlas',
-              prop.destaque
-                ? 'bg-navy text-white nav:row-span-2'
-                : 'border border-line bg-white text-navy',
+              prop.destaque ? 'bg-navy text-white' : 'border border-line bg-white text-navy',
             ].join(' ')}
           >
             <span className="mb-3 block text-3xl" aria-hidden="true">

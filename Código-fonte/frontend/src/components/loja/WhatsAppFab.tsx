@@ -1,11 +1,11 @@
-const WHATSAPP_NUMERO = process.env.NEXT_PUBLIC_WHATSAPP_NUMERO ?? '';
+import { hrefWhatsApp } from '@/lib/whatsapp';
 
 // Botão flutuante fixo em toda a loja (não só a home), com anel pulsante —
 // mesmo padrão visual do site antigo.
 export function WhatsAppFab() {
   return (
     <a
-      href={`https://wa.me/${WHATSAPP_NUMERO}`}
+      href={hrefWhatsApp()}
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Chamar no WhatsApp"

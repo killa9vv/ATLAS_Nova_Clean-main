@@ -19,7 +19,9 @@ const OPCOES: { valor: Ordenacao; rotulo: string }[] = [
 export function CatalogoOrdenacao({ valor, aoMudar }: CatalogoOrdenacaoProps) {
   return (
     <label className="flex items-center gap-2 text-[13px] text-navy">
-      <span className="hidden font-semibold nav:inline">Ordenar por</span>
+      {/* sr-only (não `hidden`) — texto precisa continuar na árvore de acessibilidade
+          no mobile pro <select> ter nome acessível, mesmo escondido visualmente. */}
+      <span className="sr-only font-semibold nav:not-sr-only nav:inline">Ordenar por</span>
       <select
         value={valor}
         onChange={(e) => aoMudar(e.target.value as Ordenacao)}

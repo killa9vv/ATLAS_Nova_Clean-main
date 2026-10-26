@@ -225,6 +225,9 @@ function SecaoBanners() {
                 <td className="px-3.5 py-2.5 font-medium text-ink">{banner.titulo}</td>
                 <td className="px-3.5 py-2.5 text-muted">
                   {banner.imagemUrl ? (
+                    // URL digitada livremente pelo admin (campo de texto, sem upload) — domínio
+                    // arbitrário, então next/image exigiria liberar qualquer hostname em
+                    // remotePatterns (perde o propósito do allowlist). Fica <img> de propósito.
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={banner.imagemUrl}

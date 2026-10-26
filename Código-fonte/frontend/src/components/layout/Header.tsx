@@ -13,7 +13,7 @@ export interface HeaderProps {
 
 function BrandLink() {
   return (
-    <Link href="/" aria-label="Voltar para o início" className="flex shrink-0 items-center gap-2.5">
+    <Link href="/" className="flex shrink-0 items-center gap-2.5">
       <Image src="/logo.png" alt="Atlas Nova Clean" width={36} height={36} className="shrink-0" />
       <span className="font-display leading-none">
         <b className="block text-lg font-bold text-navy">ATLAS</b>

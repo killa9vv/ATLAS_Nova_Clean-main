@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import Image from 'next/image';
 import { listarProdutos } from '@/lib/produtos';
 import { CategoryGrid } from '@/components/loja/CategoryGrid';
 import { BackButton } from '@/components/loja/BackButton';
@@ -22,10 +23,11 @@ export default async function Page({ params }: PageProps<'/marcas/[brand]'>) {
       <BackButton />
       <div className="mb-6 flex items-center gap-4">
         {logo && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <Image
             src={logo}
             alt={nomeMarca}
+            width={64}
+            height={64}
             className="h-16 w-16 rounded-full border border-line bg-white object-contain p-2 shadow-atlas"
           />
         )}

@@ -66,8 +66,8 @@ export function CatalogoResultados({
 
   return (
     <div
-      className="grid gap-[18px]"
-      style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))' }}
+      className="grid gap-3.5"
+      style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))' }}
     >
       {produtos.map((produto, indice) => (
         <ProductCard key={produto.id} produto={produto} indice={indice} />

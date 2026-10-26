@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export interface MarcaComContagem {
   id: string;
@@ -32,13 +33,14 @@ function CardMarca({
       tabIndex={escondidoDeLeitorDeTela ? -1 : undefined}
       className="flex w-24 shrink-0 flex-col items-center gap-2 rounded-atlas border border-line bg-white p-3 text-center shadow-atlas transition-transform hover:-translate-y-1"
     >
-      <span className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border border-line bg-white">
+      <span className="relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border border-line bg-white">
         {marca.imagemUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <Image
             src={marca.imagemUrl}
             alt={marca.nome}
-            className="h-full w-full object-contain p-2"
+            fill
+            sizes="64px"
+            className="object-contain p-2"
           />
         ) : (
           <span className="text-[11px] font-bold text-navy">{marca.nome}</span>

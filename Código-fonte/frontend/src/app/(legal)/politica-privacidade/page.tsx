@@ -1,4 +1,7 @@
+import type { Metadata } from 'next';
 import { LegalArticle } from '@/components/layout/LegalArticle';
+
+export const metadata: Metadata = { title: 'Política de Privacidade' };
 
 export default function Page() {
   return (
