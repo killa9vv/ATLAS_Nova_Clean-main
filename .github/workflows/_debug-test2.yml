@@ -4,6 +4,7 @@ on:
     branches: [main]
     paths:
       - 'Código-fonte/backend/**'
+      - '.github/workflows/_debug-test2.yml'
 
 jobs:
   hello:
