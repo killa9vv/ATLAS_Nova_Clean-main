@@ -17,13 +17,19 @@ export class CloudinaryStorageAdapter extends ImageStorage {
 
   async upload(arquivo: Buffer, pasta: string): Promise<ResultadoUploadImagem> {
     const resposta = await new Promise<UploadApiResponse>((resolve, reject) => {
-      const stream = cloudinary.uploader.upload_stream({ folder: pasta }, (erro, resultado) => {
-        if (erro || !resultado) {
-          reject(erro ?? new Error('Upload sem resposta do Cloudinary.'));
-          return;
-        }
-        resolve(resultado);
-      });
+      // Remove o fundo da foto na hora do upload (add-on de IA do Cloudinary) — o
+      // asset armazenado já sai sem fundo, então toda transformação derivada
+      // (thumbnail, galeria) herda isso automaticamente.
+      const stream = cloudinary.uploader.upload_stream(
+        { folder: pasta, background_removal: 'cloudinary_ai' },
+        (erro, resultado) => {
+          if (erro || !resultado) {
+            reject(erro ?? new Error('Upload sem resposta do Cloudinary.'));
+            return;
+          }
+          resolve(resultado);
+        },
+      );
       Readable.from(arquivo).pipe(stream);
     });
 

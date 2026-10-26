@@ -1,12 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { ImagemProduto } from '../../domain/imagem-produto.entity';
-
-const TRANSFORMACAO_THUMBNAIL = 'w_300,h_300,c_fill,q_auto,f_auto';
-
-/** Insere a transformação do Cloudinary na URL de entrega — não gera/armazena outro arquivo. */
-function gerarUrlThumbnail(url: string): string {
-  return url.replace('/upload/', `/upload/${TRANSFORMACAO_THUMBNAIL}/`);
-}
+import { gerarUrlThumbnail } from '../../../shared/cloudinary-thumbnail.util';
 
 export class ImagemProdutoResponseDto {
   @ApiProperty({ example: 'b3f1c2d4-5678-4abc-9def-0123456789ab' })

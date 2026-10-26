@@ -40,6 +40,12 @@ export class Produto {
      * ainda a fonte do filtro de listagem). Usado só pra elegibilidade de
      * restrição de cupom/atacado por categoria (ver Cupom.ehElegivel). */
     public readonly categoriaId?: string,
+    /** Thumbnail (300x300, já com transformação Cloudinary) da imagem de ordem 0,
+     * se houver — embutido aqui pra listagem (catálogo, mais vendidos, etc.) não
+     * precisar de uma chamada GET /produtos/:id/imagens por card (era N+1 real,
+     * chegava a estourar rate-limit só carregando a home). Página de detalhe
+     * continua usando listarImagensProduto pra pegar a galeria completa. */
+    public readonly imagemPrincipalThumbnailUrl?: string,
   ) {}
 
   possuiEstoqueDisponivel(quantidade: number): boolean {
@@ -81,6 +87,7 @@ export class Produto {
       this.produtoTipo,
       this.precoPromocional,
       this.categoriaId,
+      this.imagemPrincipalThumbnailUrl,
     );
   }
 
@@ -106,6 +113,7 @@ export class Produto {
       this.produtoTipo,
       this.precoPromocional,
       this.categoriaId,
+      this.imagemPrincipalThumbnailUrl,
     );
   }
 }

@@ -16,8 +16,10 @@ import type {
   Produto as ProdutoPrisma,
   Marca as MarcaPrisma,
   ProdutoTipo as ProdutoTipoPrisma,
+  ImagemProduto as ImagemProdutoPrisma,
   Prisma,
 } from '@prisma/client';
+import { gerarUrlThumbnail } from '../../shared/cloudinary-thumbnail.util';
 
 // Pedidos nesses status foram pagos de verdade (e, no caso de SEPARACAO em diante,
 // seguem pagos) — é o que conta como "venda" pra ranking de mais vendidos. Excluídos:
@@ -35,9 +37,18 @@ type ClientePrisma = PrismaService | Prisma.TransactionClient;
 type ProdutoComRelacoes = ProdutoPrisma & {
   marca: MarcaPrisma | null;
   produtoTipo: ProdutoTipoPrisma | null;
+  imagens: ImagemProdutoPrisma[];
 };
 
-const INCLUDE_RELACOES = { marca: true, produtoTipo: true } as const;
+// imagens: só a de ordem 0 (principal, por convenção — ver ImagemProduto), uma por
+// produto, no mesmo JOIN — é o que a listagem (catálogo, mais vendidos, etc.) precisa
+// pro card. Sem isso, cada card faria sua própria chamada GET .../imagens (N+1 real:
+// chegou a estourar rate-limit só carregando a home com ~20 cards).
+const INCLUDE_RELACOES = {
+  marca: true,
+  produtoTipo: true,
+  imagens: { where: { ordem: 0 }, take: 1 },
+} as const;
 
 @Injectable()
 export class PrismaProdutoRepository extends ProdutoRepository {
@@ -266,6 +277,7 @@ export class PrismaProdutoRepository extends ProdutoRepository {
   private paraDominio(produto: ProdutoPrisma | ProdutoComRelacoes): Produto {
     const marca = 'marca' in produto ? produto.marca : undefined;
     const produtoTipo = 'produtoTipo' in produto ? produto.produtoTipo : undefined;
+    const imagemPrincipal = 'imagens' in produto ? produto.imagens[0] : undefined;
 
     return new Produto(
       produto.id,
@@ -296,6 +308,7 @@ export class PrismaProdutoRepository extends ProdutoRepository {
         : undefined,
       produto.precoPromocional !== null ? Number(produto.precoPromocional) : undefined,
       produto.categoriaId ?? undefined,
+      imagemPrincipal ? gerarUrlThumbnail(imagemPrincipal.url) : undefined,
     );
   }
 }

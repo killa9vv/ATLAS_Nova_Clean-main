@@ -163,8 +163,84 @@ describe('PrismaProdutoRepository.listarMaisVendidos', () => {
 
     expect(findManyMock).toHaveBeenCalledWith({
       where: { id: { in: ['produto-1', 'produto-2', 'produto-3'] }, ativo: true },
-      include: { marca: true, produtoTipo: true },
+      include: { marca: true, produtoTipo: true, imagens: { where: { ordem: 0 }, take: 1 } },
     });
     expect(resultado).toHaveLength(2);
+  });
+});
+
+// Cobre o fix do N+1: antes, cada ProductCard da listagem fazia sua própria chamada
+// GET /produtos/:id/imagens — chegou a estourar rate-limit só carregando a home com
+// ~20 cards. Agora a foto principal (ordem 0) vem no mesmo include/JOIN da listagem.
+describe('PrismaProdutoRepository (foto principal embutida na listagem)', () => {
+  let findUniqueMock: jest.Mock;
+  let repository: PrismaProdutoRepository;
+
+  beforeEach(() => {
+    findUniqueMock = jest.fn();
+    const prisma = { produto: { findUnique: findUniqueMock } };
+    repository = new PrismaProdutoRepository(prisma as unknown as PrismaService);
+  });
+
+  const produtoBase = {
+    id: 'produto-1',
+    nome: 'Produto 1',
+    slug: 'produto',
+    preco: 10,
+    descricao: null,
+    categoria: null,
+    estoque: 10,
+    ativo: true,
+    createdAt: new Date('2026-01-01'),
+    updatedAt: new Date('2026-01-01'),
+    pesoKg: null,
+    alturaCm: null,
+    larguraCm: null,
+    comprimentoCm: null,
+    pack: null,
+    precoPromocional: null,
+    categoriaId: null,
+    marca: null,
+    produtoTipo: null,
+  };
+
+  it('busca a imagem já no mesmo include (where ordem 0, take 1 — sem query separada)', async () => {
+    findUniqueMock.mockResolvedValue({ ...produtoBase, imagens: [] });
+
+    await repository.buscarPorId('produto-1');
+
+    expect(findUniqueMock).toHaveBeenCalledWith({
+      where: { id: 'produto-1' },
+      include: { marca: true, produtoTipo: true, imagens: { where: { ordem: 0 }, take: 1 } },
+    });
+  });
+
+  it('mapeia imagens[0].url pra imagemPrincipalThumbnailUrl com a transformação Cloudinary', async () => {
+    findUniqueMock.mockResolvedValue({
+      ...produtoBase,
+      imagens: [
+        {
+          id: 'img-1',
+          produtoId: 'produto-1',
+          url: 'https://res.cloudinary.com/sukxyjci/image/upload/v1/atlas-nova-clean/produtos/abc.webp',
+          providerId: 'atlas-nova-clean/produtos/abc',
+          ordem: 0,
+        },
+      ],
+    });
+
+    const resultado = await repository.buscarPorId('produto-1');
+
+    expect(resultado?.imagemPrincipalThumbnailUrl).toBe(
+      'https://res.cloudinary.com/sukxyjci/image/upload/w_300,h_300,c_limit,q_auto,f_auto/v1/atlas-nova-clean/produtos/abc.webp',
+    );
+  });
+
+  it('fica undefined quando o produto não tem nenhuma imagem cadastrada', async () => {
+    findUniqueMock.mockResolvedValue({ ...produtoBase, imagens: [] });
+
+    const resultado = await repository.buscarPorId('produto-1');
+
+    expect(resultado?.imagemPrincipalThumbnailUrl).toBeUndefined();
   });
 });

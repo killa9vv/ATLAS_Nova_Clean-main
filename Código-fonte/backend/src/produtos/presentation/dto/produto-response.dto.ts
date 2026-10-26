@@ -83,6 +83,13 @@ export class ProdutoResponseDto {
   @ApiPropertyOptional({ type: ProdutoTipoDoProdutoResponseDto })
   produtoTipo?: ProdutoTipoDoProdutoResponseDto;
 
+  @ApiPropertyOptional({
+    description:
+      'Thumbnail 300x300 da imagem de ordem 0, se houver — embutido aqui pra evitar ' +
+      'uma chamada GET /produtos/:id/imagens por card na listagem.',
+  })
+  imagemPrincipalThumbnailUrl?: string;
+
   static fromDomain(produto: Produto): ProdutoResponseDto {
     const dto = new ProdutoResponseDto();
 
@@ -102,6 +109,7 @@ export class ProdutoResponseDto {
     dto.pack = produto.pack;
     dto.marca = produto.marca;
     dto.produtoTipo = produto.produtoTipo;
+    dto.imagemPrincipalThumbnailUrl = produto.imagemPrincipalThumbnailUrl;
 
     return dto;
   }
