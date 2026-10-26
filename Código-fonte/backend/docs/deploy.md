@@ -5,13 +5,30 @@ Este documento descreve a esteira de CI/CD do backend (`.github/workflows/ci.yml
 o processo de rollback. Ambiente local (Docker Compose) é outro documento —
 ver [local-setup.md](./local-setup.md).
 
-> O workflow de deploy já se chamou `deploy-backend.yml`. Foi renomeado pra
-> `release-backend.yml` porque o registro desse workflow no GitHub ficou travado
-> (toda execução falhava instantaneamente, 0 jobs, sem log — causa real era
-> "Workflow permissions" do repo em somente-leitura pra `packages`, mas mesmo
-> corrigindo isso o `workflow_id` antigo continuou preso nesse estado; só um
-> caminho de arquivo novo resolveu). Se isso acontecer de novo com outro
-> workflow, renomear o arquivo é o jeito mais rápido de confirmar/resolver.
+> **Histórico (2026-10-26):** o workflow de deploy já se chamou `deploy-backend.yml`
+> e nunca rodou um job sequer — todas as 11+ execuções falhavam instantaneamente
+> (0s, 0 jobs, nenhum log). Investigação longa, resumo:
+> - "Workflow permissions" do repo estava em somente-leitura pra `packages`
+>   (Settings → Actions → General) — corrigido pra "Read and write permissions",
+>   mas sozinho **não resolveu**.
+> - Renomear o arquivo pra `release-backend.yml` (forçando um `workflow_id` novo)
+>   também **não resolveu sozinho** — o mesmo arquivo com um ID genuinamente novo
+>   continuou falhando do mesmo jeito.
+> - Isolei bisectando o conteúdo num workflow de teste: o job `build-and-push`
+>   sozinho (checkout + docker login/buildx/build-push, com `permissions` e
+>   `concurrency`) **funciona perfeitamente**. Adicionar os jobs `migrate`/`deploy`
+>   de volta é o que trava tudo de novo.
+> - O editor (extensão de GitHub Actions) aponta `secrets` em `if:` de **job**
+>   (não de step) como inválido nesses dois jobs — mas mover o check pra `if:` de
+>   **step** (sintaxe que a extensão aceita) **também não resolveu** quando testei.
+> - Conclusão: a causa exata de `migrate`/`deploy` quebrarem o workflow não foi
+>   encontrada. Removi os dois jobs do arquivo real (ver abaixo) pra desbloquear
+>   a publicação da imagem, que é o que importa agora. Antes de reativá-los,
+>   bisectar de novo num workflow de teste separado (não editar `release-backend.yml`
+>   direto) — suspeitas que ainda não testei: `needs:` encadeado (3 jobs em
+>   cadeia vs. 1 job sozinho), ou `defaults.run.working-directory` com o acento
+>   de "Código-fonte" especificamente dentro de um job que depende de outro via
+>   `needs`.
 
 ## Visão geral: CI vs CD
 
@@ -23,10 +40,13 @@ Dois workflows, dois momentos diferentes:
   (`npm run build`). Falha em qualquer etapa bloqueia o merge — não existe passo que
   "sempre passa" pra mascarar teste quebrado ou lint falhando.
 - **`release-backend.yml`** — só roda depois de um push em `main` (ou seja, depois que
-  o PR já passou pelo `ci.yml`). Builda a imagem Docker de produção, publica no
-  GitHub Container Registry, e tem dois jobs seguintes (`migrate` e `deploy`) que
-  **ainda ficam parados** até o host de produção ser decidido — ver
-  [O que falta pra ativar o deploy de verdade](#o-que-falta-pra-ativar-o-deploy-de-verdade).
+  o PR já passou pelo `ci.yml`). Builda a imagem Docker de produção e publica no
+  GitHub Container Registry. Só isso por enquanto — os jobs `migrate` (aplicar
+  migrations) e `deploy` (publicar no host) foram removidos do arquivo (ver nota
+  no topo deste documento) até a causa de quebrarem o workflow ser encontrada;
+  hoje migrations de produção rodam manualmente (ver
+  [Migrations no deploy](#migrations-no-deploy)) e o host (Render) puxa a imagem
+  publicada aqui por conta própria.
 
 A suíte de testes que roda no CI é a suíte real do projeto hoje — não é um placeholder
 provisório. Conforme mais e2e/unit forem escritos (módulos ainda em desenvolvimento,
@@ -86,13 +106,21 @@ fica privado por padrão).
 
 ## Migrations no deploy
 
+> **Hoje (temporário):** o job `migrate` abaixo foi removido de
+> `release-backend.yml` (ver nota no topo deste documento — quebrava o workflow,
+> causa não encontrada). Até ser reativado, migrations de produção rodam na mão:
+> `DATABASE_URL="<url-de-produção>" npx prisma migrate deploy` de uma máquina com
+> o repo clonado. O design abaixo é o que **deveria** acontecer automaticamente
+> quando o job voltar.
+
 Comando: `prisma migrate deploy` (nunca `migrate dev` — não gera migration nova,
 não pede confirmação interativa, só aplica o que já está commitado em
 `prisma/migrations/`). Mesmo comando já usado em
 `scripts/docker-entrypoint.dev.sh` pro ambiente de dev via Docker Compose.
 
-Em produção, a migration roda como um **job separado do pipeline** (`migrate` em
-`release-backend.yml`) — não dentro do container da aplicação. Motivos:
+Em produção, a migration deveria rodar como um **job separado do pipeline**
+(`migrate` em `release-backend.yml`) — não dentro do container da aplicação.
+Motivos:
 
 - Evita que múltiplas réplicas da imagem rodem `migrate deploy` simultaneamente na
   inicialização (condição de corrida se o host escolhido rodar mais de uma

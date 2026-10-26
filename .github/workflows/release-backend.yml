@@ -9,7 +9,7 @@ on:
     branches: [main]
     paths:
       - 'Código-fonte/backend/**'
-      - '.github/workflows/deploy-backend.yml'
+      - '.github/workflows/release-backend.yml'
 
 concurrency:
   group: deploy-backend-${{ github.ref }}
@@ -63,51 +63,9 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  migrate:
-    name: Aplica migrations no banco de produção
-    runs-on: ubuntu-latest
-    needs: build-and-push
-    # TODO(deploy backend + banco gerenciado): este job fica parado (skip) até o
-    # secret PRODUCTION_DATABASE_URL existir no repositório. Sem banco de produção
-    # decidido ainda, não há URL real pra rodar `prisma migrate deploy` contra —
-    # ativa sozinho assim que o secret for criado, sem precisar editar este arquivo.
-    if: ${{ secrets.PRODUCTION_DATABASE_URL != '' }}
-    defaults:
-      run:
-        working-directory: Código-fonte/backend
-    steps:
-      - uses: actions/checkout@v5
-
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: Código-fonte/backend/package-lock.json
-
-      - name: Instalar dependências
-        run: npm ci
-
-      # `migrate deploy` (não `migrate dev`): só aplica migrations já existentes no
-      # repo, nunca gera uma nova nem pede confirmação interativa — é o comando
-      # seguro pra rodar em CI/produção (mesmo padrão já usado em
-      # scripts/docker-entrypoint.dev.sh pro ambiente de dev via Docker Compose).
-      - name: prisma migrate deploy
-        env:
-          DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
-        run: npx prisma migrate deploy
-
-  deploy:
-    name: Deploy no host de produção
-    runs-on: ubuntu-latest
-    needs: migrate
-    # TODO(deploy backend + banco gerenciado): mesmo gate do job `migrate` acima —
-    # sem host de produção escolhido (Railway/Render/Fly.io/VPS — card ainda não
-    # iniciado), não existe onde publicar a imagem. Ver docs/deploy.md pra saber
-    # exatamente o que preencher aqui quando o host for decidido.
-    if: ${{ secrets.PRODUCTION_DATABASE_URL != '' }}
-    steps:
-      - name: "TODO: publicar a imagem no host de produção"
-        run: |
-          echo "::warning::Passo de deploy real ainda não implementado — host de produção não foi escolhido (card 'Deploy backend + banco gerenciado')."
-          echo "Imagem já publicada em ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}, pronta pra ser puxada assim que o host existir."
-          echo "Ver docs/deploy.md na raiz do backend pro que precisa ser preenchido aqui (secret do host, comando/CLI de deploy)."
+# Os jobs `migrate` (prisma migrate deploy) e `deploy` (publicar no host) foram
+# removidos daqui temporariamente — ver docs/deploy.md ("Jobs migrate/deploy
+# removidos temporariamente") pro que precisa ser investigado antes de
+# reativá-los. Hoje: migrations de produção rodam manualmente quando precisa
+# (ver docs/deploy.md), e o deploy em si é feito direto no dashboard do host
+# (Render puxa a imagem publicada acima por conta própria).
