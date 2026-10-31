@@ -1,9 +1,17 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
-import { IsBoolean, IsInt, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
+import { Allow, IsOptional, IsString, ValidateNested } from 'class-validator';
+
+// O Mercado Pago não é consistente no tipo de alguns campos: o payload real manda
+// `id` numérico e `user_id` string, o "Simular notificação" do painel manda o
+// contrário (`id: "123456"`, `user_id: 2992837347`). Campos que a gente usa viram
+// string; os que são só metadado ficam com @Allow() (aceitos sem checar tipo).
+const paraString = ({ value }: { value: unknown }) =>
+  typeof value === 'number' ? String(value) : value;
 
 class WebhookDataDto {
   @ApiPropertyOptional({ example: '123456789' })
+  @Transform(paraString)
   @IsString()
   id: string;
 }
@@ -33,27 +41,22 @@ export class WebhookMercadoPagoDto {
   data?: WebhookDataDto;
 
   @ApiPropertyOptional({ example: 'v1' })
-  @IsOptional()
-  @IsString()
-  api_version?: string;
+  @Allow()
+  api_version?: unknown;
 
   @ApiPropertyOptional({ example: '2026-08-26T22:46:15Z' })
-  @IsOptional()
-  @IsString()
-  date_created?: string;
+  @Allow()
+  date_created?: unknown;
 
   @ApiPropertyOptional({ example: 136905915450 })
-  @IsOptional()
-  @IsInt()
-  id?: number;
+  @Allow()
+  id?: unknown;
 
   @ApiPropertyOptional({ example: false })
-  @IsOptional()
-  @IsBoolean()
-  live_mode?: boolean;
+  @Allow()
+  live_mode?: unknown;
 
   @ApiPropertyOptional({ example: '2992837347' })
-  @IsOptional()
-  @IsString()
-  user_id?: string;
+  @Allow()
+  user_id?: unknown;
 }
