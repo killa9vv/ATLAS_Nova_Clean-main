@@ -1,6 +1,7 @@
 'use client'; // error.tsx precisa ser Client Component — é um React Error Boundary.
 
 import { useEffect } from 'react';
+import * as Sentry from '@sentry/nextjs';
 import { Button } from '@/components/ui/Button';
 
 export default function Error({
@@ -12,6 +13,8 @@ export default function Error({
 }) {
   useEffect(() => {
     console.error(error);
+    // A tela "Algo deu errado" que o cliente viu também vira alerta no Sentry.
+    Sentry.captureException(error);
   }, [error]);
 
   return (

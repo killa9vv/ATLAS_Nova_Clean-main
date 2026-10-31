@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/nextjs';
 import { api } from '@/lib/http';
 
 // O SDK do Mercado Pago (carregado via <Script src="https://sdk.mercadopago.com/js/v2">
@@ -169,6 +170,14 @@ export async function renderizarPaymentBrick({
     // Erro cru no console pra facilitar diagnóstico (credencial errada, bloqueio de
     // rede etc.) — o usuário só vê a mensagem amigável do checkout.
     console.error('Falha ao carregar o Payment Brick do Mercado Pago:', erro);
+    // O erro do Brick nem sempre é um Error (às vezes {type, cause, message}) — embrulha
+    // pra chegar no Sentry com stack e uma mensagem legível.
+    Sentry.captureException(
+      erro instanceof Error
+        ? erro
+        : new Error(`Payment Brick não carregou: ${JSON.stringify(erro)}`),
+      { tags: { area: 'checkout-pagamento' } },
+    );
     await desmontarPaymentBrick().catch(() => {});
     throw erro;
   } finally {

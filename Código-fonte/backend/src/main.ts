@@ -1,4 +1,5 @@
-﻿import 'reflect-metadata';
+import './instrument';
+import 'reflect-metadata';
 import { ValidationPipePtBr } from './shared/validation/validation-pipe-pt-br';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';

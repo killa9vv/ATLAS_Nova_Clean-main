@@ -46,4 +46,6 @@ export const envValidationSchema = Joi.object({
     .optional(),
   REDIS_HOST: Joi.string().allow('').optional(),
   REDIS_PORT: Joi.number().port().optional(),
+  // Monitoramento de erros — opcional: sem DSN, nada é enviado (ver sentry.ts).
+  SENTRY_DSN: Joi.string().uri().allow('').optional(),
 }).unknown(true); // não rejeita outras variáveis de ambiente do sistema (PATH, etc.)

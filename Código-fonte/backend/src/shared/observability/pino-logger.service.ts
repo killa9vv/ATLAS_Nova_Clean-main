@@ -1,5 +1,6 @@
-﻿import { Injectable, LoggerService } from '@nestjs/common';
+import { Injectable, LoggerService } from '@nestjs/common';
 import pino, { Logger } from 'pino';
+import { reportarErroAoSentry } from './sentry';
 
 @Injectable()
 export class PinoLoggerService implements LoggerService {
@@ -20,8 +21,11 @@ export class PinoLoggerService implements LoggerService {
     this.logger.info(this.criarObjeto(message, optionalParams));
   }
 
+  // Todo logger.error do app (Logger do Nest incluso, via app.useLogger) passa por
+  // aqui — por isso é o único ponto que manda erro pro Sentry (ver sentry.ts).
   error(message: unknown, ...optionalParams: unknown[]): void {
     this.logger.error(this.criarObjeto(message, optionalParams));
+    reportarErroAoSentry(message, optionalParams);
   }
 
   warn(message: unknown, ...optionalParams: unknown[]): void {
