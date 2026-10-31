@@ -111,7 +111,11 @@ export class PrismaProdutoRepository extends ProdutoRepository {
       };
     }
 
-    const [produtos, total, faixaPreco] = await this.prisma.$transaction([
+    // Em paralelo (não $transaction): $transaction([...]) roda BEGIN + cada consulta +
+    // COMMIT em fila, e com o banco a ~100ms de distância isso somava ~1s por página
+    // do catálogo. Leitura de listagem não precisa de transação — no pior caso o
+    // total/faixa de preço reflete um instante ligeiramente diferente da página.
+    const [produtos, total, faixaPreco] = await Promise.all([
       this.prisma.produto.findMany({
         where,
         skip: (pagina - 1) * limite,
