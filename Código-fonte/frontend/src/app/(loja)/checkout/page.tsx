@@ -35,7 +35,7 @@ type ResultadoPagamento =
       status: 'aguardando' | 'timeout' | 'cancelado';
     }
   | { tipo: 'sucesso' }
-  | { tipo: 'erro'; mensagem: string };
+  | { tipo: 'erro'; mensagem: string; podeTentarDeNovo?: boolean };
 
 function formatarMoeda(valor: number): string {
   return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -97,6 +97,7 @@ export default function CheckoutPage() {
   const [enviando, setEnviando] = useState(false);
   const [metodoFechamento, setMetodoFechamento] = useState<'whatsapp' | 'pagar'>('whatsapp');
   const [sdkPronto, setSdkPronto] = useState(false);
+  const [sdkFalhou, setSdkFalhou] = useState(false);
   const [pedidoPagamento, setPedidoPagamento] = useState<PedidoCriado | null>(null);
   const [carregandoPagamento, setCarregandoPagamento] = useState(false);
   const [resultadoPagamento, setResultadoPagamento] = useState<ResultadoPagamento | null>(null);
@@ -105,6 +106,11 @@ export default function CheckoutPage() {
   const [salvandoCupom, setSalvandoCupom] = useState(false);
   const [erroCupom, setErroCupom] = useState<string | null>(null);
   const pararPollingRef = useRef<(() => void) | null>(null);
+  // Último pedido 'site' criado e os dados que o geraram. Trocar pra WhatsApp e
+  // voltar, voltar um passo ou tentar recarregar o Brick reaproveita esse pedido
+  // enquanto nada mudar — antes cada ida e volta criava um pedido CRIADO novo que
+  // ficava órfão no painel admin.
+  const pedidoSiteRef = useRef<{ chave: string; pedido: PedidoCriado } | null>(null);
 
   // Comprador logado: pré-preenche identificação e usa o clienteId da sessão
   // direto (sem passar por "salvar meus dados"/criarCliente) — sem isso, o
@@ -299,16 +305,45 @@ export default function CheckoutPage() {
     }
   }
 
-  // Chamado ao escolher "Pagar agora": cria o pedido (canal 'site', fica CRIADO
-  // aguardando pagamento) se ainda não criou, e monta o Brick com o total real
-  // devolvido pelo backend (já inclui frete).
+  // Tudo que entra no POST /pedidos — se nada disso mudou, o pedido 'site' já
+  // criado continua valendo e pode ser reaproveitado.
+  function chaveDoPedidoSite(): string {
+    return JSON.stringify({
+      form,
+      itens: itens.map((item) => [item.produtoId, item.quantidade]),
+      cupomCodigo,
+      clienteId: sessaoCliente?.cliente.id,
+    });
+  }
+
+  // Chamado ao escolher "Pagar agora" (ou "Tentar novamente"): reaproveita o pedido
+  // 'site' pendente se os dados não mudaram, senão cria um (fica CRIADO aguardando
+  // pagamento), e monta o Brick com o total real devolvido pelo backend (já inclui frete).
   async function iniciarPagamentoNoSite() {
-    if (pedidoPagamento) return;
+    if (carregandoPagamento) return;
     setCarregandoPagamento(true);
     setResultadoPagamento(null);
+
+    let pedido: PedidoCriado;
     try {
-      const pedido = await criarPedidoNoBackend('site');
+      const chave = chaveDoPedidoSite();
+      pedido =
+        pedidoSiteRef.current?.chave === chave
+          ? pedidoSiteRef.current.pedido
+          : await criarPedidoNoBackend('site');
+      pedidoSiteRef.current = { chave, pedido };
       setPedidoPagamento(pedido);
+    } catch (erro) {
+      showToast(
+        erro instanceof ApiError ? erro.message : 'Não foi possível iniciar o pagamento.',
+        'error',
+      );
+      setMetodoFechamento('whatsapp');
+      setCarregandoPagamento(false);
+      return;
+    }
+
+    try {
       await renderizarPaymentBrick({
         containerId: 'payment-brick-container',
         valor: pedido.total,
@@ -328,12 +363,16 @@ export default function CheckoutPage() {
           setResultadoPagamento({ tipo: 'erro', mensagem });
         },
       });
-    } catch (erro) {
-      showToast(
-        erro instanceof ApiError ? erro.message : 'Não foi possível iniciar o pagamento.',
-        'error',
-      );
-      setMetodoFechamento('whatsapp');
+    } catch {
+      // O formulário do Mercado Pago não carregou (detalhe técnico já foi pro
+      // console em renderizarPaymentBrick). Mensagem fica na tela, com opção de
+      // tentar de novo — o pedido criado acima é reaproveitado na nova tentativa.
+      setResultadoPagamento({
+        tipo: 'erro',
+        mensagem:
+          'Não conseguimos carregar o pagamento online agora. Tente de novo ou feche o pedido pelo WhatsApp.',
+        podeTentarDeNovo: true,
+      });
     } finally {
       setCarregandoPagamento(false);
     }
@@ -395,9 +434,9 @@ export default function CheckoutPage() {
 
   // Sair do passo Revisão enquanto o Brick está ativo deixaria o controller do MP
   // apontando pra um container que o React acabou de desmontar — limpa tudo antes de
-  // voltar (mesmo cleanup de trocar pra WhatsApp). Se o usuário voltar pra cá depois,
-  // escolhe "Pagar agora" de novo e um novo pedido é criado — mesmo trade-off já aceito
-  // de poder gerar mais de um pedido 'site' se o usuário for e voltar várias vezes.
+  // voltar (mesmo cleanup de trocar pra WhatsApp). Se o usuário voltar pra cá depois e
+  // escolher "Pagar agora" de novo, o pedido 'site' anterior é reaproveitado se ele não
+  // mudou nada (ver pedidoSiteRef); se mudou endereço/itens/cupom, um novo é criado.
   function voltarDoPasso2() {
     if (metodoFechamento === 'pagar') {
       escolherMetodoFechamento('whatsapp');
@@ -411,6 +450,7 @@ export default function CheckoutPage() {
         src="https://sdk.mercadopago.com/js/v2"
         strategy="afterInteractive"
         onLoad={() => setSdkPronto(true)}
+        onError={() => setSdkFalhou(true)}
       />
       <h1 className="mb-2 font-display text-2xl font-bold text-navy">Finalizar pedido</h1>
       <ol className="mb-8 flex gap-5 text-[13px] font-semibold">
@@ -710,7 +750,13 @@ export default function CheckoutPage() {
             />
             <Radio
               name="metodoFechamento"
-              label={sdkPronto ? 'Pagar agora (Pix/Cartão)' : 'Pagar agora (carregando…)'}
+              label={
+                sdkPronto
+                  ? 'Pagar agora (Pix/Cartão)'
+                  : sdkFalhou
+                    ? 'Pagar agora (indisponível)'
+                    : 'Pagar agora (carregando…)'
+              }
               checked={metodoFechamento === 'pagar'}
               disabled={!sdkPronto}
               onChange={() => escolherMetodoFechamento('pagar')}
@@ -740,9 +786,27 @@ export default function CheckoutPage() {
               )}
 
               {resultadoPagamento?.tipo === 'erro' && (
-                <p className="rounded-atlas-sm bg-red-50 px-4 py-3 text-[13px] text-red-600">
-                  {resultadoPagamento.mensagem}
-                </p>
+                <div className="flex flex-col gap-2 rounded-atlas-sm bg-red-50 px-4 py-3 text-[13px] text-red-600">
+                  <p role="alert">{resultadoPagamento.mensagem}</p>
+                  {resultadoPagamento.podeTentarDeNovo && (
+                    <div className="flex gap-3">
+                      <button
+                        type="button"
+                        onClick={() => void iniciarPagamentoNoSite()}
+                        className="font-semibold text-blue hover:underline"
+                      >
+                        Tentar novamente
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => escolherMetodoFechamento('whatsapp')}
+                        className="font-semibold text-blue hover:underline"
+                      >
+                        Fechar pelo WhatsApp
+                      </button>
+                    </div>
+                  )}
+                </div>
               )}
 
               {resultadoPagamento?.tipo === 'pix' && (

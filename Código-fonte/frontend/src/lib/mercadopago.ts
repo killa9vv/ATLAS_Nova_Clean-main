@@ -84,6 +84,10 @@ export function enviarPagamentoDoBrick(
 
 let brickController: MercadoPagoBrickController | null = null;
 
+// Se o Brick não chamar onReady nesse prazo, consideramos que não vai carregar
+// (ex.: Public Key inválida às vezes não dispara onError, só nunca fica pronto).
+const TEMPO_MAXIMO_CARREGAMENTO_MS = 20_000;
+
 export interface RenderizarPaymentBrickParams {
   containerId: string;
   valor: number;
@@ -95,7 +99,9 @@ export interface RenderizarPaymentBrickParams {
 
 // Renderiza o Payment Brick (Pix + cartão) dentro do elemento com id `containerId`.
 // O próprio Brick cuida da tokenização do cartão — nenhum dado sensível passa pelo
-// nosso código.
+// nosso código. Só resolve quando o Brick fica pronto (onReady); rejeita se ele
+// falhar ao carregar ou estourar TEMPO_MAXIMO_CARREGAMENTO_MS — sem isso uma falha
+// de carregamento deixava o checkout com o container vazio e nenhuma mensagem.
 export async function renderizarPaymentBrick({
   containerId,
   valor,
@@ -109,29 +115,65 @@ export async function renderizarPaymentBrick({
     brickController = null;
   }
 
-  const bricksBuilder = getMp().bricks();
-  brickController = await bricksBuilder.create('payment', containerId, {
-    initialization: {
-      amount: valor,
-      payer: { email: emailPagador || undefined },
-    },
-    customization: {
-      paymentMethods: {
-        creditCard: 'all',
-        debitCard: 'all',
-        bankTransfer: 'all',
-      },
-    },
-    callbacks: {
-      onReady: () => onPronto?.(),
-      onError: (erro: unknown) => onErro?.(erro),
-      onSubmit: ({ formData }: { formData: PaymentBrickFormData }) =>
-        onSubmit(formData).catch((erro) => {
-          onErro?.(erro);
-          throw erro;
-        }),
-    },
+  let carregou = false;
+  let marcarPronto!: () => void;
+  let marcarFalha!: (erro: unknown) => void;
+  const pronto = new Promise<void>((resolve, reject) => {
+    marcarPronto = resolve;
+    marcarFalha = reject;
   });
+  // onError pode disparar antes de alguém dar await em `pronto` — evita o aviso de
+  // rejeição não tratada; o await lá embaixo ainda recebe o erro normalmente.
+  pronto.catch(() => {});
+  const timer = setTimeout(
+    () => marcarFalha(new Error('Tempo esgotado esperando o Payment Brick carregar.')),
+    TEMPO_MAXIMO_CARREGAMENTO_MS,
+  );
+
+  try {
+    const bricksBuilder = getMp().bricks();
+    brickController = await bricksBuilder.create('payment', containerId, {
+      initialization: {
+        amount: valor,
+        payer: { email: emailPagador || undefined },
+      },
+      customization: {
+        paymentMethods: {
+          creditCard: 'all',
+          debitCard: 'all',
+          bankTransfer: 'all',
+        },
+      },
+      callbacks: {
+        onReady: () => {
+          carregou = true;
+          marcarPronto();
+          onPronto?.();
+        },
+        onError: (erro: unknown) => {
+          if (!carregou) {
+            marcarFalha(erro);
+            return;
+          }
+          onErro?.(erro);
+        },
+        onSubmit: ({ formData }: { formData: PaymentBrickFormData }) =>
+          onSubmit(formData).catch((erro) => {
+            onErro?.(erro);
+            throw erro;
+          }),
+      },
+    });
+    await pronto;
+  } catch (erro) {
+    // Erro cru no console pra facilitar diagnóstico (credencial errada, bloqueio de
+    // rede etc.) — o usuário só vê a mensagem amigável do checkout.
+    console.error('Falha ao carregar o Payment Brick do Mercado Pago:', erro);
+    await desmontarPaymentBrick().catch(() => {});
+    throw erro;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 export async function desmontarPaymentBrick(): Promise<void> {
