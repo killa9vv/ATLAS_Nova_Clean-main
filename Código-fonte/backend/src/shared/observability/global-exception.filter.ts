@@ -52,6 +52,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     BANNER_NAO_ENCONTRADO: 404,
     CREDENCIAIS_INVALIDAS: 401,
     TOKEN_RECUPERACAO_INVALIDO: 400,
+    EMAIL_JA_CADASTRADO: 409,
     ENDERECO_PADRAO_UNICO: 409,
   };
 

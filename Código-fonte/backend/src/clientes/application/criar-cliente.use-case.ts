@@ -3,7 +3,10 @@ import * as bcrypt from 'bcrypt';
 import { validarCnpj, validarCpf } from '../../shared/documento.util';
 import { Cliente } from '../domain/cliente.entity';
 import { ClienteRepository } from '../domain/cliente.repository';
-import { DocumentoInvalidoException } from '../domain/clientes.exceptions';
+import {
+  DocumentoInvalidoException,
+  EmailJaCadastradoException,
+} from '../domain/clientes.exceptions';
 
 // Mesmo custo usado em scripts/create-admin.mjs — consistente em todo o app.
 const CUSTO_HASH_SENHA = 12;
@@ -33,10 +36,15 @@ export class CriarClienteUseCase {
     // com o mesmo e-mail — sem isso, a segunda compra do mesmo cliente quebraria com
     // violação de unique constraint em vez de simplesmente reaproveitar o cadastro.
     // Quando vem senha (fluxo de "criar conta"), o mesmo upsert vale pra transformar
-    // um Cliente de convidado já existente numa conta de verdade.
+    // um Cliente de convidado já existente numa conta de verdade — mas nunca pra
+    // sobrescrever a senha de quem já tem conta (seria tomada de conta sabendo só o
+    // e-mail); trocar senha existente só via recuperação/trocar senha.
     if (input.email) {
       const existente = await this.clienteRepository.buscarPorEmail(input.email);
       if (existente) {
+        if (senhaHash && existente.possuiSenha()) {
+          throw new EmailJaCadastradoException();
+        }
         if (senhaHash) {
           await this.clienteRepository.atualizarSenha(existente.id, senhaHash);
         }

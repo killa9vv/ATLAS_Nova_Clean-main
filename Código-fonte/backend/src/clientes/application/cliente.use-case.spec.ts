@@ -3,6 +3,7 @@ import { ClienteRepository } from '../domain/cliente.repository';
 import {
   ClienteNaoEncontradoException,
   DocumentoInvalidoException,
+  EmailJaCadastradoException,
 } from '../domain/clientes.exceptions';
 import { CriarClienteUseCase } from './criar-cliente.use-case';
 import { AtualizarClienteUseCase } from './atualizar-cliente.use-case';
@@ -90,6 +91,53 @@ describe('CriarClienteUseCase', () => {
 
     expect(resultado).toBe(existente);
     expect(clienteRepository.criar).not.toHaveBeenCalled();
+  });
+
+  it('transforma convidado (sem senha) em conta quando vem senha', async () => {
+    const convidado = new Cliente('cli-6', 'Maria', 'maria@example.com');
+    clienteRepository.buscarPorEmail.mockResolvedValue(convidado);
+
+    await useCase.executar({ nome: 'Maria', email: 'maria@example.com', senha: 'senha-forte-123' });
+
+    expect(clienteRepository.atualizarSenha).toHaveBeenCalledWith('cli-6', expect.any(String));
+  });
+
+  it('recusa "criar conta" com e-mail que já tem senha, sem trocar a senha existente', async () => {
+    const comConta = new Cliente(
+      'cli-7',
+      'Maria',
+      'maria@example.com',
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      'hash-existente',
+    );
+    clienteRepository.buscarPorEmail.mockResolvedValue(comConta);
+
+    await expect(
+      useCase.executar({ nome: 'Invasor', email: 'maria@example.com', senha: 'outra-senha-123' }),
+    ).rejects.toThrow(EmailJaCadastradoException);
+    expect(clienteRepository.atualizarSenha).not.toHaveBeenCalled();
+  });
+
+  it('checkout sem senha continua reaproveitando cliente que já tem conta', async () => {
+    const comConta = new Cliente(
+      'cli-8',
+      'Maria',
+      'maria@example.com',
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      'hash-existente',
+    );
+    clienteRepository.buscarPorEmail.mockResolvedValue(comConta);
+
+    const resultado = await useCase.executar({ nome: 'Maria', email: 'maria@example.com' });
+
+    expect(resultado).toBe(comConta);
+    expect(clienteRepository.atualizarSenha).not.toHaveBeenCalled();
   });
 
   it('cria normalmente quando o e-mail informado ainda não está cadastrado', async () => {

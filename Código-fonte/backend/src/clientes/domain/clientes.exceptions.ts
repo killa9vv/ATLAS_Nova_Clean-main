@@ -72,6 +72,17 @@ export class TokenRecuperacaoInvalidoException extends DomainException {
   }
 }
 
+/** "Criar conta" com um e-mail que já tem conta (com senha). Antes o upsert de
+ * CriarClienteUseCase simplesmente trocava a senha — qualquer um assumia a conta
+ * de outra pessoa só sabendo o e-mail. Quem esqueceu a senha usa a recuperação. */
+export class EmailJaCadastradoException extends DomainException {
+  readonly code = 'EMAIL_JA_CADASTRADO';
+
+  constructor() {
+    super('Já existe uma conta com este e-mail. Entre ou use "Esqueci minha senha".');
+  }
+}
+
 export class EnderecoPadraoUnicoException extends DomainException {
   readonly code = 'ENDERECO_PADRAO_UNICO';
 

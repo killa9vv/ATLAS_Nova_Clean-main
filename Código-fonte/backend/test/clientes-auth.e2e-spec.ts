@@ -86,6 +86,21 @@ describe('Autenticação de Cliente (e2e)', () => {
     expect(loginComSenhaNova.body.accessToken).toBeTruthy();
   });
 
+  // 0 chamadas a /login (orçamento do arquivo já está no limite).
+  it('"criar conta" com e-mail que já tem conta é recusado (não troca a senha do dono)', async () => {
+    const email = emailUnico();
+    await request(app.getHttpServer())
+      .post('/auth/clientes/registrar')
+      .send({ nome: 'Dona da conta', email, senha: 'senha-da-dona-123' })
+      .expect(201);
+
+    const tentativa = await request(app.getHttpServer())
+      .post('/auth/clientes/registrar')
+      .send({ nome: 'Invasor', email, senha: 'senha-do-invasor-123' });
+    expect(tentativa.status).toBe(409);
+    expect(tentativa.body.erro).toBe('EMAIL_JA_CADASTRADO');
+  });
+
   it('sem token, GET /clientes/me responde 401', async () => {
     const resposta = await request(app.getHttpServer()).get('/clientes/me');
     expect(resposta.status).toBe(401);
