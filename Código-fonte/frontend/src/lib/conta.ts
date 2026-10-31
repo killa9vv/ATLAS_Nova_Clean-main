@@ -29,9 +29,9 @@ export function loginCliente(email: string, senha: string): Promise<SessaoClient
   return api.post<SessaoCliente>('/auth/clientes/login', { email, senha });
 }
 
-// `token` só vem preenchido em modo dev (sem provedor de e-mail configurado no
-// backend ainda) — ver TODO em SolicitarRecuperacaoSenhaUseCase.
-export function esqueciSenha(email: string): Promise<{ mensagem: string; token?: string }> {
+// O link de redefinição vai por e-mail (fila de e-mails do backend) — a resposta
+// nunca traz o token.
+export function esqueciSenha(email: string): Promise<{ mensagem: string }> {
   return api.post('/auth/clientes/esqueci-senha', { email });
 }
 
