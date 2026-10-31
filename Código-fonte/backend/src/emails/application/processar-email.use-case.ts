@@ -10,6 +10,7 @@ import { ConfirmacaoPedidoEmail } from '../infrastructure/templates/confirmacao-
 import { PagamentoAprovadoEmail } from '../infrastructure/templates/pagamento-aprovado.email';
 import { PedidoEnviadoEmail } from '../infrastructure/templates/pedido-enviado.email';
 import { RecuperacaoSenhaEmail } from '../infrastructure/templates/recuperacao-senha.email';
+import { AtivacaoContaEmail } from '../infrastructure/templates/ativacao-conta.email';
 
 const ASSUNTOS: Record<TipoEmailPedido, (numero: string) => string> = {
   CONFIRMACAO_PEDIDO: (numero) => `Recebemos seu pedido #${numero}`,
@@ -42,6 +43,10 @@ export class ProcessarEmailUseCase {
   async executar(tarefa: TarefaEmail): Promise<void> {
     if (tarefa.tipo === 'RECUPERACAO_SENHA') {
       await this.processarRecuperacaoSenha(tarefa.destinatario, tarefa.nomeCliente, tarefa.token);
+      return;
+    }
+    if (tarefa.tipo === 'ATIVACAO_CONTA') {
+      await this.processarAtivacaoConta(tarefa.destinatario, tarefa.nomeCliente, tarefa.token);
       return;
     }
 
@@ -117,6 +122,21 @@ export class ProcessarEmailUseCase {
     await this.emailSender.enviar({
       destinatario,
       assunto: 'Redefina sua senha',
+      html,
+    });
+  }
+
+  private async processarAtivacaoConta(
+    destinatario: string,
+    nomeCliente: string,
+    token: string,
+  ): Promise<void> {
+    const linkAtivacao = `${this.frontendUrl}/conta/ativar-conta?token=${token}`;
+    const html = await render(AtivacaoContaEmail({ nomeCliente, linkAtivacao }));
+
+    await this.emailSender.enviar({
+      destinatario,
+      assunto: 'Ative sua conta na Atlas Nova Clean',
       html,
     });
   }

@@ -5,10 +5,11 @@ import type { SessaoCliente } from '@/lib/conta-auth';
 // ---------- Autenticação ----------
 // Estas chamadas usam o `api` sem auth (não tem sessão ainda) — não passam por contaApi.
 
+// Sem senha: o backend manda um link de ativação pro e-mail, e a senha é escolhida
+// em /conta/ativar-conta (confirma que a pessoa é dona do e-mail).
 export interface RegistrarClienteInput {
   nome: string;
   email: string;
-  senha: string;
   telefone?: string;
 }
 
@@ -21,8 +22,8 @@ export interface ClientePerfil {
   cnpj?: string;
 }
 
-export function registrarCliente(dados: RegistrarClienteInput): Promise<ClientePerfil> {
-  return api.post<ClientePerfil>('/auth/clientes/registrar', dados);
+export function registrarCliente(dados: RegistrarClienteInput): Promise<{ mensagem: string }> {
+  return api.post('/auth/clientes/registrar', dados);
 }
 
 export function loginCliente(email: string, senha: string): Promise<SessaoCliente> {

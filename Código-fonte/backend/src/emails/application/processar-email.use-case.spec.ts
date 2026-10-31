@@ -172,4 +172,20 @@ describe('ProcessarEmailUseCase', () => {
     expect(mensagem.destinatario).toBe('ana@teste.com');
     expect(mensagem.html).toContain('token-abc-123');
   });
+
+  it('ativação de conta: envia o link pra página de ativação com o token', async () => {
+    await useCase.executar({
+      tipo: 'ATIVACAO_CONTA',
+      destinatario: 'ana@teste.com',
+      nomeCliente: 'Ana Paula',
+      token: 'token-ativacao-456',
+    });
+
+    expect(pedidoRepository.buscarPorId).not.toHaveBeenCalled();
+    expect(emailEnviadoRepository.registrar).not.toHaveBeenCalled();
+    const mensagem = emailSender.enviar.mock.calls[0][0];
+    expect(mensagem.destinatario).toBe('ana@teste.com');
+    expect(mensagem.assunto).toContain('Ative sua conta');
+    expect(mensagem.html).toContain('/conta/ativar-conta?token=token-ativacao-456');
+  });
 });

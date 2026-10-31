@@ -1,26 +1,17 @@
 import { Injectable } from '@nestjs/common';
-import * as bcrypt from 'bcrypt';
 import { validarCnpj, validarCpf } from '../../shared/documento.util';
 import { Cliente } from '../domain/cliente.entity';
 import { ClienteRepository } from '../domain/cliente.repository';
-import {
-  DocumentoInvalidoException,
-  EmailJaCadastradoException,
-} from '../domain/clientes.exceptions';
+import { DocumentoInvalidoException } from '../domain/clientes.exceptions';
 
-// Mesmo custo usado em scripts/create-admin.mjs — consistente em todo o app.
-const CUSTO_HASH_SENHA = 12;
-
+/** Cadastro de convidado (checkout com "salvar meus dados") — nunca tem senha.
+ * Criar conta com login é outro fluxo: SolicitarCriacaoContaUseCase. */
 export interface CriarClienteInput {
   nome: string;
   email?: string;
   telefone?: string;
   cpf?: string;
   cnpj?: string;
-  /** Opcional: quando presente, "criar" também funciona como "criar conta" — ver
-   * ClientesAuthController.registrar. Sem senha, o Cliente segue como hoje (registro
-   * de checkout de convidado, sem login). */
-  senha?: string;
 }
 
 @Injectable()
@@ -29,26 +20,15 @@ export class CriarClienteUseCase {
 
   async executar(input: CriarClienteInput): Promise<Cliente> {
     validarDocumentos(input.cpf, input.cnpj);
-    const senhaHash = input.senha ? await bcrypt.hash(input.senha, CUSTO_HASH_SENHA) : undefined;
 
     // "Criar" aqui é efetivamente um upsert por e-mail: o checkout público (guest
     // marcando "salvar meus dados") chama esse endpoint de novo a cada compra, sempre
     // com o mesmo e-mail — sem isso, a segunda compra do mesmo cliente quebraria com
     // violação de unique constraint em vez de simplesmente reaproveitar o cadastro.
-    // Quando vem senha (fluxo de "criar conta"), o mesmo upsert vale pra transformar
-    // um Cliente de convidado já existente numa conta de verdade — mas nunca pra
-    // sobrescrever a senha de quem já tem conta (seria tomada de conta sabendo só o
-    // e-mail); trocar senha existente só via recuperação/trocar senha.
     if (input.email) {
       const existente = await this.clienteRepository.buscarPorEmail(input.email);
       if (existente) {
-        if (senhaHash && existente.possuiSenha()) {
-          throw new EmailJaCadastradoException();
-        }
-        if (senhaHash) {
-          await this.clienteRepository.atualizarSenha(existente.id, senhaHash);
-        }
-        return (await this.clienteRepository.buscarPorId(existente.id)) ?? existente;
+        return existente;
       }
     }
 
@@ -58,7 +38,6 @@ export class CriarClienteUseCase {
       telefone: input.telefone,
       cpf: input.cpf,
       cnpj: input.cnpj,
-      senhaHash,
     });
   }
 }

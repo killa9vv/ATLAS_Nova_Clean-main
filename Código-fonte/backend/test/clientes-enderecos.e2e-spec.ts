@@ -13,6 +13,8 @@ import { AppModule } from '../src/app.module';
 import { DomainExceptionFilter } from '../src/shared/exceptions/domain-exception.filter';
 import { CepLookupProvider, EnderecoPorCep } from '../src/clientes/domain/cep-lookup.port';
 import { CepNaoEncontradoException } from '../src/clientes/domain/clientes.exceptions';
+import { EmailQueuePort } from '../src/emails/domain/email-queue.port';
+import { FakeEmailQueue, criarContaAtivada } from './helpers/conta-cliente';
 
 // POST /auth/clientes/login é limitado a 5 chamadas/60s (throttle contra força
 // bruta — ver ClientesAuthController). Este arquivo usa no máximo 5 logins no
@@ -38,15 +40,19 @@ class CepLookupProviderDeTeste implements CepLookupProvider {
 describe('Clientes e Endereços (e2e)', () => {
   let app: INestApplication;
   let cepLookupProvider: CepLookupProviderDeTeste;
+  let fila: FakeEmailQueue;
 
   beforeAll(async () => {
     cepLookupProvider = new CepLookupProviderDeTeste();
+    fila = new FakeEmailQueue();
 
     const moduleRef: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     })
       .overrideProvider(CepLookupProvider)
       .useValue(cepLookupProvider)
+      .overrideProvider(EmailQueuePort)
+      .useValue(fila)
       .compile();
 
     app = moduleRef.createNestApplication();
@@ -69,22 +75,23 @@ describe('Clientes e Endereços (e2e)', () => {
   }
 
   let contador = 0;
-  /** Registra e loga um Cliente novo, devolve o accessToken pronto pra usar em
+  /** Registra, ativa e loga um Cliente novo, devolve o accessToken pronto pra usar em
    * Authorization: Bearer nas rotas /clientes/me/*. */
   async function registrarELogarCliente(): Promise<{ accessToken: string; clienteId: string }> {
     contador += 1;
     const email = `cliente-teste-${Date.now()}-${contador}@teste.com`;
-    const registro = await request(app.getHttpServer())
-      .post('/auth/clientes/registrar')
-      .send({ nome: 'Cliente Autenticado', email, senha: 'senha-forte-123' })
-      .expect(201);
+    await criarContaAtivada(app, fila, {
+      nome: 'Cliente Autenticado',
+      email,
+      senha: 'senha-forte-123',
+    });
 
     const login = await request(app.getHttpServer())
       .post('/auth/clientes/login')
       .send({ email, senha: 'senha-forte-123' })
       .expect(201);
 
-    return { accessToken: login.body.accessToken, clienteId: registro.body.id };
+    return { accessToken: login.body.accessToken, clienteId: login.body.cliente.id };
   }
 
   function criarEndereco(token: string, numero: string) {

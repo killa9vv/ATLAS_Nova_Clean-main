@@ -16,23 +16,7 @@ import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { DomainExceptionFilter } from '../src/shared/exceptions/domain-exception.filter';
 import { EmailQueuePort } from '../src/emails/domain/email-queue.port';
-import { TarefaEmail } from '../src/emails/domain/tarefa-email';
-
-class FakeEmailQueue extends EmailQueuePort {
-  tarefas: TarefaEmail[] = [];
-
-  async enfileirar(tarefa: TarefaEmail): Promise<void> {
-    this.tarefas.push(tarefa);
-  }
-
-  tokenRecuperacaoPara(destinatario: string): string | undefined {
-    const tarefa = this.tarefas.find(
-      (t): t is Extract<TarefaEmail, { tipo: 'RECUPERACAO_SENHA' }> =>
-        t.tipo === 'RECUPERACAO_SENHA' && t.destinatario === destinatario,
-    );
-    return tarefa?.token;
-  }
-}
+import { FakeEmailQueue, criarContaAtivada } from './helpers/conta-cliente';
 
 describe('Recuperação de senha de Cliente (e2e)', () => {
   let app: INestApplication;
@@ -69,10 +53,11 @@ describe('Recuperação de senha de Cliente (e2e)', () => {
   // 2 chamadas a /login neste teste.
   it('solicita, redefine com o token enfileirado pro e-mail, loga com a senha nova, e o mesmo token não pode ser reusado', async () => {
     const email = emailUnico();
-    await request(app.getHttpServer())
-      .post('/auth/clientes/registrar')
-      .send({ nome: 'Ana Paula', email, senha: 'senha-original-789' })
-      .expect(201);
+    await criarContaAtivada(app, fakeEmailQueue, {
+      nome: 'Ana Paula',
+      email,
+      senha: 'senha-original-789',
+    });
 
     const solicitacao = await request(app.getHttpServer())
       .post('/auth/clientes/esqueci-senha')
@@ -82,7 +67,7 @@ describe('Recuperação de senha de Cliente (e2e)', () => {
       mensagem: 'Se o e-mail estiver cadastrado, enviaremos instruções de recuperação.',
     });
 
-    const token = fakeEmailQueue.tokenRecuperacaoPara(email);
+    const token = fakeEmailQueue.tokenPara('RECUPERACAO_SENHA', email);
     expect(token).toBeTruthy();
 
     await request(app.getHttpServer())

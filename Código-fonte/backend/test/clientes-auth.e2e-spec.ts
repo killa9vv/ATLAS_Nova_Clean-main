@@ -1,4 +1,5 @@
-// Testes e2e do login/sessão do Cliente contra um Postgres real: registrar, logar,
+// Testes e2e do login/sessão do Cliente contra um Postgres real: registrar (e ativar
+// pelo link do e-mail — ver test/helpers/conta-cliente.ts), logar,
 // acessar rota "me" com o token, trocar senha (e ver que ela realmente derruba a
 // senha antiga e revoga sessões), e rotação de refresh token.
 //
@@ -9,14 +10,24 @@ import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { DomainExceptionFilter } from '../src/shared/exceptions/domain-exception.filter';
+import { EmailQueuePort } from '../src/emails/domain/email-queue.port';
+import { PrismaService } from '../src/shared/prisma/prisma.service';
+import { FakeEmailQueue, criarContaAtivada } from './helpers/conta-cliente';
 
 describe('Autenticação de Cliente (e2e)', () => {
   let app: INestApplication;
+  let fila: FakeEmailQueue;
+  let prisma: PrismaService;
 
   beforeAll(async () => {
+    fila = new FakeEmailQueue();
     const moduleRef: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    })
+      .overrideProvider(EmailQueuePort)
+      .useValue(fila)
+      .compile();
+    prisma = moduleRef.get(PrismaService);
 
     app = moduleRef.createNestApplication();
     app.useGlobalPipes(
@@ -40,11 +51,11 @@ describe('Autenticação de Cliente (e2e)', () => {
   // e-mail inexistente, senha nova.
   it('registra, loga, acessa /clientes/me, troca senha (invalida a antiga) — e credenciais erradas nunca revelam o motivo', async () => {
     const email = emailUnico();
-    const registro = await request(app.getHttpServer())
-      .post('/auth/clientes/registrar')
-      .send({ nome: 'Maria da Silva', email, senha: 'senha-original-123' })
-      .expect(201);
-    expect(registro.body.senhaHash).toBeUndefined();
+    await criarContaAtivada(app, fila, {
+      nome: 'Maria da Silva',
+      email,
+      senha: 'senha-original-123',
+    });
 
     const login = await request(app.getHttpServer())
       .post('/auth/clientes/login')
@@ -52,7 +63,8 @@ describe('Autenticação de Cliente (e2e)', () => {
       .expect(201);
     const accessToken = login.body.accessToken;
     expect(accessToken).toBeTruthy();
-    expect(login.body.cliente.id).toBe(registro.body.id);
+    expect(login.body.cliente.email).toBe(email);
+    expect(login.body.cliente.senhaHash).toBeUndefined();
 
     const perfil = await request(app.getHttpServer())
       .get('/clientes/me')
@@ -89,16 +101,42 @@ describe('Autenticação de Cliente (e2e)', () => {
   // 0 chamadas a /login (orçamento do arquivo já está no limite).
   it('"criar conta" com e-mail que já tem conta é recusado (não troca a senha do dono)', async () => {
     const email = emailUnico();
-    await request(app.getHttpServer())
-      .post('/auth/clientes/registrar')
-      .send({ nome: 'Dona da conta', email, senha: 'senha-da-dona-123' })
-      .expect(201);
+    await criarContaAtivada(app, fila, {
+      nome: 'Dona da conta',
+      email,
+      senha: 'senha-da-dona-123',
+    });
+    const antes = await prisma.cliente.findUnique({ where: { email } });
 
     const tentativa = await request(app.getHttpServer())
       .post('/auth/clientes/registrar')
-      .send({ nome: 'Invasor', email, senha: 'senha-do-invasor-123' });
+      .send({ nome: 'Invasor', email });
     expect(tentativa.status).toBe(409);
     expect(tentativa.body.erro).toBe('EMAIL_JA_CADASTRADO');
+
+    const depois = await prisma.cliente.findUnique({ where: { email } });
+    expect(depois?.senhaHash).toBe(antes?.senhaHash);
+  });
+
+  // 0 chamadas a /login.
+  it('"criar conta" com e-mail de convidado não define senha nem muda dados — só manda o link de ativação', async () => {
+    const email = emailUnico();
+    // Convidado: checkout com "salvar meus dados" (POST /clientes, sem senha).
+    await request(app.getHttpServer())
+      .post('/clientes')
+      .send({ nome: 'Cliente Convidada', email })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .post('/auth/clientes/registrar')
+      .send({ nome: 'Invasor', email })
+      .expect(200);
+
+    const cliente = await prisma.cliente.findUnique({ where: { email } });
+    expect(cliente?.senhaHash).toBeNull();
+    expect(cliente?.nome).toBe('Cliente Convidada');
+    // O link vai pro e-mail do convidado — só quem tem acesso a ele define a senha.
+    expect(fila.tokenPara('ATIVACAO_CONTA', email)).toBeTruthy();
   });
 
   it('sem token, GET /clientes/me responde 401', async () => {
@@ -109,10 +147,7 @@ describe('Autenticação de Cliente (e2e)', () => {
   // 1 chamada a /login.
   it('refresh token roda com rotação — o token antigo não pode ser reusado depois de renovado', async () => {
     const email = emailUnico();
-    await request(app.getHttpServer())
-      .post('/auth/clientes/registrar')
-      .send({ nome: 'João Souza', email, senha: 'senha-forte-123' })
-      .expect(201);
+    await criarContaAtivada(app, fila, { nome: 'João Souza', email, senha: 'senha-forte-123' });
 
     const login = await request(app.getHttpServer())
       .post('/auth/clientes/login')

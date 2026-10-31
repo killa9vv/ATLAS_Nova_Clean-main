@@ -1,7 +1,7 @@
 import { Body, Controller, HttpCode, Post } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
-import { CriarClienteUseCase } from '../application/criar-cliente.use-case';
+import { SolicitarCriacaoContaUseCase } from '../application/auth/solicitar-criacao-conta.use-case';
 import { LoginClienteUseCase } from '../application/auth/login-cliente.use-case';
 import { RenovarTokenUseCase } from '../application/auth/renovar-token.use-case';
 import { SolicitarRecuperacaoSenhaUseCase } from '../application/auth/solicitar-recuperacao-senha.use-case';
@@ -11,7 +11,6 @@ import { LoginClienteDto } from './dto/login-cliente.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { EsqueciSenhaDto } from './dto/esqueci-senha.dto';
 import { RedefinirSenhaDto } from './dto/redefinir-senha.dto';
-import { ClienteResponseDto } from './dto/cliente-response.dto';
 import { LoginClienteResponseDto, RenovarTokenResponseDto } from './dto/login-cliente-response.dto';
 
 // Entrypoints de autenticação do Cliente — mesmo prefixo /auth do login de
@@ -21,20 +20,25 @@ import { LoginClienteResponseDto, RenovarTokenResponseDto } from './dto/login-cl
 @Controller('auth/clientes')
 export class ClientesAuthController {
   constructor(
-    private readonly criarClienteUseCase: CriarClienteUseCase,
+    private readonly solicitarCriacaoContaUseCase: SolicitarCriacaoContaUseCase,
     private readonly loginClienteUseCase: LoginClienteUseCase,
     private readonly renovarTokenUseCase: RenovarTokenUseCase,
     private readonly solicitarRecuperacaoSenhaUseCase: SolicitarRecuperacaoSenhaUseCase,
     private readonly redefinirSenhaUseCase: RedefinirSenhaUseCase,
   ) {}
 
-  // "Registrar" reaproveita CriarClienteUseCase (upsert por e-mail) — cobre tanto
-  // criar um Cliente novo já com senha quanto transformar em conta um Cliente que
-  // já existia só do checkout de convidado.
+  // "Registrar" não define senha: manda um link de ativação pro e-mail (ver
+  // SolicitarCriacaoContaUseCase) — a conta só passa a ter login depois que o dono
+  // do e-mail escolhe a senha pelo link. Limite apertado porque cada chamada
+  // dispara um e-mail.
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @HttpCode(200)
   @Post('registrar')
-  async registrar(@Body() dto: RegistrarClienteDto): Promise<ClienteResponseDto> {
-    const cliente = await this.criarClienteUseCase.executar(dto);
-    return ClienteResponseDto.fromDomain(cliente);
+  async registrar(@Body() dto: RegistrarClienteDto): Promise<{ mensagem: string }> {
+    await this.solicitarCriacaoContaUseCase.executar(dto);
+    return {
+      mensagem: 'Enviamos um link pro seu e-mail pra ativar a conta e escolher sua senha.',
+    };
   }
 
   // Limite apertado igual ao login de admin: alvo natural de força bruta.

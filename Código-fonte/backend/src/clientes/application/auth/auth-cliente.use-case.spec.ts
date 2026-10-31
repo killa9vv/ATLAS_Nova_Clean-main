@@ -9,6 +9,7 @@ import { TokenRecuperacaoSenha } from '../../domain/token-recuperacao-senha.enti
 import {
   ClienteNaoEncontradoException,
   CredenciaisInvalidasException,
+  EmailJaCadastradoException,
   TokenRecuperacaoInvalidoException,
 } from '../../domain/clientes.exceptions';
 import { LoginClienteUseCase } from './login-cliente.use-case';
@@ -16,6 +17,7 @@ import { RenovarTokenUseCase } from './renovar-token.use-case';
 import { RedefinirSenhaUseCase } from './redefinir-senha.use-case';
 import { TrocarSenhaUseCase } from './trocar-senha.use-case';
 import { SolicitarRecuperacaoSenhaUseCase } from './solicitar-recuperacao-senha.use-case';
+import { SolicitarCriacaoContaUseCase } from './solicitar-criacao-conta.use-case';
 import { EmailQueuePort } from '../../../emails/domain/email-queue.port';
 import { hashToken } from '../../../shared/token.util';
 
@@ -394,6 +396,78 @@ describe('SolicitarRecuperacaoSenhaUseCase', () => {
     );
     await useCase.executar('maria@teste.com');
 
+    expect(tokenRepository.criar).not.toHaveBeenCalled();
+    expect(emailQueue.enfileirar).not.toHaveBeenCalled();
+  });
+});
+
+describe('SolicitarCriacaoContaUseCase', () => {
+  function montar() {
+    const clienteRepository = criarClienteRepositoryMock();
+    const tokenRepository = criarTokenRecuperacaoRepositoryMock();
+    const emailQueue = criarEmailQueueMock();
+    const useCase = new SolicitarCriacaoContaUseCase(
+      clienteRepository,
+      tokenRepository,
+      emailQueue,
+    );
+    return { clienteRepository, tokenRepository, emailQueue, useCase };
+  }
+
+  it('e-mail novo: cria o cliente SEM senha e manda o link de ativação', async () => {
+    const { clienteRepository, tokenRepository, emailQueue, useCase } = montar();
+    clienteRepository.buscarPorEmail.mockResolvedValue(null);
+    clienteRepository.criar.mockResolvedValue(criarClienteMock(false));
+
+    await useCase.executar({ nome: 'Maria da Silva', email: 'maria@teste.com' });
+
+    expect(clienteRepository.criar).toHaveBeenCalledWith(
+      expect.not.objectContaining({ senhaHash: expect.anything() }),
+    );
+    expect(clienteRepository.atualizarSenha).not.toHaveBeenCalled();
+    expect(tokenRepository.criar).toHaveBeenCalledWith(
+      expect.objectContaining({ clienteId: 'cli-1' }),
+    );
+    expect(emailQueue.enfileirar).toHaveBeenCalledWith(
+      expect.objectContaining({ tipo: 'ATIVACAO_CONTA', destinatario: 'maria@teste.com' }),
+    );
+  });
+
+  it('convidado já existente: não define senha nem altera dados, só manda o link', async () => {
+    const { clienteRepository, tokenRepository, emailQueue, useCase } = montar();
+    clienteRepository.buscarPorEmail.mockResolvedValue(criarClienteMock(false));
+
+    await useCase.executar({ nome: 'Invasor', email: 'maria@teste.com' });
+
+    expect(clienteRepository.criar).not.toHaveBeenCalled();
+    expect(clienteRepository.atualizar).not.toHaveBeenCalled();
+    expect(clienteRepository.atualizarSenha).not.toHaveBeenCalled();
+    expect(tokenRepository.invalidarValidosDoCliente).toHaveBeenCalledWith('cli-1');
+    expect(emailQueue.enfileirar).toHaveBeenCalledWith(
+      expect.objectContaining({ tipo: 'ATIVACAO_CONTA', nomeCliente: 'Maria da Silva' }),
+    );
+  });
+
+  it('o link expira em 24 horas', async () => {
+    const { clienteRepository, tokenRepository, useCase } = montar();
+    clienteRepository.buscarPorEmail.mockResolvedValue(criarClienteMock(false));
+    const antes = Date.now();
+
+    await useCase.executar({ nome: 'Maria', email: 'maria@teste.com' });
+
+    const { expiraEm } = tokenRepository.criar.mock.calls[0][0];
+    const horas = (expiraEm.getTime() - antes) / 3_600_000;
+    expect(horas).toBeGreaterThan(23.9);
+    expect(horas).toBeLessThanOrEqual(24.01);
+  });
+
+  it('e-mail que já tem conta com senha: recusa e não manda nada', async () => {
+    const { clienteRepository, tokenRepository, emailQueue, useCase } = montar();
+    clienteRepository.buscarPorEmail.mockResolvedValue(criarClienteMock(true));
+
+    await expect(useCase.executar({ nome: 'Invasor', email: 'maria@teste.com' })).rejects.toThrow(
+      EmailJaCadastradoException,
+    );
     expect(tokenRepository.criar).not.toHaveBeenCalled();
     expect(emailQueue.enfileirar).not.toHaveBeenCalled();
   });

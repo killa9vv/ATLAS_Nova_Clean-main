@@ -8,12 +8,13 @@ export type TipoEmailPedido = 'CONFIRMACAO_PEDIDO' | 'PAGAMENTO_APROVADO' | 'PED
  * fresco na hora de montar o template, o que importa quando o processamento
  * acontece bem depois do enfileiramento (ex.: depois de um retry).
  *
- * Recuperação de senha é a exceção: carrega o token direto, porque não há "o
- * token atual do pedido" pra rebuscar — é exatamente aquele valor, gerado uma vez,
- * que precisa chegar no e-mail.
+ * Recuperação de senha e ativação de conta são a exceção: carregam o token direto,
+ * porque não há "o token atual do pedido" pra rebuscar — é exatamente aquele valor,
+ * gerado uma vez, que precisa chegar no e-mail.
  */
 export type TarefaEmail =
   | { tipo: 'CONFIRMACAO_PEDIDO'; pedidoId: string }
   | { tipo: 'PAGAMENTO_APROVADO'; pedidoId: string }
   | { tipo: 'PEDIDO_ENVIADO'; pedidoId: string }
-  | { tipo: 'RECUPERACAO_SENHA'; destinatario: string; nomeCliente: string; token: string };
+  | { tipo: 'RECUPERACAO_SENHA'; destinatario: string; nomeCliente: string; token: string }
+  | { tipo: 'ATIVACAO_CONTA'; destinatario: string; nomeCliente: string; token: string };

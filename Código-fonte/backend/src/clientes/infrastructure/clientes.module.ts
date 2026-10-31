@@ -28,6 +28,7 @@ import { RenovarTokenUseCase } from '../application/auth/renovar-token.use-case'
 import { SolicitarRecuperacaoSenhaUseCase } from '../application/auth/solicitar-recuperacao-senha.use-case';
 import { RedefinirSenhaUseCase } from '../application/auth/redefinir-senha.use-case';
 import { TrocarSenhaUseCase } from '../application/auth/trocar-senha.use-case';
+import { SolicitarCriacaoContaUseCase } from '../application/auth/solicitar-criacao-conta.use-case';
 
 @Module({
   imports: [AuthModule],
@@ -51,6 +52,7 @@ import { TrocarSenhaUseCase } from '../application/auth/trocar-senha.use-case';
     LoginClienteUseCase,
     RenovarTokenUseCase,
     SolicitarRecuperacaoSenhaUseCase,
+    SolicitarCriacaoContaUseCase,
     RedefinirSenhaUseCase,
     TrocarSenhaUseCase,
   ],
