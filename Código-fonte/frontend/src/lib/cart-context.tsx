@@ -127,8 +127,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
   // react-query compartilha o cache por key, não precisa passar isso pelo contexto.
   const carrinhoQuery = useQuery({ queryKey: CHAVE_QUERY_CARRINHO, queryFn: buscarCarrinho });
 
-  function aposMutar() {
-    return queryClient.invalidateQueries({ queryKey: CHAVE_QUERY_CARRINHO });
+  // Toda rota que altera o carrinho já devolve o carrinho atualizado inteiro — usa
+  // essa resposta direto em vez de invalidar e buscar de novo (era uma segunda ida
+  // ao servidor a cada "adicionar", ~1s a mais de espera pro cliente).
+  function aposMutar(carrinhoAtualizado: CarrinhoServidor) {
+    queryClient.setQueryData(CHAVE_QUERY_CARRINHO, carrinhoAtualizado);
   }
 
   const adicionarMutation = useMutation({
