@@ -12,11 +12,19 @@ import type { ErrorEvent } from '@sentry/nestjs';
  * errada, cupom inválido) nunca são logados como erro, então não viram alerta.
  */
 export function iniciarSentry(): void {
-  const dsn = process.env.SENTRY_DSN;
-  if (!dsn) return;
+  const dsn = process.env.SENTRY_DSN?.trim();
+  // Uma linha no log da subida (sem mostrar o DSN) pra conferir no host se o
+  // monitoramento está mesmo ligado — roda antes do logger do Nest existir.
+  if (!dsn) {
+    console.log('[sentry] desligado (SENTRY_DSN não configurado)');
+    return;
+  }
 
   Sentry.init({
     dsn,
+    // SENTRY_DEBUG=true no host mostra no log o que o SDK está fazendo (envios,
+    // erros de DSN/rede) — só pra diagnosticar, deixar desligado no dia a dia.
+    debug: process.env.SENTRY_DEBUG === 'true',
     environment: process.env.NODE_ENV ?? 'development',
     // O padrão do SDK (v11) coleta corpo das requisições, cookies, headers, query e
     // dados do usuário — aqui passam senha, CPF, endereço e tokens. Tudo desligado:
@@ -32,6 +40,11 @@ export function iniciarSentry(): void {
     tracesSampleRate: 0,
     beforeSend: (evento) => limparDadosPessoais(evento),
   });
+  console.log(
+    Sentry.isEnabled()
+      ? '[sentry] ligado'
+      : '[sentry] NÃO ligou — confira o valor de SENTRY_DSN (ou use SENTRY_DEBUG=true)',
+  );
 }
 
 const REGEX_EMAIL = /[\w.+-]+@[\w-]+(\.[\w-]+)+/g;
