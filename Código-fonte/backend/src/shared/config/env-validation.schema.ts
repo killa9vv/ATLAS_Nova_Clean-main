@@ -38,6 +38,12 @@ export const envValidationSchema = Joi.object({
   RESEND_API_KEY: Joi.string().allow('').optional(),
   EMAIL_FROM: Joi.string().allow('').optional(),
   FRONTEND_URL: Joi.string().uri().allow('').optional(),
+  // REDIS_URL (com senha) tem prioridade sobre REDIS_HOST/REDIS_PORT — ver
+  // montar-conexao-redis.ts.
+  REDIS_URL: Joi.string()
+    .uri({ scheme: ['redis', 'rediss'] })
+    .allow('')
+    .optional(),
   REDIS_HOST: Joi.string().allow('').optional(),
   REDIS_PORT: Joi.number().port().optional(),
 }).unknown(true); // não rejeita outras variáveis de ambiente do sistema (PATH, etc.)
