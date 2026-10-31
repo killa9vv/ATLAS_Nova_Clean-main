@@ -1,5 +1,5 @@
 ﻿import 'reflect-metadata';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipePtBr } from './shared/validation/validation-pipe-pt-br';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
@@ -32,7 +32,7 @@ async function bootstrap() {
   });
 
   app.useGlobalPipes(
-    new ValidationPipe({
+    new ValidationPipePtBr({
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
