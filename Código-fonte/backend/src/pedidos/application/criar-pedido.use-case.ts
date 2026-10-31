@@ -45,14 +45,28 @@ export class CriarPedidoUseCase {
     itensSolicitados: CarrinhoItemSolicitado[],
     entregaSolicitada: EntregaSolicitada,
     contato: ContatoPedido,
-    clienteId?: string,
+    clienteIdInformado?: string,
     canal: CanalCheckout = 'site',
     cupomCodigo?: string,
+    /** true quando o clienteId veio do corpo de uma requisição anônima (checkout de
+     * convidado), não do JWT — ninguém provou ser dono desse cliente. */
+    clienteIdSemLogin = false,
   ): Promise<Pedido> {
+    let clienteId = clienteIdInformado;
     // Fail-fast: valida o cliente antes de montar o carrinho, pra não gastar uma
     // consulta de estoque/preço num pedido que vai falhar de qualquer jeito.
-    if (clienteId && !(await this.clienteRepository.buscarPorId(clienteId))) {
-      throw new ClienteNaoEncontradoException(clienteId);
+    if (clienteId) {
+      const cliente = await this.clienteRepository.buscarPorId(clienteId);
+      if (!cliente) {
+        throw new ClienteNaoEncontradoException(clienteId);
+      }
+      // Conta de verdade (com senha) só recebe pedido feito logado. Sem isso, quem
+      // descobrisse o id de uma conta (POST /clientes devolve o id de qualquer
+      // e-mail) podia criar pedidos anônimos que apareciam na conta dela. Aqui o
+      // pedido segue normalmente, só que como convidado.
+      if (clienteIdSemLogin && cliente.possuiSenha()) {
+        clienteId = undefined;
+      }
     }
 
     const carrinho = await this.montarCarrinhoUseCase.executar(

@@ -18,17 +18,10 @@ export interface DadosCriacaoCliente {
   telefone?: string;
 }
 
-export interface Cliente {
-  id: string;
-  nome: string;
-  email?: string;
-  telefone?: string;
-}
-
-// Checkout de convidado, sem login: o `id` devolvido é o "segredo" que o front guarda
-// (localStorage) — mesmo padrão já usado no resto do backend (ver comentário em
-// ClientesController.criar). Reaproveitado no checkout como forma leve de "salvar
-// meus dados" pra próxima compra, sem inventar sessão/autenticação de verdade.
-export function criarCliente(dados: DadosCriacaoCliente): Promise<Cliente> {
-  return api.post<Cliente>('/clientes', dados);
+// Checkout de convidado com "salvar meus dados": o backend devolve só o id (é
+// upsert por e-mail — devolver o cadastro inteiro expunha dados de qualquer
+// cliente pra quem soubesse o e-mail). O id vincula o pedido ao cadastro; se esse
+// e-mail já for uma conta com senha, o pedido só entra na conta feito logado.
+export function criarCliente(dados: DadosCriacaoCliente): Promise<{ id: string }> {
+  return api.post<{ id: string }>('/clientes', dados);
 }

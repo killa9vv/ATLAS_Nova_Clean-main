@@ -64,8 +64,9 @@ export class PedidosController {
     @Body() dto: CriarPedidoDto,
     @Req() request: RequisicaoComClienteOpcional,
   ): Promise<PedidoResponseDto> {
-    const clienteId =
-      request.user?.papel === PapelUsuario.CLIENTE ? request.user.id : dto.clienteId;
+    const clienteDoToken =
+      request.user?.papel === PapelUsuario.CLIENTE ? request.user.id : undefined;
+    const clienteId = clienteDoToken ?? dto.clienteId;
 
     const pedido = await this.criarPedidoUseCase.executar(
       dto.itens,
@@ -74,6 +75,7 @@ export class PedidosController {
       clienteId,
       dto.canal,
       dto.cupomCodigo,
+      !clienteDoToken,
     );
     return PedidoResponseDto.fromDomain(pedido);
   }

@@ -308,6 +308,30 @@ describe('Pedidos (e2e)', () => {
       expect(resposta.body.clienteId).toBe(cliente.id);
     });
 
+    it('pedido anônimo com clienteId de uma conta (com senha) não entra na conta — vira pedido de convidado', async () => {
+      const produto = await criarProdutoComEstoque(5);
+      const conta = await prisma.cliente.create({
+        data: {
+          nome: 'Dona da conta',
+          email: `conta-${randomUUID()}@teste.com`,
+          senhaHash: 'hash-qualquer',
+        },
+      });
+
+      const criacao = await request(app.getHttpServer())
+        .post('/pedidos')
+        .send({
+          itens: [{ produtoId: produto.id, quantidade: 1 }],
+          tipoEntrega: 'RETIRADA',
+          contato: contatoValido,
+          clienteId: conta.id,
+        })
+        .expect(201);
+
+      const pedido = await prisma.pedido.findUnique({ where: { id: criacao.body.id } });
+      expect(pedido?.clienteId).toBeNull();
+    });
+
     it('rejeita clienteId de um cliente inexistente (404)', async () => {
       const produto = await criarProdutoComEstoque(5);
 

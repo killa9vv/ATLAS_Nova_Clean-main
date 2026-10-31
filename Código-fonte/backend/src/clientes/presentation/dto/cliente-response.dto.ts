@@ -31,3 +31,17 @@ export class ClienteResponseDto {
     return dto;
   }
 }
+
+/** Resposta do POST /clientes (público, checkout "salvar meus dados"): só o id.
+ * Como o cadastro é upsert por e-mail, devolver o ClienteResponseDto completo
+ * entregava nome/telefone/CPF de qualquer cliente pra quem mandasse o e-mail dele. */
+export class ClienteCriadoResponseDto {
+  @ApiProperty({ example: 'b3f1c2d4-5678-4abc-9def-0123456789ab' })
+  id: string;
+
+  static fromDomain(cliente: Cliente): ClienteCriadoResponseDto {
+    const dto = new ClienteCriadoResponseDto();
+    dto.id = cliente.id;
+    return dto;
+  }
+}

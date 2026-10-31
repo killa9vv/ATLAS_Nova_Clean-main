@@ -300,6 +300,82 @@ describe('CriarPedidoUseCase', () => {
     );
   });
 
+  it('pedido anônimo com clienteId de conta com senha vira pedido de convidado (não entra na conta)', async () => {
+    clienteRepository.buscarPorId.mockResolvedValue(
+      new Cliente(
+        'cliente-1',
+        'Maria',
+        'maria@teste.com',
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        'hash',
+      ),
+    );
+
+    await useCase.executar(
+      [{ produtoId: 'produto-1', quantidade: 2 }],
+      { tipoEntrega: 'RETIRADA' },
+      contato,
+      'cliente-1',
+      'site',
+      undefined,
+      true,
+    );
+
+    expect(montarCarrinhoUseCase.executar).toHaveBeenCalledWith(
+      expect.any(Array),
+      undefined,
+      undefined,
+    );
+    const clienteIdGravado = pedidoRepository.criar.mock.calls[0][4];
+    expect(clienteIdGravado).toBeUndefined();
+  });
+
+  it('pedido anônimo com clienteId de convidado (sem senha) continua vinculado', async () => {
+    clienteRepository.buscarPorId.mockResolvedValue(new Cliente('cliente-1', 'Maria'));
+
+    await useCase.executar(
+      [{ produtoId: 'produto-1', quantidade: 2 }],
+      { tipoEntrega: 'RETIRADA' },
+      contato,
+      'cliente-1',
+      'site',
+      undefined,
+      true,
+    );
+
+    expect(pedidoRepository.criar.mock.calls[0][4]).toBe('cliente-1');
+  });
+
+  it('pedido logado vincula à conta normalmente', async () => {
+    clienteRepository.buscarPorId.mockResolvedValue(
+      new Cliente(
+        'cliente-1',
+        'Maria',
+        'maria@teste.com',
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        'hash',
+      ),
+    );
+
+    await useCase.executar(
+      [{ produtoId: 'produto-1', quantidade: 2 }],
+      { tipoEntrega: 'RETIRADA' },
+      contato,
+      'cliente-1',
+      'site',
+      undefined,
+      false,
+    );
+
+    expect(pedidoRepository.criar.mock.calls[0][4]).toBe('cliente-1');
+  });
+
   it('lança ClienteNaoEncontradoException e não monta o carrinho quando clienteId não existe', async () => {
     clienteRepository.buscarPorId.mockResolvedValue(null);
 

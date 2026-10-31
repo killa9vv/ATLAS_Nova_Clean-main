@@ -19,7 +19,7 @@ import { TrocarSenhaUseCase } from '../application/auth/trocar-senha.use-case';
 import { CriarClienteDto } from './dto/criar-cliente.dto';
 import { AtualizarClienteDto } from './dto/atualizar-cliente.dto';
 import { TrocarSenhaDto } from './dto/trocar-senha.dto';
-import { ClienteResponseDto } from './dto/cliente-response.dto';
+import { ClienteCriadoResponseDto, ClienteResponseDto } from './dto/cliente-response.dto';
 import { EnderecoPorCepResponseDto } from './dto/endereco-por-cep-response.dto';
 import { JwtAuthGuard } from '../../auth/presentation/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/presentation/guards/roles.guard';
@@ -84,25 +84,31 @@ export class ClientesController {
     return EnderecoPorCepResponseDto.fromDomain(endereco);
   }
 
-  // Público de propósito, no mesmo espírito do checkout de convidado em pedidos:
-  // não existe login de cliente hoje (só staff via Usuario/ADMIN — ver auth/).
-  // O id (UUID v4) devolvido aqui funciona como o "segredo" que o front guarda
-  // (localStorage, mesma lógica do sessionToken do Carrinho) pra provar dono do
-  // perfil nas chamadas seguintes. Antes de um sistema de login de cliente existir,
-  // essa é a mesma lacuna já aceita e documentada em GET /pedidos/:id/status.
+  // Público de propósito: checkout de convidado com "salvar meus dados". Como é
+  // upsert por e-mail, qualquer um pode chamar com o e-mail de outra pessoa — por
+  // isso devolve só o id (nunca nome/telefone/CPF), e GET/PUT /clientes/:id são só
+  // de admin. O cliente logado vê/edita os próprios dados em /clientes/me.
   @Post()
-  async criar(@Body() dto: CriarClienteDto): Promise<ClienteResponseDto> {
+  async criar(@Body() dto: CriarClienteDto): Promise<ClienteCriadoResponseDto> {
     const cliente = await this.criarClienteUseCase.executar(dto);
-    return ClienteResponseDto.fromDomain(cliente);
+    return ClienteCriadoResponseDto.fromDomain(cliente);
   }
 
+  // Eram públicas: com o id devolvido pelo POST acima, qualquer um lia e alterava o
+  // cadastro de qualquer cliente. O site não usa estas rotas — só o painel admin.
   @Get(':id')
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(PapelUsuario.ADMIN)
   async buscarPorId(@Param('id') id: string): Promise<ClienteResponseDto> {
     const cliente = await this.buscarClientePorIdUseCase.executar(id);
     return ClienteResponseDto.fromDomain(cliente);
   }
 
   @Put(':id')
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(PapelUsuario.ADMIN)
   async atualizar(
     @Param('id') id: string,
     @Body() dto: AtualizarClienteDto,

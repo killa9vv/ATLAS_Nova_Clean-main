@@ -223,6 +223,34 @@ describe('Clientes e Endereços (e2e)', () => {
     expect(segunda.body.id).toBe(primeira.body.id);
   });
 
+  it('POST /clientes com e-mail de outra pessoa devolve só o id — nunca nome, telefone ou CPF', async () => {
+    const email = `vitima-${Date.now()}@teste.com`;
+    await request(app.getHttpServer())
+      .post('/clientes')
+      .send({ nome: 'Vítima', email, telefone: '(22) 99999-1234', cpf: '111.444.777-35' })
+      .expect(201);
+
+    const ataque = await request(app.getHttpServer())
+      .post('/clientes')
+      .send({ nome: 'Atacante', email })
+      .expect(201);
+
+    expect(Object.keys(ataque.body)).toEqual(['id']);
+  });
+
+  it('GET e PUT /clientes/:id exigem admin (sem token: 401)', async () => {
+    const criado = await request(app.getHttpServer())
+      .post('/clientes')
+      .send({ nome: 'Cliente qualquer' })
+      .expect(201);
+
+    await request(app.getHttpServer()).get(`/clientes/${criado.body.id}`).expect(401);
+    await request(app.getHttpServer())
+      .put(`/clientes/${criado.body.id}`)
+      .send({ nome: 'Alterado por terceiro' })
+      .expect(401);
+  });
+
   it('sem token, /clientes/me/enderecos responde 401', async () => {
     const resposta = await request(app.getHttpServer()).get('/clientes/me/enderecos');
     expect(resposta.status).toBe(401);
