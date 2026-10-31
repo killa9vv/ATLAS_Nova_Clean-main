@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEmail, IsNotEmpty, IsOptional, IsString, Matches, MaxLength } from 'class-validator';
+import { NormalizarEmail } from '../../../shared/validation/normalizar-email.decorator';
 
 // Sem senha de propósito: ela é escolhida pelo link de ativação enviado por e-mail
 // (ver SolicitarCriacaoContaUseCase).
@@ -14,6 +15,7 @@ export class RegistrarClienteDto {
   nome!: string;
 
   @ApiProperty({ example: 'maria@example.com' })
+  @NormalizarEmail()
   @IsEmail()
   email!: string;
 

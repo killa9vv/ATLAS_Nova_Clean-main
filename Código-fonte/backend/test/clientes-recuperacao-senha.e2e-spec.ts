@@ -16,11 +16,13 @@ import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { DomainExceptionFilter } from '../src/shared/exceptions/domain-exception.filter';
 import { EmailQueuePort } from '../src/emails/domain/email-queue.port';
+import { PrismaService } from '../src/shared/prisma/prisma.service';
 import { FakeEmailQueue, criarContaAtivada } from './helpers/conta-cliente';
 
 describe('Recuperação de senha de Cliente (e2e)', () => {
   let app: INestApplication;
   let fakeEmailQueue: FakeEmailQueue;
+  let prisma: PrismaService;
 
   beforeAll(async () => {
     fakeEmailQueue = new FakeEmailQueue();
@@ -31,6 +33,7 @@ describe('Recuperação de senha de Cliente (e2e)', () => {
       .overrideProvider(EmailQueuePort)
       .useValue(fakeEmailQueue)
       .compile();
+    prisma = moduleRef.get(PrismaService);
 
     app = moduleRef.createNestApplication();
     app.useGlobalPipes(
@@ -130,5 +133,36 @@ describe('Recuperação de senha de Cliente (e2e)', () => {
       .expect(200);
 
     expect(fakeEmailQueue.tarefas.length).toBe(antes);
+  });
+
+  // 1 chamada a /login.
+  it('e-mail com maiúsculas: cadastra em minúsculas e acha a conta em qualquer grafia (inclusive cadastro antigo)', async () => {
+    const base = `Maria.Case-${Date.now()}@Teste.com`;
+    await criarContaAtivada(app, fakeEmailQueue, {
+      nome: 'Maria Case',
+      email: base,
+      senha: 'senha-forte-123',
+    });
+
+    const gravado = await prisma.cliente.findFirst({
+      where: { email: { equals: base, mode: 'insensitive' } },
+    });
+    expect(gravado?.email).toBe(base.toLowerCase());
+
+    await request(app.getHttpServer())
+      .post('/auth/clientes/login')
+      .send({ email: base.toUpperCase(), senha: 'senha-forte-123' })
+      .expect(201);
+
+    // Cadastro antigo, gravado com maiúsculas antes da normalização existir.
+    const legado = `Legado-${Date.now()}@Teste.com`;
+    await prisma.cliente.create({
+      data: { nome: 'Cliente Legado', email: legado, senhaHash: 'hash-qualquer' },
+    });
+    await request(app.getHttpServer())
+      .post('/auth/clientes/esqueci-senha')
+      .send({ email: legado.toLowerCase() })
+      .expect(200);
+    expect(fakeEmailQueue.tokenPara('RECUPERACAO_SENHA', legado.toLowerCase())).toBeTruthy();
   });
 });

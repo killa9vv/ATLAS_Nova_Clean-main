@@ -12,9 +12,10 @@ export class LoginUseCase {
   ) {}
 
   async execute(input: LoginDto) {
-    const usuario = await this.prisma.usuario.findUnique({
+    // Mesmo critério do login de cliente: ignora maiúsculas/minúsculas.
+    const usuario = await this.prisma.usuario.findFirst({
       where: {
-        email: input.email,
+        email: { equals: input.email, mode: 'insensitive' },
       },
     });
 

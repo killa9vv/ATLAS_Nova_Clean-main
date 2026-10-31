@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEmail, IsNotEmpty, IsOptional, IsString, Matches, MaxLength } from 'class-validator';
+import { NormalizarEmail } from '../../../shared/validation/normalizar-email.decorator';
 
 const REGEX_TELEFONE = /^\(?\d{2}\)?[\s-]?\d{4,5}-?\d{4}$/;
 
@@ -14,6 +15,7 @@ export class ContatoPedidoDto {
 
   @ApiPropertyOptional({ example: 'maria@example.com' })
   @IsOptional()
+  @NormalizarEmail()
   @IsEmail()
   email?: string;
 

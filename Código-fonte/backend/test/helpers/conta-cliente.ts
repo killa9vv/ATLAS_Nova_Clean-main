@@ -19,13 +19,15 @@ export class FakeEmailQueue extends EmailQueuePort {
     this.tarefas.push(tarefa);
   }
 
-  /** Token da tarefa mais recente desse tipo pra esse destinatário. */
+  /** Token da tarefa mais recente desse tipo pra esse destinatário (o backend grava
+   * e-mails em minúsculas — ver NormalizarEmail — então compara sem diferenciar). */
   tokenPara(tipo: TarefaComToken['tipo'], destinatario: string): string | undefined {
+    const alvo = destinatario.toLowerCase();
     const tarefa = [...this.tarefas]
       .reverse()
       .find(
         (t): t is TarefaComToken =>
-          t.tipo === tipo && 'destinatario' in t && t.destinatario === destinatario,
+          t.tipo === tipo && 'destinatario' in t && t.destinatario.toLowerCase() === alvo,
       );
     return tarefa?.token;
   }

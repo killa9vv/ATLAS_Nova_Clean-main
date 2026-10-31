@@ -34,7 +34,11 @@ export class PrismaClienteRepository extends ClienteRepository {
   }
 
   async buscarPorEmail(email: string): Promise<Cliente | null> {
-    const cliente = await this.prisma.cliente.findUnique({ where: { email } });
+    // Ignora maiúsculas/minúsculas: e-mails novos já chegam normalizados (ver
+    // NormalizarEmail), mas cadastros antigos podem ter sido gravados com maiúsculas.
+    const cliente = await this.prisma.cliente.findFirst({
+      where: { email: { equals: email, mode: 'insensitive' } },
+    });
     return cliente ? this.paraDominio(cliente) : null;
   }
 

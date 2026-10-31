@@ -11,7 +11,7 @@ import bcrypt from 'bcrypt';
 
 const CUSTOS_HASH = 12;
 
-const email = process.env.ADMIN_EMAIL;
+const email = process.env.ADMIN_EMAIL?.trim().toLowerCase();
 const senha = process.env.ADMIN_SENHA;
 const nome = process.env.ADMIN_NOME ?? 'Admin';
 
