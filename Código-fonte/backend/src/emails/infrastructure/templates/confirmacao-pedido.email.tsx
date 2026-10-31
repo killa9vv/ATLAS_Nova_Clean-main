@@ -8,6 +8,8 @@ export function ConfirmacaoPedidoEmail({
   nomeCliente,
   itens,
   total,
+  valorFrete,
+  desconto,
   tipoEntrega,
   linkAcompanhamento,
 }: DadosPedidoEmail) {
@@ -24,7 +26,7 @@ export function ConfirmacaoPedidoEmail({
         {tipoEntrega === 'ENTREGA' ? 'Entrega no endereço cadastrado.' : 'Retirada na loja.'}
       </Text>
 
-      <ItensPedidoEmail itens={itens} total={total} />
+      <ItensPedidoEmail itens={itens} total={total} valorFrete={valorFrete} desconto={desconto} />
 
       {linkAcompanhamento && (
         <Button

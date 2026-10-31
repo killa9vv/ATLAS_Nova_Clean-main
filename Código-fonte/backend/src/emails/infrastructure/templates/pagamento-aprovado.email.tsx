@@ -8,6 +8,8 @@ export function PagamentoAprovadoEmail({
   nomeCliente,
   itens,
   total,
+  valorFrete,
+  desconto,
   tipoEntrega,
   linkAcompanhamento,
 }: DadosPedidoEmail) {
@@ -21,7 +23,7 @@ export function PagamentoAprovadoEmail({
         {tipoEntrega === 'ENTREGA' ? ' o envio.' : ' tudo para a retirada na loja.'}
       </Text>
 
-      <ItensPedidoEmail itens={itens} total={total} />
+      <ItensPedidoEmail itens={itens} total={total} valorFrete={valorFrete} desconto={desconto} />
 
       {linkAcompanhamento && (
         <Button

@@ -20,7 +20,14 @@ import { StatusPedido } from '../../pedidos/domain/status-pedido.enum';
 import { EmailEnviadoRepository } from '../domain/email-enviado.repository';
 import { EmailSender } from '../domain/email-sender.port';
 
-function criarPedido(opcoes: { contato?: ContatoPedido; clienteId?: string } = {}): Pedido {
+function criarPedido(
+  opcoes: {
+    contato?: ContatoPedido;
+    clienteId?: string;
+    valorFrete?: number;
+    desconto?: number;
+  } = {},
+): Pedido {
   const contato: ContatoPedido = opcoes.contato ?? {
     nome: 'Maria da Silva',
     email: 'maria@teste.com',
@@ -33,13 +40,14 @@ function criarPedido(opcoes: { contato?: ContatoPedido; clienteId?: string } = {
     [new ItemPedidoEntity('produto-1', 'Detergente', 2, 10)],
     20,
     'RETIRADA',
-    0,
+    opcoes.valorFrete ?? 0,
     new Date(),
     new Date(),
     undefined,
     undefined,
     contato,
     clienteId,
+    opcoes.desconto ?? 0,
   );
 }
 
@@ -116,6 +124,28 @@ describe('ProcessarEmailUseCase', () => {
       'pedido-1',
       'maria@teste.com',
     );
+  });
+
+  it('mostra frete e desconto entre os itens e o total, pro total bater com o que o cliente vê', async () => {
+    pedidoRepository.buscarPorId.mockResolvedValue(criarPedido({ valorFrete: 45, desconto: 5 }));
+
+    await useCase.executar({ tipo: 'PAGAMENTO_APROVADO', pedidoId: 'pedido-1' });
+
+    const { html } = emailSender.enviar.mock.calls[0][0];
+    expect(html).toContain('Frete');
+    expect(html).toContain('45,00');
+    expect(html).toContain('Desconto');
+    expect(html).toContain('5,00');
+  });
+
+  it('omite as linhas de frete e desconto quando os dois são zero (retirada sem cupom)', async () => {
+    pedidoRepository.buscarPorId.mockResolvedValue(criarPedido());
+
+    await useCase.executar({ tipo: 'CONFIRMACAO_PEDIDO', pedidoId: 'pedido-1' });
+
+    const { html } = emailSender.enviar.mock.calls[0][0];
+    expect(html).not.toContain('Frete');
+    expect(html).not.toContain('Desconto');
   });
 
   it('não inclui link de acompanhamento quando o pedido não tem clienteId (checkout de convidado)', async () => {

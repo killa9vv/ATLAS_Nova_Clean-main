@@ -75,6 +75,8 @@ export class ProcessarEmailUseCase {
         precoUnitario: item.precoUnitario,
       })),
       total: pedido.total,
+      valorFrete: pedido.valorFrete,
+      desconto: pedido.desconto,
       tipoEntrega: pedido.tipoEntrega,
       linkAcompanhamento: pedido.clienteId
         ? `${this.frontendUrl}/conta/pedidos/${pedido.id}`

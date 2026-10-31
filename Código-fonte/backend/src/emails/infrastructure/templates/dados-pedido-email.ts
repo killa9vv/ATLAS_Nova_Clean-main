@@ -10,6 +10,10 @@ export interface DadosPedidoEmail {
   nomeCliente: string;
   itens: ItemPedidoEmail[];
   total: number;
+  /** Mostrados entre os itens e o total — sem eles, "1 item de R$ 14,90, total
+   * R$ 59,90" parece cobrança errada pro cliente. 0 = linha omitida. */
+  valorFrete: number;
+  desconto: number;
   tipoEntrega: 'ENTREGA' | 'RETIRADA';
   /** Só quando o pedido tem cliente logado — sem conta, não existe página de
    * acompanhamento pública no frontend ainda (o backend expõe GET
