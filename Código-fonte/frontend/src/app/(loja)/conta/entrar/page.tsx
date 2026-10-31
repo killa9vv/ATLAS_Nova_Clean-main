@@ -1,8 +1,8 @@
 'use client';
 
-import { FormEvent, useState } from 'react';
+import { FormEvent, Suspense, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { ApiError } from '@/lib/http';
 import { loginCliente } from '@/lib/conta';
@@ -12,8 +12,27 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
 
+// Só aceita caminho interno ("/checkout"), nunca URL externa, "//outro-site" nem
+// "/\outro-site" (alguns navegadores tratam a barra invertida como "//") — senão o
+// link de login viraria um redirecionador pra qualquer site.
+function destinoSeguro(voltar: string | null): string {
+  return voltar && /^\/(?![/\\])/.test(voltar) ? voltar : '/conta';
+}
+
 export default function EntrarPage() {
+  return (
+    <Suspense fallback={null}>
+      <EntrarConteudo />
+    </Suspense>
+  );
+}
+
+function EntrarConteudo() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  // ?voltar=/checkout — vindo do "Já tem conta? Entrar" do checkout, volta pra lá
+  // depois de entrar (o carrinho anônimo é adotado pela conta, ver comentário abaixo).
+  const destino = destinoSeguro(searchParams.get('voltar'));
   const queryClient = useQueryClient();
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
@@ -34,7 +53,7 @@ export default function EntrarPage() {
       // header continuaria mostrando o carrinho anônimo antigo até alguma outra
       // ação disparar um refetch por conta própria.
       await queryClient.invalidateQueries({ queryKey: CHAVE_QUERY_CARRINHO });
-      router.push('/conta');
+      router.push(destino);
     } catch (e) {
       setErro(e instanceof ApiError ? e.message : 'Não foi possível entrar. Tente novamente.');
     } finally {

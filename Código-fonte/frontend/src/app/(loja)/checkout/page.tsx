@@ -11,6 +11,7 @@ import { Radio } from '@/components/ui/Radio';
 import { useToast } from '@/components/ui/Toast';
 import { ApiError } from '@/lib/http';
 import { useCart, CHAVE_QUERY_CARRINHO } from '@/lib/cart-context';
+import { listarMeusEnderecos, meuPerfil, registrarCliente } from '@/lib/conta';
 import { buscarCarrinho } from '@/lib/carrinho-api';
 import { buscarEnderecoPorCep, criarCliente } from '@/lib/clientes';
 import { cotarFrete } from '@/lib/frete';
@@ -49,7 +50,7 @@ interface CheckoutForm {
   nome: string;
   email: string;
   telefone: string;
-  salvarDados: boolean;
+  criarConta: boolean;
   tipoEntrega: 'ENTREGA' | 'RETIRADA';
   cep: string;
   logradouro: string;
@@ -64,7 +65,7 @@ const FORM_INICIAL: CheckoutForm = {
   nome: '',
   email: '',
   telefone: '',
-  salvarDados: false,
+  criarConta: false,
   tipoEntrega: 'ENTREGA',
   cep: '',
   logradouro: '',
@@ -111,10 +112,13 @@ export default function CheckoutPage() {
   // enquanto nada mudar — antes cada ida e volta criava um pedido CRIADO novo que
   // ficava órfão no painel admin.
   const pedidoSiteRef = useRef<{ chave: string; pedido: PedidoCriado } | null>(null);
+  // E-mail pro qual o link de ativação ("criar conta") já foi pedido nesta visita —
+  // trocar de canal ou tentar de novo não manda outro e-mail.
+  const ativacaoPedidaParaRef = useRef<string | null>(null);
 
-  // Comprador logado: pré-preenche identificação e usa o clienteId da sessão
-  // direto (sem passar por "salvar meus dados"/criarCliente) — sem isso, o
-  // pedido nunca ficaria vinculado à conta e nunca apareceria em /conta/pedidos.
+  // Comprador logado: pré-preenche identificação (e telefone/endereço padrão salvos
+  // na conta) e usa o clienteId da sessão direto — sem isso, o pedido nunca ficaria
+  // vinculado à conta e nunca apareceria em /conta/pedidos.
   useEffect(() => {
     const sessao = obterSessaoCliente();
     if (!sessao) return;
@@ -125,6 +129,29 @@ export default function CheckoutPage() {
       nome: sessao.cliente.nome,
       email: sessao.cliente.email ?? prev.email,
     }));
+
+    // Só preenche o que ainda está vazio — nunca sobrescreve o que a pessoa digitou.
+    // Falha aqui (ex.: sessão expirada) não bloqueia nada: é só conveniência.
+    Promise.all([meuPerfil(), listarMeusEnderecos()])
+      .then(([perfil, enderecos]) => {
+        const padrao = enderecos.find((endereco) => endereco.padrao) ?? enderecos[0];
+        setForm((prev) => ({
+          ...prev,
+          telefone: prev.telefone || perfil.telefone || '',
+          ...(padrao && !prev.cep
+            ? {
+                cep: padrao.cep,
+                logradouro: padrao.logradouro,
+                numero: padrao.numero,
+                complemento: padrao.complemento ?? '',
+                bairro: padrao.bairro,
+                cidade: padrao.cidade,
+                estado: padrao.estado,
+              }
+            : {}),
+        }));
+      })
+      .catch(() => {});
   }, []);
 
   // Mesma queryKey do CartProvider — compartilha o cache (sem round-trip extra) e
@@ -216,7 +243,9 @@ export default function CheckoutPage() {
   }
 
   function podeAvancarPasso0() {
-    return form.nome.trim().length > 0;
+    // Criar conta precisa de e-mail — é pra onde vai o link de ativação.
+    const emailOk = !form.criarConta || /^\S+@\S+\.\S+$/.test(form.email.trim());
+    return form.nome.trim().length > 0 && emailOk;
   }
 
   function podeAvancarPasso1() {
@@ -232,26 +261,31 @@ export default function CheckoutPage() {
   }
 
   // Compartilhado pelos dois caminhos de fechamento (WhatsApp e pagamento online) —
-  // a única diferença real entre eles é o `canal`. "Salvar meus dados" funciona igual
-  // nos dois; como POST /clientes agora é upsert por e-mail, chamar de novo se o
-  // usuário mudar de canal no meio do caminho não duplica nem quebra nada.
+  // a única diferença real entre eles é o `canal`. "Criar conta" funciona igual nos
+  // dois; como POST /clientes é upsert por e-mail, chamar de novo se o usuário mudar
+  // de canal no meio do caminho não duplica nem quebra nada.
   async function criarPedidoNoBackend(canal: 'whatsapp' | 'site'): Promise<PedidoCriado> {
     // Última revalidação antes de criar o pedido — pega estoque/preço mais recentes.
     const carrinhoAtual = await carrinhoQuery.refetch();
     if (carrinhoAtual.error) throw carrinhoAtual.error;
 
+    // "Criar conta" no checkout de convidado: o pedido fica vinculado ao cadastro
+    // desse e-mail (POST /clientes, upsert) e, depois do pedido criado, manda o link
+    // de ativação — quando a pessoa ativar, o pedido já aparece em "Meus pedidos".
+    // Se o e-mail já for de uma conta com senha, o backend não vincula pedido
+    // anônimo a ela (precisa entrar) — ver enviarLinkDeAtivacao.
+    const querCriarConta = !sessaoCliente && form.criarConta && !!form.email;
     let clienteId: string | undefined = sessaoCliente?.cliente.id;
-    if (!clienteId && form.salvarDados) {
+    if (querCriarConta) {
       const cliente = await criarCliente({
         nome: form.nome,
-        email: form.email || undefined,
+        email: form.email,
         telefone: form.telefone || undefined,
       });
       clienteId = cliente.id;
-      window.localStorage.setItem('atlas-cliente-id', cliente.id);
     }
 
-    return criarPedido(
+    const pedido = await criarPedido(
       {
         itens: itens.map((item) => ({ produtoId: item.produtoId, quantidade: item.quantidade })),
         tipoEntrega: form.tipoEntrega,
@@ -284,6 +318,32 @@ export default function CheckoutPage() {
         ? { headers: { Authorization: `Bearer ${sessaoCliente.accessToken}` } }
         : undefined,
     );
+
+    if (querCriarConta) {
+      void enviarLinkDeAtivacao();
+    }
+    return pedido;
+  }
+
+  // Não bloqueia o pedido: se falhar, a compra segue como convidado normalmente.
+  async function enviarLinkDeAtivacao() {
+    const email = form.email.trim().toLowerCase();
+    if (ativacaoPedidaParaRef.current === email) return;
+    ativacaoPedidaParaRef.current = email;
+    try {
+      await registrarCliente({
+        nome: form.nome,
+        email: form.email,
+        telefone: form.telefone || undefined,
+      });
+      showToast('Enviamos um link pro seu e-mail pra ativar sua conta.', 'success');
+    } catch (erro) {
+      showToast(
+        erro instanceof ApiError && erro.status === 409
+          ? 'Esse e-mail já tem conta. Entre nela pra os próximos pedidos aparecerem lá.'
+          : 'Não conseguimos enviar o link pra criar sua conta agora — tente em "Criar conta".',
+      );
+    }
   }
 
   async function confirmarPedidoWhatsApp() {
@@ -506,15 +566,35 @@ export default function CheckoutPage() {
               .
             </p>
           ) : (
-            <label className="flex items-center gap-2 text-[13px] text-ink">
-              <input
-                type="checkbox"
-                checked={form.salvarDados}
-                onChange={(e) => setForm({ ...form, salvarDados: e.target.checked })}
-                className="h-4 w-4 accent-blue"
-              />
-              Salvar meus dados pra próxima compra
-            </label>
+            <>
+              <label className="flex items-start gap-2 text-[13px] text-ink">
+                <input
+                  type="checkbox"
+                  checked={form.criarConta}
+                  onChange={(e) => setForm({ ...form, criarConta: e.target.checked })}
+                  className="mt-0.5 h-4 w-4 accent-blue"
+                />
+                <span>
+                  Criar uma conta pra acompanhar este pedido
+                  <span className="block text-muted">
+                    Enviamos um link pro seu e-mail pra você escolher a senha.
+                  </span>
+                </span>
+              </label>
+              {form.criarConta && !form.email.trim() && (
+                <p className="text-[12.5px] text-red-600">Informe o e-mail pra criar a conta.</p>
+              )}
+              <p className="text-[13px] text-muted">
+                Já tem conta?{' '}
+                <Link
+                  href="/conta/entrar?voltar=/checkout"
+                  className="font-semibold text-blue hover:underline"
+                >
+                  Entrar
+                </Link>{' '}
+                pra usar seus dados salvos.
+              </p>
+            </>
           )}
           <Button disabled={!podeAvancarPasso0()} onClick={() => setPasso(1)}>
             Continuar
