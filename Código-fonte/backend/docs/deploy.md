@@ -29,6 +29,17 @@ ver [local-setup.md](./local-setup.md).
 >   cadeia vs. 1 job sozinho), ou `defaults.run.working-directory` com o acento
 >   de "Código-fonte" especificamente dentro de um job que depende de outro via
 >   `needs`.
+>
+> **Atualização (2026-10-31):** causa mais provável encontrada — o GitHub Actions
+> **não permite o contexto `secrets` em condições `if:`**, nem de job nem de step
+> (só via `env`). Com isso o workflow é rejeitado na validação, antes de agendar
+> qualquer job — exatamente o "0 jobs, falha instantânea". Os dois jobs removidos
+> usavam `if: ${{ secrets.PRODUCTION_DATABASE_URL != '' }}`, e mover pro `if:` de
+> step não muda nada pelo mesmo motivo. O deploy automático voltou como um **passo**
+> do próprio `build-and-push` (chama o Deploy Hook do Render via secret
+> `RENDER_DEPLOY_HOOK_URL`), sem `if:` — a checagem "o secret existe?" é feita no
+> script. O job `migrate` continua fora de propósito (migration de produção segue
+> manual).
 
 ## Visão geral: CI vs CD
 

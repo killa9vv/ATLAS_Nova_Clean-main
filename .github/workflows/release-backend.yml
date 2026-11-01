@@ -63,9 +63,26 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-# Os jobs `migrate` (prisma migrate deploy) e `deploy` (publicar no host) foram
-# removidos daqui temporariamente — ver docs/deploy.md ("Jobs migrate/deploy
-# removidos temporariamente") pro que precisa ser investigado antes de
-# reativá-los. Hoje: migrations de produção rodam manualmente quando precisa
-# (ver docs/deploy.md), e o deploy em si é feito direto no dashboard do host
-# (Render puxa a imagem publicada acima por conta própria).
+      # O Render não puxa a imagem nova sozinho — o Deploy Hook (URL secreta do
+      # serviço, em Render → Settings → Deploy Hook) manda ele fazer o deploy da
+      # :latest que acabou de ser publicada acima.
+      #
+      # De propósito SEM `if: secrets...`: o Actions não aceita o contexto `secrets`
+      # em condições `if:` (nem de job nem de step) e rejeita o workflow inteiro
+      # antes de rodar — muito provavelmente a causa dos "0 jobs, falha instantânea"
+      # documentados em docs/deploy.md. A checagem fica no próprio script: sem o
+      # secret, só avisa e segue (deploy manual continua funcionando).
+      - name: Dispara o deploy no Render
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
+            echo "::warning::Secret RENDER_DEPLOY_HOOK_URL não configurado — faça o deploy manual no Render."
+            exit 0
+          fi
+          curl -fsS -X POST "$RENDER_DEPLOY_HOOK_URL" > /dev/null
+          echo "Deploy disparado no Render."
+
+# Migrations de produção continuam manuais (ver docs/deploy.md) — o job `migrate`
+# não voltou: aplicar migration automaticamente no banco de produção a cada push é
+# uma decisão à parte (revisar o SQL antes, rollback etc.).
