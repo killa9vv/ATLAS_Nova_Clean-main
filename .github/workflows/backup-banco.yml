@@ -36,6 +36,10 @@ jobs:
         env:
           BACKUP_DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
         run: |
+          # Tira quebra de linha/espaço que vem junto quando o secret é colado com
+          # Enter no fim (o pg_dump recusa: invalid sslmode value "require\n").
+          BACKUP_DATABASE_URL="$(printf '%s' "$BACKUP_DATABASE_URL" | tr -d '\r\n' | sed 's/[[:space:]]*$//')"
+          export BACKUP_DATABASE_URL
           if [ -z "$BACKUP_DATABASE_URL" ]; then
             echo "::error::Secret BACKUP_DATABASE_URL não configurado."
             exit 1
