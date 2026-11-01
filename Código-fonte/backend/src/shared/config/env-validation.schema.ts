@@ -25,6 +25,8 @@ export const envValidationSchema = Joi.object({
   CLOUDINARY_CLOUD_NAME: Joi.string().allow('').optional(),
   CLOUDINARY_API_KEY: Joi.string().allow('').optional(),
   CLOUDINARY_API_SECRET: Joi.string().allow('').optional(),
+  // "false" desliga a remoção de fundo por IA no upload (ver CloudinaryStorageAdapter).
+  CLOUDINARY_REMOVER_FUNDO: Joi.string().valid('true', 'false', '').optional(),
   // Frete: opcionais de propósito (mesmo padrão do Mercado Pago/Cloudinary acima) —
   // sem MELHOR_ENVIO_TOKEN/FRETE_CEP_ORIGEM, ShippingQuoteProviderComFallback cai
   // direto pra tabela regional, então a API sobe normalmente em dev sem essas chaves.

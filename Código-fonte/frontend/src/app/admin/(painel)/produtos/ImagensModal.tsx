@@ -7,6 +7,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
 import { ApiError } from '@/lib/http';
+import { comprimirImagem } from '@/lib/comprimir-imagem';
 import {
   definirImagemPrincipalAdmin,
   enviarImagemProdutoAdmin,
@@ -24,7 +25,8 @@ export function ImagensModal({ produto, onClose }: ImagensModalProps) {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
   const inputRef = useRef<HTMLInputElement>(null);
-  const [enviando, setEnviando] = useState(false);
+  // null = parado; texto = progresso mostrado no botão.
+  const [enviando, setEnviando] = useState<string | null>(null);
 
   const imagensQuery = useQuery({
     queryKey: ['admin', 'produtos', produto?.id, 'imagens'],
@@ -53,20 +55,32 @@ export function ImagensModal({ produto, onClose }: ImagensModalProps) {
       ),
   });
 
+  // Aceita várias fotos de uma vez; envia uma por vez (a ordem de escolha vira a
+  // ordem da galeria) e segue nas próximas se uma falhar.
   async function aoEscolherArquivo(evento: React.ChangeEvent<HTMLInputElement>) {
-    const arquivo = evento.target.files?.[0];
+    const arquivos = Array.from(evento.target.files ?? []);
     evento.target.value = '';
-    if (!arquivo || !produto) return;
+    if (arquivos.length === 0 || !produto) return;
 
-    setEnviando(true);
-    try {
-      await enviarImagemProdutoAdmin(produto.id, arquivo);
-      invalidar();
-      showToast('Imagem enviada.', 'success');
-    } catch (erro) {
-      showToast(erro instanceof ApiError ? erro.message : 'Erro ao enviar imagem.', 'error');
-    } finally {
-      setEnviando(false);
+    let enviadas = 0;
+    for (const [indice, arquivo] of arquivos.entries()) {
+      setEnviando(
+        arquivos.length > 1 ? `Enviando ${indice + 1} de ${arquivos.length}…` : 'Enviando…',
+      );
+      try {
+        await enviarImagemProdutoAdmin(produto.id, await comprimirImagem(arquivo));
+        enviadas += 1;
+        invalidar();
+      } catch (erro) {
+        showToast(
+          `${arquivo.name}: ${erro instanceof ApiError ? erro.message : 'erro ao enviar imagem.'}`,
+          'error',
+        );
+      }
+    }
+    setEnviando(null);
+    if (enviadas > 0) {
+      showToast(enviadas === 1 ? 'Imagem enviada.' : `${enviadas} imagens enviadas.`, 'success');
     }
   }
 
@@ -130,18 +144,22 @@ export function ImagensModal({ produto, onClose }: ImagensModalProps) {
               ref={inputRef}
               type="file"
               accept="image/jpeg,image/png,image/webp"
+              multiple
               onChange={aoEscolherArquivo}
               className="hidden"
             />
             <Button
               type="button"
               variant="secondary"
-              disabled={enviando}
+              disabled={!!enviando}
               onClick={() => inputRef.current?.click()}
             >
-              {enviando ? 'Enviando…' : '+ Enviar imagem'}
+              {enviando ?? '+ Enviar imagens'}
             </Button>
-            <p className="mt-1.5 text-[11.5px] text-muted">JPEG, PNG ou WEBP, até 5MB.</p>
+            <p className="mt-1.5 text-[11.5px] text-muted">
+              JPEG, PNG ou WEBP. Pode escolher várias — as fotos são reduzidas automaticamente antes
+              do envio.
+            </p>
           </div>
         </div>
       )}
