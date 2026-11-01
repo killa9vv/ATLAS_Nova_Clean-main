@@ -188,13 +188,67 @@ de rodar rollback do banco, classifique a migration que você quer desfazer:
   que o código antigo espera já não existe, por exemplo). **Precisa de
   intervenção manual no banco**, escrita à mão pra aquele caso específico (não
   existe script genérico de "desfazer" — o SQL de reversão depende exatamente do
-  que a migration fez). Faça backup do banco antes de qualquer alteração manual.
+  que a migration fez). Faça backup do banco antes de qualquer alteração manual (ver "Backup do banco" abaixo).
 
 Recomendação prática: ao escrever uma migration que pode ser destrutiva, prefira
 dividir em duas migrations/dois deploys (ex.: primeiro só adicionar a coluna nova
 mantendo a antiga, deployar e validar, só depois remover a antiga numa segunda
 migration) — isso torna o rollback do primeiro passo sempre seguro (é aditivo) e
 reduz a janela onde uma migration destrutiva precisa ser revertida sob pressão.
+
+## Backup do banco
+
+O plano grátis do Prisma Postgres não tem backup. Quem faz é o workflow
+[`backup-banco.yml`](../../../.github/workflows/backup-banco.yml): todo dia às
+03:00 (Brasília) ele roda `pg_dump` no banco de produção, criptografa o arquivo
+com uma senha e guarda como artifact do Actions por **30 dias**. Se falhar, o
+GitHub manda e-mail.
+
+Secrets necessários (Settings → Secrets and variables → Actions):
+
+- `BACKUP_DATABASE_URL` — string de conexão **direta** do Prisma Postgres
+  (`...@db.prisma.io:5432/...`, sem `pooled.`). Usar uma string só pro backup
+  (Prisma → Cadeias de conexão), pra poder apagá-la sem derrubar o site.
+- `BACKUP_SENHA` — senha da criptografia. **Sem ela o backup não abre** — guardar
+  fora do GitHub (gerenciador de senhas).
+
+Pra rodar na hora (ex.: antes de uma migration arriscada): Actions → Backup do
+banco → Run workflow.
+
+> O GitHub desliga workflows agendados de repositório público depois de 60 dias
+> sem nenhum commit. Se isso acontecer, aparece um aviso na aba Actions — é só
+> clicar em "Enable workflow".
+
+### Restaurar um backup
+
+Precisa de Docker (pra ter o `pg_restore` certo) e do `gpg`, que já vem no Git
+Bash. Comandos no Git Bash:
+
+1. Actions → Backup do banco → escolher a execução do dia desejado → em
+   **Artifacts**, baixar o zip e extrair. Sai um `banco-AAAA-MM-DD.dump.gpg`.
+2. Descriptografar (pede a `BACKUP_SENHA`):
+
+   ```bash
+   gpg --output banco.dump --decrypt banco-AAAA-MM-DD.dump.gpg
+   ```
+
+3. **Testar primeiro no banco local** (com o `npm run dev` rodando, Postgres em
+   localhost:5433). `--clean` apaga as tabelas do destino antes de recriar:
+
+   ```bash
+   docker run --rm -v "$PWD:/b" postgres:18-alpine pg_restore \
+     --no-owner --no-acl --clean --if-exists \
+     -d "postgresql://atlas:atlas@host.docker.internal:5433/atlas_nova_clean" \
+     /b/banco.dump
+   ```
+
+4. Só depois de conferir os dados no local, restaurar em produção trocando o `-d`
+   pela URL direta do banco de produção. Isso **substitui** tudo que está lá
+   pelo conteúdo do backup — o que entrou depois do backup (pedidos, cadastros)
+   se perde. Rodar um backup manual antes, pra ter como voltar atrás.
+
+Apagar o `banco.dump` descriptografado quando terminar — ele tem dados de
+clientes em claro.
 
 ## O que falta pra ativar o deploy de verdade
 

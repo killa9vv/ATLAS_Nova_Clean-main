@@ -1,0 +1,73 @@
+name: Backup do banco
+
+# O plano grátis do Prisma Postgres não tem backup — este workflow faz um por dia:
+# pg_dump do banco de produção, criptografado com senha, guardado como artifact do
+# Actions por 30 dias. Como restaurar: docs/deploy.md → "Backup do banco".
+on:
+  schedule:
+    # 06:00 UTC = 03:00 em Brasília, longe do horário de movimento da loja.
+    - cron: '0 6 * * *'
+  # Permite rodar na mão (Actions → Backup do banco → Run workflow), ex.: antes de
+  # uma migration arriscada.
+  workflow_dispatch:
+
+concurrency:
+  group: backup-banco
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    name: pg_dump criptografado
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      # Secrets via env do step, sem `if: secrets...` (o Actions rejeita o workflow
+      # inteiro — ver comentário em release-backend.yml).
+      #
+      # BACKUP_DATABASE_URL tem que ser a conexão DIRETA (db.prisma.io), não a
+      # pooled — o pg_dump falha pelo pooler.
+      #
+      # pg_dump roda pela imagem oficial do Postgres 18: o cliente precisa ser da
+      # mesma versão do servidor ou mais novo, e o que vem no Ubuntu do runner pode
+      # ser mais velho que o do Prisma Postgres.
+      - name: Gera o dump
+        env:
+          BACKUP_DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
+        run: |
+          if [ -z "$BACKUP_DATABASE_URL" ]; then
+            echo "::error::Secret BACKUP_DATABASE_URL não configurado."
+            exit 1
+          fi
+          docker run --rm -e BACKUP_DATABASE_URL postgres:18-alpine \
+            sh -c 'pg_dump --format=custom --no-owner --no-acl "$BACKUP_DATABASE_URL"' \
+            > banco.dump
+          # Confere que o arquivo é um dump legível e não está vazio antes de guardar.
+          docker run --rm -v "$PWD:/b" postgres:18-alpine pg_restore --list /b/banco.dump > /dev/null
+          echo "Dump: $(du -h banco.dump | cut -f1)"
+
+      # O repositório é público: artifacts dele podem ser baixados por qualquer
+      # pessoa logada no GitHub. Por isso o dump (com dados de clientes) só sai daqui
+      # criptografado com BACKUP_SENHA (AES-256) — o .dump em claro nunca é enviado.
+      - name: Criptografa
+        env:
+          BACKUP_SENHA: ${{ secrets.BACKUP_SENHA }}
+        run: |
+          if [ -z "$BACKUP_SENHA" ]; then
+            echo "::error::Secret BACKUP_SENHA não configurado."
+            exit 1
+          fi
+          printf '%s' "$BACKUP_SENHA" > .senha
+          gpg --batch --yes --pinentry-mode loopback --passphrase-file .senha \
+            --symmetric --cipher-algo AES256 \
+            --output "banco-$(date -u +%Y-%m-%d).dump.gpg" banco.dump
+          rm -f .senha banco.dump
+
+      - name: Guarda como artifact (30 dias)
+        uses: actions/upload-artifact@v4
+        with:
+          name: backup-banco-${{ github.run_id }}
+          path: banco-*.dump.gpg
+          retention-days: 30
+          if-no-files-found: error
