@@ -71,6 +71,13 @@ export abstract class PedidoRepository {
    */
   abstract atualizarStatus(id: string, status: StatusPedido, contexto?: unknown): Promise<Pedido>;
 
+  /**
+   * Pedidos online (CRIADO/AGUARDANDO_PAGAMENTO) criados antes de `limite` sem nenhum
+   * pagamento vivo (PENDENTE, EM_PROCESSAMENTO ou APROVADO) — só tentativas que
+   * falharam, ou nenhuma. Candidatos a cancelamento por abandono.
+   */
+  abstract listarAbandonadosCriadosAntesDe(limite: Date): Promise<Pedido[]>;
+
   /** Admin-only — ver PedidosController. `codigoRastreio: null` limpa o campo. */
   abstract atualizarRastreio(id: string, codigoRastreio: string | null): Promise<Pedido>;
 }

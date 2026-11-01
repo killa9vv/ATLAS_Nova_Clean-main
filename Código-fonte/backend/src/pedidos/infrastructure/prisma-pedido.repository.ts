@@ -209,6 +209,18 @@ export class PrismaPedidoRepository extends PedidoRepository {
     return this.paraDominio(pedido);
   }
 
+  async listarAbandonadosCriadosAntesDe(limite: Date): Promise<Pedido[]> {
+    const pedidos = await this.prisma.pedido.findMany({
+      where: {
+        status: { in: ['CRIADO', 'AGUARDANDO_PAGAMENTO'] },
+        createdAt: { lt: limite },
+        pagamentos: { none: { status: { in: ['PENDENTE', 'EM_PROCESSAMENTO', 'APROVADO'] } } },
+      },
+      include: { itens: true },
+    });
+    return pedidos.map((pedido) => this.paraDominio(pedido));
+  }
+
   async atualizarRastreio(id: string, codigoRastreio: string | null): Promise<Pedido> {
     const pedido = await this.prisma.pedido.update({
       where: { id },

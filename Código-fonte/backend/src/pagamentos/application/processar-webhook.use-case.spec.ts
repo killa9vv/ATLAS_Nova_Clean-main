@@ -203,30 +203,32 @@ describe('ProcessarWebhookUseCase (idempotência)', () => {
     expect(pedidoRepository.atualizarStatus).not.toHaveBeenCalled();
   });
 
-  it('cancelar um pedido que nunca chegou a ser pago não mexe no estoque (nada foi reservado)', async () => {
-    const pagamentoPendente = criarPagamento(StatusPagamento.PENDENTE);
-    pagamentoRepository.buscarPorGatewayTransactionId.mockResolvedValue(pagamentoPendente);
-    paymentGateway.consultarPagamento.mockResolvedValue({
-      gatewayTransactionId: 'mp-123',
-      status: StatusPagamento.RECUSADO,
-      valor: 100,
-      payloadBruto: {},
-    });
-    pagamentoRepository.atualizarStatus.mockResolvedValue(criarPagamento(StatusPagamento.RECUSADO));
-    pedidoRepository.buscarPorId.mockResolvedValue(
-      criarPedido(StatusPedido.AGUARDANDO_PAGAMENTO, [
-        new ItemPedidoEntity('produto-1', 'Detergente', 2, 10),
-      ]),
-    );
+  it.each([StatusPagamento.RECUSADO, StatusPagamento.EXPIRADO, StatusPagamento.CANCELADO])(
+    'pagamento %s registra a falha mas não cancela o pedido (cliente pode tentar de novo)',
+    async (statusFalha) => {
+      const pagamentoPendente = criarPagamento(StatusPagamento.PENDENTE);
+      pagamentoRepository.buscarPorGatewayTransactionId.mockResolvedValue(pagamentoPendente);
+      paymentGateway.consultarPagamento.mockResolvedValue({
+        gatewayTransactionId: 'mp-123',
+        status: statusFalha,
+        valor: 100,
+        payloadBruto: {},
+      });
+      pagamentoRepository.atualizarStatus.mockResolvedValue(criarPagamento(statusFalha));
+      pedidoRepository.buscarPorId.mockResolvedValue(
+        criarPedido(StatusPedido.AGUARDANDO_PAGAMENTO, [
+          new ItemPedidoEntity('produto-1', 'Detergente', 2, 10),
+        ]),
+      );
 
-    await useCase.executar('mp-123');
+      const resultado = await useCase.executar('mp-123');
 
-    expect(pedidoRepository.atualizarStatus).toHaveBeenCalledWith(
-      'pedido-1',
-      StatusPedido.CANCELADO,
-    );
-    expect(produtoRepository.incrementarEstoque).not.toHaveBeenCalled();
-  });
+      expect(resultado).toEqual({ processado: true });
+      expect(pagamentoRepository.atualizarStatus).toHaveBeenCalled();
+      expect(pedidoRepository.atualizarStatus).not.toHaveBeenCalled();
+      expect(produtoRepository.incrementarEstoque).not.toHaveBeenCalled();
+    },
+  );
 
   it('permite a transição PAGO -> ESTORNADO (estorno após confirmação) e devolve o estoque que havia sido reservado', async () => {
     const pagamentoAprovado = criarPagamento(StatusPagamento.APROVADO);

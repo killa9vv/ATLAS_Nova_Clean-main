@@ -5,7 +5,8 @@ import { PedidoEmStatusInvalidoException } from './pedidos.exceptions';
  * Quem está pedindo a transição — algumas só fazem sentido vindas de um lado.
  * ADMIN: staff disparando manualmente (PATCH /pedidos/:id/status).
  * SISTEMA_PAGAMENTO: confirmação automática via gateway (webhook do Mercado
- * Pago ou o polling de reconciliação) — ver ReconciliarPedidoService.
+ * Pago ou o polling de reconciliação) — ver ReconciliarPedidoService — e o
+ * cancelamento de pedidos sem pagamento (CancelarPedidosAbandonadosUseCase).
  */
 export enum OrigemTransicaoPedido {
   ADMIN = 'ADMIN',

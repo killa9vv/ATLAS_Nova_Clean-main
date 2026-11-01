@@ -16,12 +16,14 @@ import { TransactionManager } from '../../shared/prisma/transaction-manager';
 import { Pagamento } from '../domain/pagamento.entity';
 import { StatusPagamento } from '../domain/status-pagamento.enum';
 
+// Pagamento que falhou (RECUSADO/EXPIRADO/CANCELADO) de propósito NÃO cancela o
+// pedido: um pedido pode ter várias tentativas (cartão recusado → tenta outro
+// cartão; Pix gerado duas vezes), e cancelar na primeira falha impedia a nova
+// tentativa — ou cancelava um pedido cujo segundo Pix foi pago. Pedido que fica sem
+// nenhuma tentativa viva é cancelado depois por CancelarPedidosAbandonadosUseCase.
 const STATUS_PAGAMENTO_PARA_PEDIDO: Partial<Record<StatusPagamento, StatusPedido>> = {
   [StatusPagamento.APROVADO]: StatusPedido.PAGO,
   [StatusPagamento.ESTORNADO]: StatusPedido.ESTORNADO,
-  [StatusPagamento.RECUSADO]: StatusPedido.CANCELADO,
-  [StatusPagamento.EXPIRADO]: StatusPedido.CANCELADO,
-  [StatusPagamento.CANCELADO]: StatusPedido.CANCELADO,
 };
 
 /**

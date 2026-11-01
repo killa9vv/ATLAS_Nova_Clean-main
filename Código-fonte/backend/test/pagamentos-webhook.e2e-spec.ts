@@ -26,6 +26,7 @@ import {
   ResultadoPagamentoGateway,
 } from '../src/pagamentos/domain/payment-gateway.port';
 import { StatusPagamento } from '../src/pagamentos/domain/status-pagamento.enum';
+import { PedidoRepository } from '../src/pedidos/domain/pedido.repository';
 
 /** Dublê de gateway: nunca fala com o Mercado Pago de verdade, devolve o que o teste configurar por transação. */
 class GatewayDeTeste implements PaymentGateway {
@@ -261,6 +262,51 @@ describe('Pagamentos - webhook (e2e)', () => {
 
     const produtoFinal = await prisma.produto.findUniqueOrThrow({ where: { id: produto.id } });
     expect(produtoFinal.estoque).toBe(0);
+  });
+
+  it('pedido abandonado: entra quem só tem tentativas falhas; fica de fora quem tem pagamento vivo', async () => {
+    const criarPedidoComPagamentos = async (statusPagamentos: StatusPagamentoPrisma[]) => {
+      const pedido = await prisma.pedido.create({
+        data: {
+          numero: `teste-${randomUUID()}`,
+          status: StatusPedidoPrisma.AGUARDANDO_PAGAMENTO,
+          total: 10,
+        },
+      });
+      for (const status of statusPagamentos) {
+        await prisma.pagamento.create({
+          data: {
+            pedidoId: pedido.id,
+            metodo: MetodoPagamentoPrisma.PIX,
+            status,
+            valor: 10,
+            gatewayTransactionId: `mp-abandono-${randomUUID()}`,
+          },
+        });
+      }
+      return pedido.id;
+    };
+
+    const semTentativa = await criarPedidoComPagamentos([]);
+    const soRecusado = await criarPedidoComPagamentos([
+      StatusPagamentoPrisma.RECUSADO,
+      StatusPagamentoPrisma.EXPIRADO,
+    ]);
+    const comPixPendente = await criarPedidoComPagamentos([
+      StatusPagamentoPrisma.RECUSADO,
+      StatusPagamentoPrisma.PENDENTE,
+    ]);
+    const comAprovado = await criarPedidoComPagamentos([StatusPagamentoPrisma.APROVADO]);
+
+    // Limite no futuro pra que os pedidos recém-criados contem como "antigos".
+    const daquiAUmDia = new Date(Date.now() + 86_400_000);
+    const ids = (await app.get(PedidoRepository).listarAbandonadosCriadosAntesDe(daquiAUmDia)).map(
+      (pedido) => pedido.id,
+    );
+
+    expect(ids).toEqual(expect.arrayContaining([semTentativa, soRecusado]));
+    expect(ids).not.toContain(comPixPendente);
+    expect(ids).not.toContain(comAprovado);
   });
 
   it('rejeita webhook de transação de pagamento desconhecida com 404', async () => {

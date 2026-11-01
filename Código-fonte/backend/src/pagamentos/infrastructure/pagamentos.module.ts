@@ -13,6 +13,8 @@ import { ProcessarWebhookUseCase } from '../application/processar-webhook.use-ca
 import { ReconciliarPedidoService } from '../application/reconciliar-pedido.service';
 import { ReconciliarPagamentosPendentesUseCase } from '../application/reconciliar-pagamentos-pendentes.use-case';
 import { ReconciliacaoPagamentosScheduler } from './reconciliacao-pagamentos.scheduler';
+import { CancelarPedidosAbandonadosUseCase } from '../application/cancelar-pedidos-abandonados.use-case';
+import { CancelamentoPedidosAbandonadosScheduler } from './cancelamento-pedidos-abandonados.scheduler';
 
 @Module({
   imports: [ConfigModule, PedidosModule, ProdutosModule, CuponsModule],
@@ -25,6 +27,8 @@ import { ReconciliacaoPagamentosScheduler } from './reconciliacao-pagamentos.sch
     ReconciliarPedidoService,
     ReconciliarPagamentosPendentesUseCase,
     ReconciliacaoPagamentosScheduler,
+    CancelarPedidosAbandonadosUseCase,
+    CancelamentoPedidosAbandonadosScheduler,
   ],
 })
 export class PagamentosModule {}
