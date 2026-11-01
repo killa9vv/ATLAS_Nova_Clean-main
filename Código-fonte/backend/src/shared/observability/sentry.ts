@@ -131,6 +131,13 @@ export function reportarErroAoSentry(mensagem: unknown, parametros: unknown[]): 
     }
   }
 
+  // Texto do Logger do Nest: vira um Error com o nome de quem registrou (o contexto
+  // do Logger, ex. "EnvioDiretoEmailQueueAdapter"), pro título no Sentry dizer de
+  // onde veio — como captureMessage, o título aparecia como "reportarErroAoSentry".
+  // captureStackTrace corta esta função (e o que vem acima) do rastro.
   const texto = typeof mensagem === 'string' ? mensagem : 'Erro registrado no log';
-  Sentry.captureMessage(texto, { level: 'error', tags });
+  const erro = new Error(texto);
+  erro.name = contexto ?? 'ErroRegistrado';
+  Error.captureStackTrace(erro, reportarErroAoSentry);
+  Sentry.captureException(erro, { tags });
 }

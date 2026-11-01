@@ -89,14 +89,16 @@ describe('reportarErroAoSentry', () => {
     expect(contexto.tags).toEqual({ erro: 'ERRO_INTERNO', statusCode: '500' });
   });
 
-  it('manda texto (Logger do Nest) como mensagem de erro', () => {
+  it('manda texto (Logger do Nest) como erro com o nome de quem registrou', () => {
     sentry.isEnabled.mockReturnValue(true);
 
     reportarErroAoSentry('Pagamento aprovado mas sem estoque', ['ReconciliarPedidoService']);
 
-    expect(sentry.captureMessage).toHaveBeenCalledWith('Pagamento aprovado mas sem estoque', {
-      level: 'error',
-      tags: { contexto: 'ReconciliarPedidoService' },
-    });
+    const [erro, contexto] = sentry.captureException.mock.calls[0] as [Error, { tags: object }];
+    expect(erro.name).toBe('ReconciliarPedidoService');
+    expect(erro.message).toBe('Pagamento aprovado mas sem estoque');
+    expect(erro.stack).not.toContain('reportarErroAoSentry');
+    expect(contexto.tags).toEqual({ contexto: 'ReconciliarPedidoService' });
+    expect(sentry.captureMessage).not.toHaveBeenCalled();
   });
 });
