@@ -35,6 +35,9 @@ type ResultadoPagamento =
       qrCodeBase64?: string;
       status: 'aguardando' | 'timeout' | 'cancelado';
     }
+  // Cartão que o Mercado Pago deixou "em análise" (antifraude) — ainda não é venda
+  // confirmada, então não pode cair na tela de sucesso.
+  | { tipo: 'analise'; status: 'aguardando' | 'timeout' | 'cancelado' }
   | { tipo: 'sucesso' }
   | { tipo: 'erro'; mensagem: string; podeTentarDeNovo?: boolean };
 
@@ -467,11 +470,30 @@ export default function CheckoutPage() {
           }
         },
       });
-    } else {
+    } else if (resultado.status === 'APROVADO') {
       // RECUSADO nunca chega aqui — o backend lança PagamentoRecusadoException (402),
       // capturado no catch do onSubmit acima e tratado via onErro.
       void limpar();
       setResultadoPagamento({ tipo: 'sucesso' });
+    } else {
+      // PENDENTE/EM_PROCESSAMENTO: o banco ainda vai decidir. Acompanha o pedido como
+      // no Pix; o carrinho só é limpo se virar PAGO. Sem "tentar outro cartão" aqui de
+      // propósito — se a análise aprovar depois, o cliente seria cobrado duas vezes.
+      setResultadoPagamento({ tipo: 'analise', status: 'aguardando' });
+      pararPollingRef.current?.();
+      pararPollingRef.current = acompanharPagamentoPix(pedidoId, {
+        aoAtualizar: (status) => {
+          if (status === 'PAGO') {
+            void limpar();
+            setResultadoPagamento({ tipo: 'sucesso' });
+          } else {
+            setResultadoPagamento({
+              tipo: 'analise',
+              status: status === 'TIMEOUT' ? 'timeout' : 'cancelado',
+            });
+          }
+        },
+      });
     }
   }
 
@@ -886,6 +908,19 @@ export default function CheckoutPage() {
                       </button>
                     </div>
                   )}
+                </div>
+              )}
+
+              {resultadoPagamento?.tipo === 'analise' && (
+                <div className="flex flex-col gap-2 rounded-atlas border border-line bg-white p-4 text-center shadow-atlas">
+                  <p className="text-[13px] font-semibold text-navy" role="status">
+                    {resultadoPagamento.status === 'aguardando' &&
+                      'Seu pagamento está em análise pelo banco. Aguarde nesta página…'}
+                    {resultadoPagamento.status === 'timeout' &&
+                      'O banco ainda está analisando o pagamento. Assim que ele aprovar, seu pedido é confirmado e você recebe um e-mail — não precisa pagar de novo.'}
+                    {resultadoPagamento.status === 'cancelado' &&
+                      'O pagamento não foi aprovado pelo banco. Nenhum valor foi cobrado.'}
+                  </p>
                 </div>
               )}
 
