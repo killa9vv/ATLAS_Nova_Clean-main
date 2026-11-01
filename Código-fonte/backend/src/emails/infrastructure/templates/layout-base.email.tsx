@@ -56,8 +56,8 @@ export function LayoutBaseEmail({ preview, titulo, children }: LayoutBaseEmailPr
 
           <Hr style={{ borderColor: '#dce6f5', margin: '28px 0 16px' }} />
           <Text style={{ fontSize: '12px', color: '#5b6b8c', margin: 0 }}>
-            Atlas Nova Clean — Campos dos Goytacazes, RJ. Dúvidas? Responda este e-mail ou fale
-            pelo WhatsApp.
+            Atlas Nova Clean — Campos dos Goytacazes, RJ. Dúvidas? Responda este e-mail ou fale pelo
+            WhatsApp.
           </Text>
         </Container>
       </Body>

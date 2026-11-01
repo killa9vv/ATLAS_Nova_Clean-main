@@ -11,6 +11,7 @@ import { AtualizarRastreioPedidoDto } from './dto/atualizar-rastreio-pedido.dto'
 import { ListarPedidosAdminQueryDto } from './dto/listar-pedidos-admin-query.dto';
 import { PedidoResponseDto } from './dto/pedido-response.dto';
 import { PedidoStatusResponseDto } from './dto/pedido-status-response.dto';
+import { BuscarStatusPedidoUseCase } from '../application/buscar-status-pedido.use-case';
 import { MeusPedidosResponseDto } from './dto/meus-pedidos-response.dto';
 import { JwtAuthGuard } from '../../auth/presentation/guards/jwt-auth.guard';
 import { OptionalJwtAuthGuard } from '../../auth/presentation/guards/optional-jwt-auth.guard';
@@ -31,6 +32,7 @@ export class PedidosController {
     private readonly listarPedidosUseCase: ListarPedidosUseCase,
     private readonly atualizarStatusPedidoUseCase: AtualizarStatusPedidoUseCase,
     private readonly atualizarRastreioPedidoUseCase: AtualizarRastreioPedidoUseCase,
+    private readonly buscarStatusPedidoUseCase: BuscarStatusPedidoUseCase,
   ) {}
 
   // Admin-only — painel administrativo (dashboard, gestão de pedidos), paginado e
@@ -101,8 +103,9 @@ export class PedidosController {
   // segue admin-only pra qualquer coisa mais completa.
   @Get(':id/status')
   async buscarStatus(@Param('id') id: string): Promise<PedidoStatusResponseDto> {
-    const pedido = await this.buscarPedidoPorIdUseCase.executar(id);
-    return PedidoStatusResponseDto.fromDomain(pedido);
+    const { pedido, ultimaTentativaDePagamentoFalhou } =
+      await this.buscarStatusPedidoUseCase.executar(id);
+    return PedidoStatusResponseDto.fromDomain(pedido, ultimaTentativaDePagamentoFalhou);
   }
 
   // Admin-only — só algumas transições são aceitas (ver AtualizarStatusPedidoUseCase);

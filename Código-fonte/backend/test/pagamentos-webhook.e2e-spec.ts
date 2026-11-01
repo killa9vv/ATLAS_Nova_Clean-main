@@ -309,6 +309,38 @@ describe('Pagamentos - webhook (e2e)', () => {
     expect(ids).not.toContain(comAprovado);
   });
 
+  it('GET /pedidos/:id/status avisa quando a tentativa mais recente foi recusada', async () => {
+    const pedido = await prisma.pedido.create({
+      data: {
+        numero: `teste-${randomUUID()}`,
+        status: StatusPedidoPrisma.CRIADO,
+        total: 10,
+      },
+    });
+    const criarTentativa = (status: StatusPagamentoPrisma, createdAt: Date) =>
+      prisma.pagamento.create({
+        data: {
+          pedidoId: pedido.id,
+          metodo: MetodoPagamentoPrisma.CARTAO_CREDITO,
+          status,
+          valor: 10,
+          gatewayTransactionId: `mp-tentativa-${randomUUID()}`,
+          createdAt,
+        },
+      });
+    const statusPublico = async () =>
+      (await request(app.getHttpServer()).get(`/pedidos/${pedido.id}/status`).expect(200)).body;
+
+    expect((await statusPublico()).pagamentoRecusado).toBe(false);
+
+    await criarTentativa(StatusPagamentoPrisma.RECUSADO, new Date(Date.now() - 60_000));
+    expect(await statusPublico()).toMatchObject({ status: 'CRIADO', pagamentoRecusado: true });
+
+    // Nova tentativa ainda em análise: a recusa anterior deixa de valer.
+    await criarTentativa(StatusPagamentoPrisma.EM_PROCESSAMENTO, new Date());
+    expect((await statusPublico()).pagamentoRecusado).toBe(false);
+  });
+
   it('rejeita webhook de transação de pagamento desconhecida com 404', async () => {
     const resposta = await request(app.getHttpServer())
       .post('/pagamentos/webhook')

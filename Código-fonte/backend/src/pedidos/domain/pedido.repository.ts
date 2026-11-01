@@ -78,6 +78,13 @@ export abstract class PedidoRepository {
    */
   abstract listarAbandonadosCriadosAntesDe(limite: Date): Promise<Pedido[]>;
 
+  /**
+   * true quando a tentativa de pagamento mais recente do pedido falhou (RECUSADO ou
+   * CANCELADO). Usado pra avisar o cliente — na tela do checkout e por e-mail — que
+   * precisa tentar de novo. false se não há tentativa ou se a última ainda está viva.
+   */
+  abstract ultimaTentativaDePagamentoFalhou(pedidoId: string): Promise<boolean>;
+
   /** Admin-only — ver PedidosController. `codigoRastreio: null` limpa o campo. */
   abstract atualizarRastreio(id: string, codigoRastreio: string | null): Promise<Pedido>;
 }

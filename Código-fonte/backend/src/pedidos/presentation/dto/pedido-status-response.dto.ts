@@ -18,11 +18,21 @@ export class PedidoStatusResponseDto {
   @ApiProperty({ example: 25.8 })
   total: number;
 
-  static fromDomain(pedido: Pedido): PedidoStatusResponseDto {
+  // Só um booleano, não o status/motivo do pagamento — basta pro checkout mostrar
+  // "não aprovado, tente de novo" e não expõe nada do gateway.
+  @ApiProperty({
+    example: false,
+    description:
+      'Pedido ainda aguardando pagamento e a tentativa mais recente foi recusada/cancelada pelo banco.',
+  })
+  pagamentoRecusado: boolean;
+
+  static fromDomain(pedido: Pedido, pagamentoRecusado = false): PedidoStatusResponseDto {
     const dto = new PedidoStatusResponseDto();
     dto.numero = pedido.numero;
     dto.status = pedido.status;
     dto.total = pedido.total;
+    dto.pagamentoRecusado = pagamentoRecusado;
     return dto;
   }
 }

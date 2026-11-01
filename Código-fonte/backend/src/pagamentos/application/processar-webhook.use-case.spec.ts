@@ -49,6 +49,7 @@ describe('ProcessarWebhookUseCase (idempotência)', () => {
   let cupomRepository: jest.Mocked<CupomRepository>;
   let paymentGateway: jest.Mocked<PaymentGateway>;
   let transactionManager: jest.Mocked<TransactionManager>;
+  let emailQueue: jest.Mocked<EmailQueuePort>;
   let useCase: ProcessarWebhookUseCase;
   // Contexto de transação falso — só pra provar que o decremento de estoque e a
   // confirmação do pedido como PAGO recebem o MESMO contexto (mesma transação).
@@ -95,7 +96,7 @@ describe('ProcessarWebhookUseCase (idempotência)', () => {
       executar: jest.fn((fn: (contexto: unknown) => Promise<unknown>) => fn(contextoFalso)),
     } as unknown as jest.Mocked<TransactionManager>;
 
-    const emailQueue = { enfileirar: jest.fn() } as unknown as jest.Mocked<EmailQueuePort>;
+    emailQueue = { enfileirar: jest.fn() } as unknown as jest.Mocked<EmailQueuePort>;
 
     const reconciliarPedidoService = new ReconciliarPedidoService(
       pedidoRepository,
@@ -109,6 +110,7 @@ describe('ProcessarWebhookUseCase (idempotência)', () => {
       pagamentoRepository,
       paymentGateway,
       reconciliarPedidoService,
+      emailQueue,
     );
   });
 
@@ -229,6 +231,47 @@ describe('ProcessarWebhookUseCase (idempotência)', () => {
       expect(produtoRepository.incrementarEstoque).not.toHaveBeenCalled();
     },
   );
+
+  it('cartão recusado depois da análise avisa o cliente por e-mail', async () => {
+    pagamentoRepository.buscarPorGatewayTransactionId.mockResolvedValue(
+      criarPagamento(StatusPagamento.EM_PROCESSAMENTO),
+    );
+    paymentGateway.consultarPagamento.mockResolvedValue({
+      gatewayTransactionId: 'mp-123',
+      status: StatusPagamento.RECUSADO,
+      valor: 100,
+      payloadBruto: {},
+    });
+    pagamentoRepository.atualizarStatus.mockResolvedValue(criarPagamento(StatusPagamento.RECUSADO));
+    pedidoRepository.buscarPorId.mockResolvedValue(criarPedido(StatusPedido.CRIADO));
+
+    await useCase.executar('mp-123');
+
+    expect(emailQueue.enfileirar).toHaveBeenCalledWith({
+      tipo: 'PAGAMENTO_RECUSADO',
+      pedidoId: 'pedido-1',
+    });
+  });
+
+  it('Pix expirado não manda e-mail de recusa (cliente só não pagou)', async () => {
+    pagamentoRepository.buscarPorGatewayTransactionId.mockResolvedValue(
+      criarPagamento(StatusPagamento.PENDENTE),
+    );
+    paymentGateway.consultarPagamento.mockResolvedValue({
+      gatewayTransactionId: 'mp-123',
+      status: StatusPagamento.EXPIRADO,
+      valor: 100,
+      payloadBruto: {},
+    });
+    pagamentoRepository.atualizarStatus.mockResolvedValue(criarPagamento(StatusPagamento.EXPIRADO));
+    pedidoRepository.buscarPorId.mockResolvedValue(criarPedido(StatusPedido.CRIADO));
+
+    await useCase.executar('mp-123');
+
+    expect(emailQueue.enfileirar).not.toHaveBeenCalledWith(
+      expect.objectContaining({ tipo: 'PAGAMENTO_RECUSADO' }),
+    );
+  });
 
   it('permite a transição PAGO -> ESTORNADO (estorno após confirmação) e devolve o estoque que havia sido reservado', async () => {
     const pagamentoAprovado = criarPagamento(StatusPagamento.APROVADO);

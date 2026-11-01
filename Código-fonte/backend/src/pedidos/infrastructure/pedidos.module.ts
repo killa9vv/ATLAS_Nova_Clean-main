@@ -6,6 +6,7 @@ import { ClientesModule } from '../../clientes/infrastructure/clientes.module';
 import { CuponsModule } from '../../cupons/infrastructure/cupons.module';
 import { CriarPedidoUseCase } from '../application/criar-pedido.use-case';
 import { BuscarPedidoPorIdUseCase } from '../application/buscar-pedido-por-id.use-case';
+import { BuscarStatusPedidoUseCase } from '../application/buscar-status-pedido.use-case';
 import { ListarPedidosUseCase } from '../application/listar-pedidos.use-case';
 import { ListarPedidosPorClienteUseCase } from '../application/listar-pedidos-por-cliente.use-case';
 import { BuscarPedidoDoClienteUseCase } from '../application/buscar-pedido-do-cliente.use-case';
@@ -28,6 +29,7 @@ import { PrismaPedidoRepository } from './prisma-pedido.repository';
     },
     CriarPedidoUseCase,
     BuscarPedidoPorIdUseCase,
+    BuscarStatusPedidoUseCase,
     ListarPedidosUseCase,
     ListarPedidosPorClienteUseCase,
     BuscarPedidoDoClienteUseCase,

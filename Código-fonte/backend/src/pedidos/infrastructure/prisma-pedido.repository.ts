@@ -221,6 +221,15 @@ export class PrismaPedidoRepository extends PedidoRepository {
     return pedidos.map((pedido) => this.paraDominio(pedido));
   }
 
+  async ultimaTentativaDePagamentoFalhou(pedidoId: string): Promise<boolean> {
+    const ultimo = await this.prisma.pagamento.findFirst({
+      where: { pedidoId },
+      orderBy: { createdAt: 'desc' },
+      select: { status: true },
+    });
+    return ultimo?.status === 'RECUSADO' || ultimo?.status === 'CANCELADO';
+  }
+
   async atualizarRastreio(id: string, codigoRastreio: string | null): Promise<Pedido> {
     const pedido = await this.prisma.pedido.update({
       where: { id },

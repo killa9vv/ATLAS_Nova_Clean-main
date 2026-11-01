@@ -13,8 +13,8 @@ export function RecuperacaoSenhaEmail({
   return (
     <LayoutBaseEmail preview="Redefina sua senha" titulo={`Olá, ${nomeCliente.split(' ')[0]}`}>
       <Text style={{ fontSize: '14px', color: '#0a0e1a', lineHeight: '1.5' }}>
-        Recebemos um pedido pra redefinir sua senha. Clique no botão abaixo pra escolher uma
-        nova senha. Se você não pediu isso, pode ignorar este e-mail.
+        Recebemos um pedido pra redefinir sua senha. Clique no botão abaixo pra escolher uma nova
+        senha. Se você não pediu isso, pode ignorar este e-mail.
       </Text>
 
       <Button

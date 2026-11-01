@@ -37,7 +37,7 @@ type ResultadoPagamento =
     }
   // Cartão que o Mercado Pago deixou "em análise" (antifraude) — ainda não é venda
   // confirmada, então não pode cair na tela de sucesso.
-  | { tipo: 'analise'; status: 'aguardando' | 'timeout' | 'cancelado' }
+  | { tipo: 'analise'; status: 'aguardando' | 'timeout' | 'recusado' }
   | { tipo: 'sucesso' }
   | { tipo: 'erro'; mensagem: string; podeTentarDeNovo?: boolean };
 
@@ -459,7 +459,7 @@ export default function CheckoutPage() {
           if (status === 'PAGO') {
             void limpar();
             setResultadoPagamento({ tipo: 'sucesso' });
-          } else if (status === 'CANCELADO' || status === 'ESTORNADO') {
+          } else if (status === 'CANCELADO' || status === 'ESTORNADO' || status === 'RECUSADO') {
             setResultadoPagamento((prev) =>
               prev?.tipo === 'pix' ? { ...prev, status: 'cancelado' } : prev,
             );
@@ -477,8 +477,8 @@ export default function CheckoutPage() {
       setResultadoPagamento({ tipo: 'sucesso' });
     } else {
       // PENDENTE/EM_PROCESSAMENTO: o banco ainda vai decidir. Acompanha o pedido como
-      // no Pix; o carrinho só é limpo se virar PAGO. Sem "tentar outro cartão" aqui de
-      // propósito — se a análise aprovar depois, o cliente seria cobrado duas vezes.
+      // no Pix; o carrinho só é limpo se virar PAGO. "Tentar outro cartão" só aparece
+      // depois da recusa — antes, se a análise aprovasse, o cliente pagaria duas vezes.
       setResultadoPagamento({ tipo: 'analise', status: 'aguardando' });
       pararPollingRef.current?.();
       pararPollingRef.current = acompanharPagamentoPix(pedidoId, {
@@ -489,7 +489,7 @@ export default function CheckoutPage() {
           } else {
             setResultadoPagamento({
               tipo: 'analise',
-              status: status === 'TIMEOUT' ? 'timeout' : 'cancelado',
+              status: status === 'TIMEOUT' ? 'timeout' : 'recusado',
             });
           }
         },
@@ -917,10 +917,28 @@ export default function CheckoutPage() {
                     {resultadoPagamento.status === 'aguardando' &&
                       'Seu pagamento está em análise pelo banco. Aguarde nesta página…'}
                     {resultadoPagamento.status === 'timeout' &&
-                      'O banco ainda está analisando o pagamento. Assim que ele aprovar, seu pedido é confirmado e você recebe um e-mail — não precisa pagar de novo.'}
-                    {resultadoPagamento.status === 'cancelado' &&
-                      'O pagamento não foi aprovado pelo banco. Nenhum valor foi cobrado.'}
+                      'O banco ainda está analisando o pagamento. Assim que ele responder, você recebe um e-mail com o resultado — não pague de novo enquanto isso.'}
+                    {resultadoPagamento.status === 'recusado' &&
+                      'O banco não aprovou o pagamento. Nenhum valor foi cobrado.'}
                   </p>
+                  {resultadoPagamento.status === 'recusado' && (
+                    <div className="flex justify-center gap-3 text-[13px]">
+                      <button
+                        type="button"
+                        onClick={() => void iniciarPagamentoNoSite()}
+                        className="font-semibold text-blue hover:underline"
+                      >
+                        Tentar com outro cartão
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => escolherMetodoFechamento('whatsapp')}
+                        className="font-semibold text-blue hover:underline"
+                      >
+                        Fechar pelo WhatsApp
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
 

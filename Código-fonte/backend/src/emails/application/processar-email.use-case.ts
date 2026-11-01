@@ -11,6 +11,8 @@ import { PagamentoAprovadoEmail } from '../infrastructure/templates/pagamento-ap
 import { PedidoEnviadoEmail } from '../infrastructure/templates/pedido-enviado.email';
 import { RecuperacaoSenhaEmail } from '../infrastructure/templates/recuperacao-senha.email';
 import { AtivacaoContaEmail } from '../infrastructure/templates/ativacao-conta.email';
+import { PagamentoRecusadoEmail } from '../infrastructure/templates/pagamento-recusado.email';
+import { Pedido } from '../../pedidos/domain/pedido.entity';
 
 const ASSUNTOS: Record<TipoEmailPedido, (numero: string) => string> = {
   CONFIRMACAO_PEDIDO: (numero) => `Recebemos seu pedido #${numero}`,
@@ -49,6 +51,10 @@ export class ProcessarEmailUseCase {
       await this.processarAtivacaoConta(tarefa.destinatario, tarefa.nomeCliente, tarefa.token);
       return;
     }
+    if (tarefa.tipo === 'PAGAMENTO_RECUSADO') {
+      await this.processarPagamentoRecusado(tarefa.pedidoId);
+      return;
+    }
 
     await this.processarEmailDePedido(tarefa.tipo, tarefa.pedidoId);
   }
@@ -71,7 +77,63 @@ export class ProcessarEmailUseCase {
       return;
     }
 
-    const dados: DadosPedidoEmail = {
+    const dados = this.montarDadosPedido(pedido);
+
+    const html = await render(this.renderizarTemplate(tipo, dados));
+
+    await this.emailSender.enviar({
+      destinatario,
+      assunto: ASSUNTOS[tipo](pedido.numero),
+      html,
+    });
+
+    await this.emailEnviadoRepository.registrar(tipo, pedidoId, destinatario);
+  }
+
+  private async processarPagamentoRecusado(pedidoId: string): Promise<void> {
+    const pedido = await this.pedidoRepository.buscarPorId(pedidoId);
+    if (!pedido) {
+      this.logger.warn(`Pedido ${pedidoId} não encontrado ao processar e-mail PAGAMENTO_RECUSADO.`);
+      return;
+    }
+
+    // Reconfere na hora de enviar: entre a recusa e aqui o cliente pode ter pago com
+    // outro cartão (pedido PAGO) ou já estar numa nova tentativa — aí o aviso só
+    // confundiria.
+    if (
+      !pedido.estaAguardandoPagamento() ||
+      !(await this.pedidoRepository.ultimaTentativaDePagamentoFalhou(pedidoId))
+    ) {
+      this.logger.log(
+        `Pedido ${pedidoId} não está mais com pagamento recusado — e-mail não enviado.`,
+      );
+      return;
+    }
+
+    const destinatario = pedido.contato?.email;
+    if (!destinatario) {
+      this.logger.log(`Pedido ${pedidoId} sem e-mail de contato — pulando PAGAMENTO_RECUSADO.`);
+      return;
+    }
+
+    const html = await render(
+      PagamentoRecusadoEmail({
+        ...this.montarDadosPedido(pedido),
+        // Sem página pra pagar um pedido já existente: o carrinho não é limpo enquanto o
+        // pagamento não aprova (ver checkout), então dali o cliente fecha de novo.
+        linkTentarDeNovo: `${this.frontendUrl}/carrinho`,
+      }),
+    );
+
+    await this.emailSender.enviar({
+      destinatario,
+      assunto: `Pagamento do pedido #${pedido.numero} não foi aprovado`,
+      html,
+    });
+  }
+
+  private montarDadosPedido(pedido: Pedido): DadosPedidoEmail {
+    return {
       numero: pedido.numero,
       nomeCliente: pedido.contato?.nome ?? 'Cliente',
       itens: pedido.itens.map((item) => ({
@@ -88,16 +150,6 @@ export class ProcessarEmailUseCase {
         : undefined,
       codigoRastreio: pedido.codigoRastreio,
     };
-
-    const html = await render(this.renderizarTemplate(tipo, dados));
-
-    await this.emailSender.enviar({
-      destinatario,
-      assunto: ASSUNTOS[tipo](pedido.numero),
-      html,
-    });
-
-    await this.emailEnviadoRepository.registrar(tipo, pedidoId, destinatario);
   }
 
   private renderizarTemplate(tipo: TipoEmailPedido, dados: DadosPedidoEmail) {

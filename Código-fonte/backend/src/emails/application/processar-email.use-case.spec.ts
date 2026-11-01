@@ -26,6 +26,7 @@ function criarPedido(
     clienteId?: string;
     valorFrete?: number;
     desconto?: number;
+    status?: StatusPedido;
   } = {},
 ): Pedido {
   const contato: ContatoPedido = opcoes.contato ?? {
@@ -36,7 +37,7 @@ function criarPedido(
   return new Pedido(
     'pedido-1',
     '2026-000001',
-    StatusPedido.PAGO,
+    opcoes.status ?? StatusPedido.PAGO,
     [new ItemPedidoEntity('produto-1', 'Detergente', 2, 10)],
     20,
     'RETIRADA',
@@ -59,7 +60,10 @@ describe('ProcessarEmailUseCase', () => {
   let useCase: ProcessarEmailUseCase;
 
   beforeEach(() => {
-    pedidoRepository = { buscarPorId: jest.fn() } as unknown as jest.Mocked<PedidoRepository>;
+    pedidoRepository = {
+      buscarPorId: jest.fn(),
+      ultimaTentativaDePagamentoFalhou: jest.fn().mockResolvedValue(true),
+    } as unknown as jest.Mocked<PedidoRepository>;
     emailEnviadoRepository = {
       jaEnviado: jest.fn().mockResolvedValue(false),
       registrar: jest.fn().mockResolvedValue(undefined),
@@ -187,5 +191,37 @@ describe('ProcessarEmailUseCase', () => {
     expect(mensagem.destinatario).toBe('ana@teste.com');
     expect(mensagem.assunto).toContain('Ative sua conta');
     expect(mensagem.html).toContain('/conta/ativar-conta?token=token-ativacao-456');
+  });
+  describe('pagamento recusado', () => {
+    it('avisa o cliente com o link pro carrinho, sem passar pela guarda de idempotência', async () => {
+      pedidoRepository.buscarPorId.mockResolvedValue(criarPedido({ status: StatusPedido.CRIADO }));
+
+      await useCase.executar({ tipo: 'PAGAMENTO_RECUSADO', pedidoId: 'pedido-1' });
+
+      expect(emailSender.enviar).toHaveBeenCalledTimes(1);
+      const { destinatario, assunto, html } = emailSender.enviar.mock.calls[0][0];
+      expect(destinatario).toBe('maria@teste.com');
+      expect(assunto).toContain('2026-000001');
+      expect(html).toContain('http://localhost:3001/carrinho');
+      expect(emailEnviadoRepository.jaEnviado).not.toHaveBeenCalled();
+      expect(emailEnviadoRepository.registrar).not.toHaveBeenCalled();
+    });
+
+    it('não envia se o pedido já foi pago com outra tentativa', async () => {
+      pedidoRepository.buscarPorId.mockResolvedValue(criarPedido({ status: StatusPedido.PAGO }));
+
+      await useCase.executar({ tipo: 'PAGAMENTO_RECUSADO', pedidoId: 'pedido-1' });
+
+      expect(emailSender.enviar).not.toHaveBeenCalled();
+    });
+
+    it('não envia se o cliente já está numa tentativa nova (última não falhou)', async () => {
+      pedidoRepository.buscarPorId.mockResolvedValue(criarPedido({ status: StatusPedido.CRIADO }));
+      pedidoRepository.ultimaTentativaDePagamentoFalhou.mockResolvedValue(false);
+
+      await useCase.executar({ tipo: 'PAGAMENTO_RECUSADO', pedidoId: 'pedido-1' });
+
+      expect(emailSender.enviar).not.toHaveBeenCalled();
+    });
   });
 });

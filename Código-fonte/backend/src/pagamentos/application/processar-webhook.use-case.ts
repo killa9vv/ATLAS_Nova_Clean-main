@@ -4,6 +4,8 @@ import { PaymentGateway } from '../domain/payment-gateway.port';
 import { PagamentoNaoEncontradoException } from '../domain/pagamentos.exceptions';
 import { ProcessarWebhookOutput } from './dto/processar-webhook-output';
 import { ReconciliarPedidoService } from './reconciliar-pedido.service';
+import { EmailQueuePort } from '../../emails/domain/email-queue.port';
+import { StatusPagamento } from '../domain/status-pagamento.enum';
 
 @Injectable()
 export class ProcessarWebhookUseCase {
@@ -11,6 +13,7 @@ export class ProcessarWebhookUseCase {
     private readonly pagamentoRepository: PagamentoRepository,
     private readonly paymentGateway: PaymentGateway,
     private readonly reconciliarPedidoService: ReconciliarPedidoService,
+    private readonly emailQueue: EmailQueuePort,
   ) {}
 
   async executar(gatewayTransactionId: string): Promise<ProcessarWebhookOutput> {
@@ -47,6 +50,16 @@ export class ProcessarWebhookUseCase {
     }
 
     await this.reconciliarPedidoService.executar(pagamentoAtualizado);
+
+    // Recusa que chega por aqui é assíncrona (cartão que ficou em análise): o cliente
+    // provavelmente já saiu do checkout e não viu. A recusa na hora (resposta síncrona do
+    // POST /pagamentos) nasce RECUSADO e nunca passa por esta transição.
+    if (resultado.status === StatusPagamento.RECUSADO) {
+      await this.emailQueue.enfileirar({
+        tipo: 'PAGAMENTO_RECUSADO',
+        pedidoId: pagamentoAtualizado.pedidoId,
+      });
+    }
 
     return { processado: true };
   }

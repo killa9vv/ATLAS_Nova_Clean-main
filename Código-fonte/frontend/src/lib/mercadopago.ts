@@ -192,7 +192,7 @@ export async function desmontarPaymentBrick(): Promise<void> {
   }
 }
 
-export type StatusPolling = 'PAGO' | 'CANCELADO' | 'ESTORNADO' | 'TIMEOUT';
+export type StatusPolling = 'PAGO' | 'CANCELADO' | 'ESTORNADO' | 'RECUSADO' | 'TIMEOUT';
 
 // Fica perguntando ao backend se o pedido já foi marcado como pago (webhook do
 // gateway confirma de forma assíncrona). Usado depois de gerar um Pix. Devolve uma
@@ -211,7 +211,7 @@ export function acompanharPagamentoPix(
   const tick = async () => {
     if (parado) return;
     try {
-      const pedido = await api.get<{ status: string; total: number }>(
+      const pedido = await api.get<{ status: string; total: number; pagamentoRecusado?: boolean }>(
         `/pedidos/${pedidoId}/status`,
       );
       if (pedido.status === 'PAGO') {
@@ -220,6 +220,12 @@ export function acompanharPagamentoPix(
       }
       if (pedido.status === 'CANCELADO' || pedido.status === 'ESTORNADO') {
         aoAtualizar(pedido.status);
+        return;
+      }
+      // O pedido continua aguardando pagamento depois de uma recusa (dá pra tentar de
+      // novo) — quem diz que a tentativa morreu é esse campo.
+      if (pedido.pagamentoRecusado) {
+        aoAtualizar('RECUSADO');
         return;
       }
     } catch {
