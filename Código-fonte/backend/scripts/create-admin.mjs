@@ -17,7 +17,9 @@ const nome = process.env.ADMIN_NOME ?? 'Admin';
 
 if (!email || !senha) {
   console.error('Defina ADMIN_EMAIL e ADMIN_SENHA nas variáveis de ambiente antes de rodar.');
-  console.error('Exemplo: ADMIN_EMAIL=voce@atlas.com ADMIN_SENHA="senha-forte-aqui" node scripts/create-admin.mjs');
+  console.error(
+    'Exemplo: ADMIN_EMAIL=voce@atlas.com ADMIN_SENHA="senha-forte-aqui" node scripts/create-admin.mjs',
+  );
   process.exit(1);
 }
 
@@ -27,6 +29,16 @@ if (senha.length < 8) {
 }
 
 const prisma = new PrismaClient();
+
+// Mostra onde vai gravar — rodar isto contra produção é intencional às vezes
+// (criar o admin real), mas tem que ficar visível. Sem DATABASE_URL no terminal, o
+// Prisma usa o do .env (banco local).
+try {
+  const host = process.env.DATABASE_URL ? new URL(process.env.DATABASE_URL).hostname : null;
+  console.log(`Banco: ${host ?? 'o do .env (local)'}`);
+} catch {
+  // URL em formato inesperado — o Prisma reclama com a mensagem dele
+}
 
 async function main() {
   const senhaHash = await bcrypt.hash(senha, CUSTOS_HASH);
