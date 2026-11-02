@@ -37,11 +37,11 @@ export async function MarcasSection() {
 
   return (
     <section id="marcas" className="mx-auto max-w-[1180px] px-5 py-10">
-      <p className="mb-1.5 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em] text-blue">
+      <p className="mb-1.5 flex items-center justify-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em] text-blue">
         <span className="h-px w-4 bg-blue" aria-hidden="true" />
         Marcas que trabalhamos
       </p>
-      <h2 className="mb-6 font-display text-xl font-bold text-navy">
+      <h2 className="mb-6 text-center font-display text-xl font-bold text-navy">
         Clique numa marca e veja tudo que ela tem na loja
       </h2>
 
