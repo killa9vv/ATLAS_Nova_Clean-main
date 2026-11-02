@@ -192,6 +192,33 @@ describe('ProcessarEmailUseCase', () => {
     expect(mensagem.assunto).toContain('Ative sua conta');
     expect(mensagem.html).toContain('/conta/ativar-conta?token=token-ativacao-456');
   });
+  it('troca de e-mail: envia o link de confirmação pro endereço novo', async () => {
+    await useCase.executar({
+      tipo: 'CONFIRMACAO_TROCA_EMAIL',
+      destinatario: 'novo@teste.com',
+      nomeCliente: 'Maria da Silva',
+      token: 'token-abc',
+    });
+
+    const { destinatario, html } = emailSender.enviar.mock.calls[0][0];
+    expect(destinatario).toBe('novo@teste.com');
+    expect(html).toContain('http://localhost:3001/conta/confirmar-email?token=token-abc');
+  });
+
+  it('aviso de e-mail alterado: não entrega o endereço novo inteiro ao endereço antigo', async () => {
+    await useCase.executar({
+      tipo: 'AVISO_EMAIL_ALTERADO',
+      destinatario: 'antigo@teste.com',
+      nomeCliente: 'Maria da Silva',
+      novoEmail: 'novo@teste.com',
+    });
+
+    const { destinatario, html } = emailSender.enviar.mock.calls[0][0];
+    expect(destinatario).toBe('antigo@teste.com');
+    expect(html).toContain('n***@teste.com');
+    expect(html).not.toContain('novo@teste.com');
+  });
+
   describe('pagamento recusado', () => {
     it('avisa o cliente com o link pro carrinho, sem passar pela guarda de idempotência', async () => {
       pedidoRepository.buscarPorId.mockResolvedValue(criarPedido({ status: StatusPedido.CRIADO }));

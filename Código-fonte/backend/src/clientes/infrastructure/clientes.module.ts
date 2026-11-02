@@ -29,6 +29,9 @@ import { SolicitarRecuperacaoSenhaUseCase } from '../application/auth/solicitar-
 import { RedefinirSenhaUseCase } from '../application/auth/redefinir-senha.use-case';
 import { TrocarSenhaUseCase } from '../application/auth/trocar-senha.use-case';
 import { SolicitarCriacaoContaUseCase } from '../application/auth/solicitar-criacao-conta.use-case';
+import { TokenTrocaEmailService } from '../application/auth/token-troca-email.service';
+import { SolicitarTrocaEmailUseCase } from '../application/auth/solicitar-troca-email.use-case';
+import { ConfirmarTrocaEmailUseCase } from '../application/auth/confirmar-troca-email.use-case';
 
 @Module({
   imports: [AuthModule],
@@ -55,6 +58,9 @@ import { SolicitarCriacaoContaUseCase } from '../application/auth/solicitar-cria
     SolicitarCriacaoContaUseCase,
     RedefinirSenhaUseCase,
     TrocarSenhaUseCase,
+    TokenTrocaEmailService,
+    SolicitarTrocaEmailUseCase,
+    ConfirmarTrocaEmailUseCase,
   ],
   exports: [ClienteRepository, EnderecoRepository],
 })

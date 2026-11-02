@@ -48,7 +48,6 @@ export function meuPerfil(): Promise<ClientePerfil> {
 
 export interface AtualizarPerfilInput {
   nome?: string;
-  email?: string;
   telefone?: string;
   cpf?: string;
   cnpj?: string;
@@ -56,6 +55,18 @@ export interface AtualizarPerfilInput {
 
 export function atualizarMeuPerfil(dados: AtualizarPerfilInput): Promise<ClientePerfil> {
   return contaApi.patch<ClientePerfil>('/clientes/me', dados);
+}
+
+export function solicitarTrocaEmail(
+  novoEmail: string,
+  senhaAtual: string,
+): Promise<{ mensagem: string }> {
+  return contaApi.post<{ mensagem: string }>('/clientes/me/email', { novoEmail, senhaAtual });
+}
+
+// Sem contaApi de propósito: o link do e-mail pode ser aberto sem estar logado.
+export function confirmarTrocaEmail(token: string): Promise<void> {
+  return api.post('/auth/clientes/confirmar-troca-email', { token });
 }
 
 export function trocarSenha(senhaAtual: string, novaSenha: string): Promise<void> {

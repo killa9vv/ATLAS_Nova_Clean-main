@@ -6,11 +6,13 @@ import { LoginClienteUseCase } from '../application/auth/login-cliente.use-case'
 import { RenovarTokenUseCase } from '../application/auth/renovar-token.use-case';
 import { SolicitarRecuperacaoSenhaUseCase } from '../application/auth/solicitar-recuperacao-senha.use-case';
 import { RedefinirSenhaUseCase } from '../application/auth/redefinir-senha.use-case';
+import { ConfirmarTrocaEmailUseCase } from '../application/auth/confirmar-troca-email.use-case';
 import { RegistrarClienteDto } from './dto/registrar-cliente.dto';
 import { LoginClienteDto } from './dto/login-cliente.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { EsqueciSenhaDto } from './dto/esqueci-senha.dto';
 import { RedefinirSenhaDto } from './dto/redefinir-senha.dto';
+import { ConfirmarTrocaEmailDto } from './dto/confirmar-troca-email.dto';
 import { LoginClienteResponseDto, RenovarTokenResponseDto } from './dto/login-cliente-response.dto';
 
 // Entrypoints de autenticação do Cliente — mesmo prefixo /auth do login de
@@ -25,6 +27,7 @@ export class ClientesAuthController {
     private readonly renovarTokenUseCase: RenovarTokenUseCase,
     private readonly solicitarRecuperacaoSenhaUseCase: SolicitarRecuperacaoSenhaUseCase,
     private readonly redefinirSenhaUseCase: RedefinirSenhaUseCase,
+    private readonly confirmarTrocaEmailUseCase: ConfirmarTrocaEmailUseCase,
   ) {}
 
   // "Registrar" não define senha: manda um link de ativação pro e-mail (ver
@@ -72,5 +75,14 @@ export class ClientesAuthController {
   @Post('redefinir-senha')
   async redefinirSenha(@Body() dto: RedefinirSenhaDto): Promise<void> {
     await this.redefinirSenhaUseCase.executar(dto.token, dto.novaSenha);
+  }
+
+  // Sem login de propósito: o link pode ser aberto em outro aparelho. Quem prova o
+  // direito à troca é o token, que só chega a quem tem acesso ao e-mail novo.
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @HttpCode(204)
+  @Post('confirmar-troca-email')
+  async confirmarTrocaEmail(@Body() dto: ConfirmarTrocaEmailDto): Promise<void> {
+    await this.confirmarTrocaEmailUseCase.executar(dto.token);
   }
 }

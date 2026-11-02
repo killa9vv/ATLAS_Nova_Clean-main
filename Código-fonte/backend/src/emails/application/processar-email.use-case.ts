@@ -12,7 +12,16 @@ import { PedidoEnviadoEmail } from '../infrastructure/templates/pedido-enviado.e
 import { RecuperacaoSenhaEmail } from '../infrastructure/templates/recuperacao-senha.email';
 import { AtivacaoContaEmail } from '../infrastructure/templates/ativacao-conta.email';
 import { PagamentoRecusadoEmail } from '../infrastructure/templates/pagamento-recusado.email';
+import { ConfirmacaoTrocaEmail } from '../infrastructure/templates/confirmacao-troca-email.email';
+import { AvisoEmailAlteradoEmail } from '../infrastructure/templates/aviso-email-alterado.email';
 import { Pedido } from '../../pedidos/domain/pedido.entity';
+
+/** "maria@gmail.com" → "m***@gmail.com": o aviso vai pro endereço antigo, que pode não
+ * ser mais de confiança, então não entrega o endereço novo inteiro. */
+function mascararEmail(email: string): string {
+  const [local, dominio] = email.split('@');
+  return `${local.charAt(0)}***@${dominio}`;
+}
 
 const ASSUNTOS: Record<TipoEmailPedido, (numero: string) => string> = {
   CONFIRMACAO_PEDIDO: (numero) => `Recebemos seu pedido #${numero}`,
@@ -49,6 +58,32 @@ export class ProcessarEmailUseCase {
     }
     if (tarefa.tipo === 'ATIVACAO_CONTA') {
       await this.processarAtivacaoConta(tarefa.destinatario, tarefa.nomeCliente, tarefa.token);
+      return;
+    }
+    if (tarefa.tipo === 'CONFIRMACAO_TROCA_EMAIL') {
+      const linkConfirmacao = `${this.frontendUrl}/conta/confirmar-email?token=${tarefa.token}`;
+      const html = await render(
+        ConfirmacaoTrocaEmail({ nomeCliente: tarefa.nomeCliente, linkConfirmacao }),
+      );
+      await this.emailSender.enviar({
+        destinatario: tarefa.destinatario,
+        assunto: 'Confirme seu novo e-mail',
+        html,
+      });
+      return;
+    }
+    if (tarefa.tipo === 'AVISO_EMAIL_ALTERADO') {
+      const html = await render(
+        AvisoEmailAlteradoEmail({
+          nomeCliente: tarefa.nomeCliente,
+          novoEmailMascarado: mascararEmail(tarefa.novoEmail),
+        }),
+      );
+      await this.emailSender.enviar({
+        destinatario: tarefa.destinatario,
+        assunto: 'O e-mail da sua conta foi alterado',
+        html,
+      });
       return;
     }
     if (tarefa.tipo === 'PAGAMENTO_RECUSADO') {

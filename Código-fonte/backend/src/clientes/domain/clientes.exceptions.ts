@@ -83,6 +83,33 @@ export class EmailJaCadastradoException extends DomainException {
   }
 }
 
+/** Status próprio (403), não CREDENCIAIS_INVALIDAS (401): no site, 401 significa sessão
+ * vencida e desconecta o cliente — errar a senha aqui não pode derrubar o login. */
+export class SenhaAtualIncorretaException extends DomainException {
+  readonly code = 'SENHA_ATUAL_INCORRETA';
+
+  constructor() {
+    super('Senha atual incorreta.');
+  }
+}
+
+export class EmailIgualAoAtualException extends DomainException {
+  readonly code = 'EMAIL_IGUAL_AO_ATUAL';
+
+  constructor() {
+    super('Este já é o e-mail da sua conta.');
+  }
+}
+
+/** Link de troca de e-mail adulterado, expirado ou já usado — mesma mensagem nos três. */
+export class TokenTrocaEmailInvalidoException extends DomainException {
+  readonly code = 'TOKEN_TROCA_EMAIL_INVALIDO';
+
+  constructor() {
+    super('Link inválido ou expirado. Peça a troca de e-mail de novo na sua conta.');
+  }
+}
+
 export class EnderecoPadraoUnicoException extends DomainException {
   readonly code = 'ENDERECO_PADRAO_UNICO';
 

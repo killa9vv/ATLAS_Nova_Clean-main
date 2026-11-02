@@ -10,15 +10,19 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { CriarClienteUseCase } from '../application/criar-cliente.use-case';
 import { AtualizarClienteUseCase } from '../application/atualizar-cliente.use-case';
 import { BuscarClientePorIdUseCase } from '../application/buscar-cliente-por-id.use-case';
 import { ListarClientesUseCase } from '../application/listar-clientes.use-case';
 import { BuscarEnderecoPorCepUseCase } from '../application/buscar-endereco-por-cep.use-case';
 import { TrocarSenhaUseCase } from '../application/auth/trocar-senha.use-case';
+import { SolicitarTrocaEmailUseCase } from '../application/auth/solicitar-troca-email.use-case';
 import { CriarClienteDto } from './dto/criar-cliente.dto';
 import { AtualizarClienteDto } from './dto/atualizar-cliente.dto';
 import { TrocarSenhaDto } from './dto/trocar-senha.dto';
+import { AtualizarMeuPerfilDto } from './dto/atualizar-meu-perfil.dto';
+import { SolicitarTrocaEmailDto } from './dto/solicitar-troca-email.dto';
 import { ClienteCriadoResponseDto, ClienteResponseDto } from './dto/cliente-response.dto';
 import { EnderecoPorCepResponseDto } from './dto/endereco-por-cep-response.dto';
 import { JwtAuthGuard } from '../../auth/presentation/guards/jwt-auth.guard';
@@ -37,6 +41,7 @@ export class ClientesController {
     private readonly listarClientesUseCase: ListarClientesUseCase,
     private readonly buscarEnderecoPorCepUseCase: BuscarEnderecoPorCepUseCase,
     private readonly trocarSenhaUseCase: TrocarSenhaUseCase,
+    private readonly solicitarTrocaEmailUseCase: SolicitarTrocaEmailUseCase,
   ) {}
 
   // "me" — dados do próprio cliente autenticado, id vem do JWT (ClienteAtual), nunca
@@ -57,7 +62,7 @@ export class ClientesController {
   @Roles(PapelUsuario.CLIENTE)
   async atualizarMeuPerfil(
     @ClienteAtual() clienteId: string,
-    @Body() dto: AtualizarClienteDto,
+    @Body() dto: AtualizarMeuPerfilDto,
   ): Promise<ClienteResponseDto> {
     const cliente = await this.atualizarClienteUseCase.executar(clienteId, dto);
     return ClienteResponseDto.fromDomain(cliente);
@@ -73,6 +78,23 @@ export class ClientesController {
     @Body() dto: TrocarSenhaDto,
   ): Promise<void> {
     await this.trocarSenhaUseCase.executar(clienteId, dto.senhaAtual, dto.novaSenha);
+  }
+
+  // Limite baixo: a rota confere a senha, não pode virar tentativa e erro.
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @HttpCode(200)
+  @Post('me/email')
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(PapelUsuario.CLIENTE)
+  async solicitarTrocaEmail(
+    @ClienteAtual() clienteId: string,
+    @Body() dto: SolicitarTrocaEmailDto,
+  ): Promise<{ mensagem: string }> {
+    await this.solicitarTrocaEmailUseCase.executar(clienteId, dto.novoEmail, dto.senhaAtual);
+    return {
+      mensagem: `Enviamos um link de confirmação para ${dto.novoEmail}. Seu e-mail só muda depois que você clicar nele.`,
+    };
   }
 
   // Autocomplete de CEP pro formulário de endereço — não depende de cliente já

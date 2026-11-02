@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ApiError } from '@/lib/http';
-import { atualizarMeuPerfil, meuPerfil, trocarSenha } from '@/lib/conta';
+import { atualizarMeuPerfil, meuPerfil, solicitarTrocaEmail, trocarSenha } from '@/lib/conta';
 import { obterSessaoCliente, salvarSessaoCliente } from '@/lib/conta-auth';
 import { useToast } from '@/components/ui/Toast';
 import { Button } from '@/components/ui/Button';
@@ -16,7 +16,6 @@ export default function DadosCadastraisPage() {
   const perfilQuery = useQuery({ queryKey: ['conta', 'perfil'], queryFn: meuPerfil });
 
   const [nome, setNome] = useState('');
-  const [email, setEmail] = useState('');
   const [telefone, setTelefone] = useState('');
 
   useEffect(() => {
@@ -26,13 +25,11 @@ export default function DadosCadastraisPage() {
     // estado/prop local.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setNome(perfilQuery.data.nome);
-    setEmail(perfilQuery.data.email ?? '');
     setTelefone(perfilQuery.data.telefone ?? '');
   }, [perfilQuery.data]);
 
   const salvarPerfil = useMutation({
-    mutationFn: () =>
-      atualizarMeuPerfil({ nome, email: email || undefined, telefone: telefone || undefined }),
+    mutationFn: () => atualizarMeuPerfil({ nome, telefone: telefone || undefined }),
     onSuccess: (cliente) => {
       queryClient.setQueryData(['conta', 'perfil'], cliente);
       // O header (ContaLink) e o "Olá, {nome}" do layout leem o nome/e-mail
@@ -71,12 +68,7 @@ export default function DadosCadastraisPage() {
               value={nome}
               onChange={(e) => setNome(e.target.value)}
             />
-            <Input
-              label="E-mail"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
+            <Input label="E-mail" type="email" disabled value={perfilQuery.data?.email ?? ''} />
             <Input
               label="Telefone"
               placeholder="(22) 99999-8888"
@@ -90,8 +82,74 @@ export default function DadosCadastraisPage() {
         )}
       </Card>
 
+      <TrocarEmailCard />
+
       <TrocarSenhaCard />
     </div>
+  );
+}
+
+function TrocarEmailCard() {
+  const { showToast } = useToast();
+  const [novoEmail, setNovoEmail] = useState('');
+  const [senhaAtual, setSenhaAtual] = useState('');
+  const [aviso, setAviso] = useState<string | null>(null);
+
+  const solicitar = useMutation({
+    mutationFn: () => solicitarTrocaEmail(novoEmail, senhaAtual),
+    onSuccess: ({ mensagem }) => {
+      setNovoEmail('');
+      setSenhaAtual('');
+      setAviso(mensagem);
+    },
+    onError: (erro) => {
+      setAviso(null);
+      showToast(
+        erro instanceof ApiError ? erro.message : 'Não foi possível pedir a troca de e-mail.',
+        'error',
+      );
+    },
+  });
+
+  function aoEnviar(evento: FormEvent) {
+    evento.preventDefault();
+    solicitar.mutate();
+  }
+
+  return (
+    <Card className="p-6">
+      <h2 className="mb-1 font-display text-base font-bold text-navy">Trocar e-mail</h2>
+      <p className="mb-4 text-[12.5px] text-muted">
+        Enviamos um link pro e-mail novo. A troca só vale depois que você clicar nele, e aí será
+        preciso entrar de novo.
+      </p>
+      <form onSubmit={aoEnviar} className="flex flex-col gap-4">
+        <Input
+          label="Novo e-mail"
+          type="email"
+          required
+          autoComplete="email"
+          value={novoEmail}
+          onChange={(e) => setNovoEmail(e.target.value)}
+        />
+        <Input
+          label="Senha atual"
+          type="password"
+          required
+          autoComplete="current-password"
+          value={senhaAtual}
+          onChange={(e) => setSenhaAtual(e.target.value)}
+        />
+        {aviso && (
+          <p role="status" className="rounded-atlas-sm bg-sky px-3 py-2.5 text-[13px] text-navy">
+            {aviso}
+          </p>
+        )}
+        <Button type="submit" disabled={solicitar.isPending} className="self-start">
+          {solicitar.isPending ? 'Enviando…' : 'Enviar link de confirmação'}
+        </Button>
+      </form>
+    </Card>
   );
 }
 
