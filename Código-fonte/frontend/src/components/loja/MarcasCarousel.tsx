@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { LogosCarousel } from '@/components/ui/LogosCarousel';
 
 export interface MarcaComContagem {
   id: string;
@@ -15,35 +16,36 @@ export interface MarcasCarouselProps {
   marcas: MarcaComContagem[];
 }
 
-const PASSO_ROLAGEM_PX = 320;
-const VELOCIDADE_AUTOPLAY_PX_POR_FRAME = 0.6;
-const PAUSA_APOS_INTERACAO_MS = 3000;
+const MARCAS_POR_GRUPO = 6;
+// Uma linha no desktop; no celular os 6 quebram em 2 linhas de 3, sem JS.
+const CLASSES_GRUPO = 'flex-wrap gap-x-4 gap-y-5 sm:gap-x-10';
 
-function CardMarca({
-  marca,
-  escondidoDeLeitorDeTela = false,
-}: {
-  marca: MarcaComContagem;
-  escondidoDeLeitorDeTela?: boolean;
-}) {
+const CONSULTA_MENOS_MOVIMENTO = '(prefers-reduced-motion: reduce)';
+
+function assinarMenosMovimento(aoMudar: () => void) {
+  const consulta = window.matchMedia(CONSULTA_MENOS_MOVIMENTO);
+  consulta.addEventListener('change', aoMudar);
+  return () => consulta.removeEventListener('change', aoMudar);
+}
+
+function LogoMarca({ marca }: { marca: MarcaComContagem }) {
   return (
     <Link
       href={`/marcas/${encodeURIComponent(marca.nome)}`}
-      aria-hidden={escondidoDeLeitorDeTela || undefined}
-      tabIndex={escondidoDeLeitorDeTela ? -1 : undefined}
-      className="flex w-24 shrink-0 flex-col items-center gap-2 rounded-atlas border border-line bg-white p-3 text-center shadow-atlas transition-transform hover:-translate-y-1"
+      className="flex w-24 flex-col items-center gap-1.5 text-center transition-transform hover:-translate-y-1"
     >
-      <span className="relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border border-line bg-white">
+      <span className="relative flex h-16 w-24 items-center justify-center">
         {marca.imagemUrl ? (
           <Image
             src={marca.imagemUrl}
             alt={marca.nome}
             fill
-            sizes="64px"
-            className="object-contain p-2"
+            sizes="96px"
+            // Vários logos têm fundo branco: sem isso, viram um retângulo na página.
+            className="object-contain mix-blend-multiply"
           />
         ) : (
-          <span className="text-[11px] font-bold text-navy">{marca.nome}</span>
+          <span className="text-[13px] font-bold text-navy">{marca.nome}</span>
         )}
       </span>
       <span className="text-[11px] text-muted">
@@ -53,89 +55,54 @@ function CardMarca({
   );
 }
 
-// Faixa duplicada (2x a lista real) + scrollLeft incrementado a cada frame, voltando
-// pro início assim que passa da metade — dá a sensação de rolagem infinita sem CSS
-// transform (que não daria pra combinar com os botões de seta, que usam scrollBy no
-// mesmo elemento). Pausa com o mouse em cima ou por alguns segundos depois de
-// qualquer interação manual (seta ou arrastar/rolar no touch).
+// O carrossel mostra poucas marcas por vez e não tem setas, e o site não tem uma página
+// com a lista de marcas: "Ver todas" garante que nenhuma fique inalcançável. Quem pede
+// menos movimento no sistema já recebe a lista direto, sem animação.
 export function MarcasCarousel({ marcas }: MarcasCarouselProps) {
-  const trilhaRef = useRef<HTMLDivElement>(null);
-  const pausadoRef = useRef(false);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const [verTodas, setVerTodas] = useState(false);
+  const menosMovimento = useSyncExternalStore(
+    assinarMenosMovimento,
+    () => window.matchMedia(CONSULTA_MENOS_MOVIMENTO).matches,
+    () => false,
+  );
 
-  function pausarTemporariamente() {
-    pausadoRef.current = true;
-    clearTimeout(timeoutRef.current);
-    timeoutRef.current = setTimeout(() => {
-      pausadoRef.current = false;
-    }, PAUSA_APOS_INTERACAO_MS);
+  if (menosMovimento || verTodas) {
+    return (
+      <div className="flex flex-col items-center gap-6">
+        <div className={`flex justify-center ${CLASSES_GRUPO}`}>
+          {marcas.map((marca) => (
+            <LogoMarca key={marca.id} marca={marca} />
+          ))}
+        </div>
+        {!menosMovimento && (
+          <button
+            type="button"
+            onClick={() => setVerTodas(false)}
+            className="text-[13px] font-semibold text-blue hover:underline"
+          >
+            Ver menos
+          </button>
+        )}
+      </div>
+    );
   }
-
-  function rolar(direcao: 1 | -1) {
-    trilhaRef.current?.scrollBy({ left: direcao * PASSO_ROLAGEM_PX, behavior: 'smooth' });
-    pausarTemporariamente();
-  }
-
-  useEffect(() => {
-    const trilha = trilhaRef.current;
-    if (!trilha || marcas.length === 0) return;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-
-    let frameId: number;
-    function avancar() {
-      if (!pausadoRef.current && trilha) {
-        const metade = trilha.scrollWidth / 2;
-        if (trilha.scrollLeft >= metade) {
-          trilha.scrollLeft -= metade;
-        } else {
-          trilha.scrollLeft += VELOCIDADE_AUTOPLAY_PX_POR_FRAME;
-        }
-      }
-      frameId = requestAnimationFrame(avancar);
-    }
-    frameId = requestAnimationFrame(avancar);
-    return () => cancelAnimationFrame(frameId);
-  }, [marcas.length]);
 
   return (
-    <div className="flex items-center gap-2">
-      <button
-        type="button"
-        aria-label="Ver marcas anteriores"
-        onClick={() => rolar(-1)}
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-line bg-white text-lg font-bold text-navy shadow-atlas-lg hover:bg-sky"
-      >
-        ‹
-      </button>
-
-      <div
-        ref={trilhaRef}
-        onMouseEnter={() => {
-          pausadoRef.current = true;
-        }}
-        onMouseLeave={() => {
-          pausadoRef.current = false;
-        }}
-        onPointerDown={pausarTemporariamente}
-        className="flex gap-4 overflow-x-auto py-1 [&::-webkit-scrollbar]:hidden"
-        style={{ scrollbarWidth: 'none' }}
-      >
+    <div className="flex flex-col items-center gap-6">
+      <LogosCarousel count={MARCAS_POR_GRUPO} className={CLASSES_GRUPO}>
         {marcas.map((marca) => (
-          <CardMarca key={marca.id} marca={marca} />
+          <LogoMarca key={marca.id} marca={marca} />
         ))}
-        {marcas.map((marca) => (
-          <CardMarca key={`${marca.id}-dup`} marca={marca} escondidoDeLeitorDeTela />
-        ))}
-      </div>
-
-      <button
-        type="button"
-        aria-label="Ver próximas marcas"
-        onClick={() => rolar(1)}
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-line bg-white text-lg font-bold text-navy shadow-atlas-lg hover:bg-sky"
-      >
-        ›
-      </button>
+      </LogosCarousel>
+      {marcas.length > MARCAS_POR_GRUPO && (
+        <button
+          type="button"
+          onClick={() => setVerTodas(true)}
+          className="text-[13px] font-semibold text-blue hover:underline"
+        >
+          Ver todas as marcas
+        </button>
+      )}
     </div>
   );
 }

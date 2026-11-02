@@ -84,6 +84,47 @@
   }
 }
 
+/* LogosCarousel (carrossel de marcas da home) */
+@keyframes logos-enter {
+  from {
+    transform: translateY(40px);
+    filter: blur(4px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    filter: blur(0);
+    opacity: 1;
+  }
+}
+
+@keyframes logos-exit {
+  from {
+    transform: translateY(0);
+    filter: blur(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(-40px);
+    filter: blur(4px);
+    opacity: 0;
+  }
+}
+
+/* backwards, não both: mantida no fim, a animação isolaria o item do fundo da página e
+   anularia o mix-blend-multiply dos logos. */
+.logos-enter {
+  animation-name: logos-enter;
+  animation-timing-function: ease;
+  animation-fill-mode: backwards;
+}
+
+.logos-exit {
+  animation-name: logos-exit;
+  animation-timing-function: ease;
+  animation-fill-mode: both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
