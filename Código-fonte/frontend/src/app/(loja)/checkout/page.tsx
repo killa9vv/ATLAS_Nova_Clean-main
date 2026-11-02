@@ -887,30 +887,6 @@ export default function CheckoutPage() {
                 <p className="text-[13px] text-muted">Carregando formulário de pagamento…</p>
               )}
 
-              {resultadoPagamento?.tipo === 'erro' && (
-                <div className="flex flex-col gap-2 rounded-atlas-sm bg-red-50 px-4 py-3 text-[13px] text-red-600">
-                  <p role="alert">{resultadoPagamento.mensagem}</p>
-                  {resultadoPagamento.podeTentarDeNovo && (
-                    <div className="flex gap-3">
-                      <button
-                        type="button"
-                        onClick={() => void iniciarPagamentoNoSite()}
-                        className="font-semibold text-blue hover:underline"
-                      >
-                        Tentar novamente
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => escolherMetodoFechamento('whatsapp')}
-                        className="font-semibold text-blue hover:underline"
-                      >
-                        Fechar pelo WhatsApp
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-
               {resultadoPagamento?.tipo === 'analise' && (
                 <div className="flex flex-col gap-2 rounded-atlas border border-line bg-white p-4 text-center shadow-atlas">
                   <p className="text-[13px] font-semibold text-navy" role="status">
@@ -979,6 +955,32 @@ export default function CheckoutPage() {
               {/* O Brick se monta aqui dentro (ver iniciarPagamentoNoSite em mercadopago.ts) —
                   fica vazio depois de desmontado num Pix/cartão aprovado. */}
               <div id="payment-brick-container" />
+
+              {/* Logo abaixo do Brick, não acima: o formulário é longo e quem acabou de clicar
+                  em "Pagar" está aqui embaixo — acima, a recusa ficava fora da tela. */}
+              {resultadoPagamento?.tipo === 'erro' && (
+                <div className="flex flex-col gap-2 rounded-atlas-sm bg-red-50 px-4 py-3 text-[13px] text-red-600">
+                  <p role="alert">{resultadoPagamento.mensagem}</p>
+                  {resultadoPagamento.podeTentarDeNovo && (
+                    <div className="flex gap-3">
+                      <button
+                        type="button"
+                        onClick={() => void iniciarPagamentoNoSite()}
+                        className="font-semibold text-blue hover:underline"
+                      >
+                        Tentar novamente
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => escolherMetodoFechamento('whatsapp')}
+                        className="font-semibold text-blue hover:underline"
+                      >
+                        Fechar pelo WhatsApp
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <Button variant="secondary" onClick={voltarDoPasso2} disabled={enviando}>
                 Voltar
