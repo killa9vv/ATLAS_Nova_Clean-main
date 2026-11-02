@@ -14,6 +14,7 @@ import { MetodoPagamento } from '../domain/metodo-pagamento.enum';
 import { StatusPagamento } from '../domain/status-pagamento.enum';
 import { ReconciliarPedidoService } from './reconciliar-pedido.service';
 import { PedidoNaoEncontradoException } from '../../pedidos/domain/pedidos.exceptions';
+import { PagamentoRecusadoException } from '../domain/pagamentos.exceptions';
 
 describe('CriarPagamentoUseCase', () => {
   let pedidoRepository: jest.Mocked<PedidoRepository>;
@@ -90,6 +91,29 @@ describe('CriarPagamentoUseCase', () => {
       expect.objectContaining({ valor: 22 }),
     );
     expect(pagamentoRepository.criar).toHaveBeenCalledWith(expect.objectContaining({ valor: 22 }));
+  });
+
+  it('cartão recusado mostra ao cliente o motivo devolvido pelo gateway', async () => {
+    paymentGateway.criarPagamentoCartao.mockResolvedValue({
+      gatewayTransactionId: 'mp-2',
+      status: StatusPagamento.RECUSADO,
+      valor: 22,
+      motivoRecusa: 'confira o código de segurança.',
+      codigoMotivo: 'cc_rejected_bad_filled_security_code',
+      payloadBruto: {},
+    });
+
+    const pagamento = useCase.executar({
+      pedidoId: pedido.id,
+      metodo: MetodoPagamento.CARTAO_CREDITO,
+      tokenCartao: 'tok',
+      parcelas: 1,
+      metodoPagamentoId: 'master',
+      pagador: { email: 'cliente@teste.com' },
+    });
+
+    await expect(pagamento).rejects.toBeInstanceOf(PagamentoRecusadoException);
+    await expect(pagamento).rejects.toThrow('confira o código de segurança.');
   });
 
   it('lança PedidoNaoEncontradoException quando o pedido não existe', async () => {

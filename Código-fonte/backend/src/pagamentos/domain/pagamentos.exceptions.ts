@@ -12,7 +12,7 @@ export class PagamentoRecusadoException extends DomainException {
   readonly code = 'PAGAMENTO_RECUSADO';
 
   constructor(motivo: string) {
-    super(`Pagamento recusado pelo gateway: ${motivo}`);
+    super(`Pagamento não aprovado: ${motivo}`);
   }
 }
 

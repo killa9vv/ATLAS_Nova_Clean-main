@@ -32,6 +32,10 @@ export interface ResultadoPagamentoGateway {
   /** Presentes apenas para Pix. */
   qrCode?: string;
   qrCodeBase64?: string;
+  /** Só em recusa: motivo pronto pra mostrar ao cliente. */
+  motivoRecusa?: string;
+  /** Código do motivo no gateway, pra log/diagnóstico — nunca mostrado ao cliente. */
+  codigoMotivo?: string;
   /** Resposta crua do gateway, guardada para auditoria/debug — nunca inspecionada pelo domínio. */
   payloadBruto: unknown;
 }

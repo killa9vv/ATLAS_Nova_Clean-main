@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PedidoRepository } from '../../pedidos/domain/pedido.repository';
 import {
   PedidoEmStatusInvalidoException,
@@ -14,6 +14,8 @@ import { ReconciliarPedidoService } from './reconciliar-pedido.service';
 
 @Injectable()
 export class CriarPagamentoUseCase {
+  private readonly logger = new Logger(CriarPagamentoUseCase.name);
+
   constructor(
     private readonly pedidoRepository: PedidoRepository,
     private readonly pagamentoRepository: PagamentoRepository,
@@ -70,7 +72,12 @@ export class CriarPagamentoUseCase {
     await this.reconciliarPedidoService.executar(pagamento);
 
     if (resultado.status === StatusPagamento.RECUSADO) {
-      throw new PagamentoRecusadoException('a operadora recusou a transação.');
+      this.logger.warn(
+        `Pagamento ${pagamento.id} do pedido ${pedido.id} recusado (motivo: ${resultado.codigoMotivo ?? 'não informado'}).`,
+      );
+      throw new PagamentoRecusadoException(
+        resultado.motivoRecusa ?? 'o banco não autorizou. Tente outro cartão ou pague com Pix.',
+      );
     }
 
     return {

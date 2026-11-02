@@ -13,7 +13,8 @@ import {
   GatewayIndisponivelException,
   PagamentoRecusadoException,
 } from '../../domain/pagamentos.exceptions';
-import { mapearStatusMercadoPago } from './mercado-pago-status.mapper';
+import { mapearStatusMercadoPago, mensagemRecusaMercadoPago } from './mercado-pago-status.mapper';
+import { StatusPagamento } from '../../domain/status-pagamento.enum';
 
 const MERCADO_PAGO_API_URL = 'https://api.mercadopago.com';
 
@@ -155,9 +156,14 @@ export class MercadoPagoGatewayAdapter extends PaymentGateway {
   }
 
   private paraResultado(dados: RespostaPagamentoMercadoPago): ResultadoPagamentoGateway {
+    const status = mapearStatusMercadoPago(dados.status, dados.status_detail);
     return {
       gatewayTransactionId: String(dados.id),
-      status: mapearStatusMercadoPago(dados.status, dados.status_detail),
+      status,
+      ...(status === StatusPagamento.RECUSADO && {
+        motivoRecusa: mensagemRecusaMercadoPago(dados.status_detail),
+        codigoMotivo: dados.status_detail,
+      }),
       valor: Number(dados.transaction_amount),
       qrCode: dados.point_of_interaction?.transaction_data?.qr_code,
       qrCodeBase64: dados.point_of_interaction?.transaction_data?.qr_code_base64,

@@ -86,6 +86,8 @@ describe('MercadoPagoGatewayAdapter', () => {
     });
 
     expect(resultado.status).toBe(StatusPagamento.RECUSADO);
+    expect(resultado.motivoRecusa).toBe('saldo ou limite insuficiente. Tente outro cartão ou Pix.');
+    expect(resultado.codigoMotivo).toBe('cc_rejected_insufficient_amount');
     // Sem isso o cartão pode ficar "em análise" e o cliente sai do checkout sem resposta.
     expect(httpMock.post).toHaveBeenCalledWith(
       '/v1/payments',
