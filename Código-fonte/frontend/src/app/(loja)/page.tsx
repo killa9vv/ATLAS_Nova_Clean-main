@@ -53,6 +53,16 @@ export default function Page() {
           </div>
         }
       >
+        <MarcasSection />
+      </Suspense>
+
+      <Suspense
+        fallback={
+          <div className="mx-auto max-w-[1180px] px-5 py-10">
+            <ProductRowSkeleton />
+          </div>
+        }
+      >
         <MaisVendidosSection />
       </Suspense>
 
@@ -64,16 +74,6 @@ export default function Page() {
         }
       >
         <NovidadesSection />
-      </Suspense>
-
-      <Suspense
-        fallback={
-          <div className="mx-auto max-w-[1180px] px-5 py-10">
-            <ProductRowSkeleton />
-          </div>
-        }
-      >
-        <MarcasSection />
       </Suspense>
 
       <Suspense
