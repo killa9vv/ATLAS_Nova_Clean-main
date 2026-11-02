@@ -84,6 +84,24 @@
   }
 }
 
+/* PalavrasStagger (títulos do banner da home) */
+@keyframes palavra-stagger {
+  from {
+    transform: translateY(10px);
+    filter: blur(10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    filter: blur(0);
+    opacity: 1;
+  }
+}
+
+.palavra-stagger {
+  animation: palavra-stagger 0.5s ease-out backwards;
+}
+
 /* LogosCarousel (carrossel de marcas da home) */
 @keyframes logos-enter {
   from {
@@ -131,6 +149,11 @@
   *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+  }
+
+  /* A regra acima zera a duração, não o atraso: cada palavra ficaria escondida até a vez dela. */
+  .palavra-stagger {
+    animation: none;
   }
 }
 

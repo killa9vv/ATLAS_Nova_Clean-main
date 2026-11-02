@@ -4,8 +4,21 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { BANNER_SLIDES } from '@/data/banners';
 import { hrefWhatsApp } from '@/lib/whatsapp';
+import { PalavrasStagger } from '@/components/ui/PalavrasStagger';
 
 const INTERVALO_AUTOPLAY_MS = 6000;
+const STAGGER_TITULO_S = 0.1;
+const STAGGER_TEXTO_S = 0.04;
+
+// Cada palavra anima sozinha, e background-clip: text não atravessa elementos com
+// transform — por isso o degradê é aplicado palavra a palavra, cada uma com o seu
+// pedaço, pra continuar parecendo um só. O padding dá espaço às partes de baixo das letras
+// (ç, j, p), que seriam cortadas pela caixa da palavra com o leading apertado do título.
+function estiloDegrade(indice: number, total: number) {
+  const cor = (posicao: number) =>
+    `color-mix(in srgb, var(--color-green) ${(posicao / total) * 100}%, var(--color-blue))`;
+  return { backgroundImage: `linear-gradient(to right, ${cor(indice)}, ${cor(indice + 1)})` };
+}
 
 const STAT_PILLS = [
   { icone: '🚚', texto: 'Entrega rápida em Campos' },
@@ -34,15 +47,17 @@ export function Hero() {
   const proximo = useCallback(() => irPara(indiceAtivo + 1), [indiceAtivo, irPara]);
   const anterior = useCallback(() => irPara(indiceAtivo - 1), [indiceAtivo, irPara]);
 
-  // Autoplay: pausa com hover/foco em qualquer parte do carrossel e respeita
-  // prefers-reduced-motion (não roda nada nesse caso, igual ao MarcasCarousel).
+  // Autoplay: pausa só com o mouse sobre botão/link ou com foco de teclado — o banner ocupa
+  // boa parte da tela, e pausar com o mouse em qualquer ponto dele fazia parecer que não
+  // passava sozinho. Respeita prefers-reduced-motion (não roda nada nesse caso). Depende de
+  // indiceAtivo pra recomeçar a contagem quando o cliente troca de banner na mão.
   useEffect(() => {
     if (total <= 1 || pausado || reducedMotionRef.current) return;
-    const id = setInterval(() => {
+    const id = setTimeout(() => {
       setIndiceAtivo((atual) => (atual + 1) % total);
     }, INTERVALO_AUTOPLAY_MS);
-    return () => clearInterval(id);
-  }, [pausado, total]);
+    return () => clearTimeout(id);
+  }, [pausado, total, indiceAtivo]);
 
   function aoTecla(evento: React.KeyboardEvent) {
     if (evento.key === 'ArrowRight') {
@@ -63,9 +78,13 @@ export function Hero() {
         role="region"
         aria-roledescription="carrossel"
         aria-label="Banners promocionais"
-        onMouseEnter={() => setPausado(true)}
+        onMouseOver={(evento) => setPausado(!!(evento.target as Element).closest('a, button'))}
         onMouseLeave={() => setPausado(false)}
-        onFocus={() => setPausado(true)}
+        // Só foco de teclado: clicar numa seta também deixa o foco nela, e aí o banner
+        // ficaria parado até o cliente clicar em outro lugar.
+        onFocus={(evento) => {
+          if (evento.target.matches(':focus-visible')) setPausado(true);
+        }}
         onBlur={(evento) => {
           if (!evento.currentTarget.contains(evento.relatedTarget as Node | null)) {
             setPausado(false);
@@ -81,6 +100,7 @@ export function Hero() {
 
         {BANNER_SLIDES.map((slide, indice) => {
           const ativo = indice === indiceAtivo;
+          const palavrasDoTitulo = `${slide.titulo} ${slide.destaque}`.split(' ').length;
           return (
             <div
               key={slide.id}
@@ -114,12 +134,24 @@ export function Hero() {
                   {slide.eyebrow}
                 </p>
                 <h1 className="font-display max-w-2xl text-[clamp(32px,4.2vw,54px)] font-bold leading-[1.05] tracking-tight text-navy">
-                  {slide.titulo}{' '}
-                  <span className="bg-gradient-to-r from-blue to-green bg-clip-text text-transparent">
-                    {slide.destaque}
-                  </span>
+                  <PalavrasStagger texto={slide.titulo} animar={ativo} stagger={STAGGER_TITULO_S} />{' '}
+                  <PalavrasStagger
+                    texto={slide.destaque}
+                    animar={ativo}
+                    atraso={palavrasDoTitulo * STAGGER_TITULO_S}
+                    stagger={STAGGER_TITULO_S}
+                    classNamePalavra="-mb-[0.15em] bg-clip-text pb-[0.15em] text-transparent"
+                    estiloPalavra={estiloDegrade}
+                  />
                 </h1>
-                <p className="mt-4 max-w-md text-[15px] text-muted">{slide.texto}</p>
+                <p className="mt-4 max-w-md text-[15px] text-muted">
+                  <PalavrasStagger
+                    texto={slide.texto}
+                    animar={ativo}
+                    atraso={palavrasDoTitulo * STAGGER_TITULO_S + 0.2}
+                    stagger={STAGGER_TEXTO_S}
+                  />
+                </p>
                 <Link
                   href={slide.ctaHref === 'whatsapp' ? hrefWhatsApp() : slide.ctaHref}
                   target={slide.ctaHref === 'whatsapp' ? '_blank' : undefined}
