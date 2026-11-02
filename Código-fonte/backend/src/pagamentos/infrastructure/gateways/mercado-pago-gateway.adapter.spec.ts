@@ -86,6 +86,12 @@ describe('MercadoPagoGatewayAdapter', () => {
     });
 
     expect(resultado.status).toBe(StatusPagamento.RECUSADO);
+    // Sem isso o cartão pode ficar "em análise" e o cliente sai do checkout sem resposta.
+    expect(httpMock.post).toHaveBeenCalledWith(
+      '/v1/payments',
+      expect.objectContaining({ binary_mode: true }),
+      expect.anything(),
+    );
   });
 
   it('consulta pagamento existente e mapeia status aprovado', async () => {

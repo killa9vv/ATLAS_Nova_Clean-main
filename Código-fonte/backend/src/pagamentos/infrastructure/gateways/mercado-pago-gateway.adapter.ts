@@ -80,6 +80,10 @@ export class MercadoPagoGatewayAdapter extends PaymentGateway {
           token: input.tokenCartao,
           installments: input.parcelas,
           payment_method_id: input.metodoPagamentoId,
+          // Resposta na hora: só aprovado ou recusado, nunca "em análise". O cliente sabe
+          // o resultado ainda no checkout e pode tentar outro cartão. Custo: o que iria
+          // pra análise manual do Mercado Pago passa a ser recusado direto.
+          binary_mode: true,
           external_reference: input.referenciaExterna,
           notification_url: this.notificationUrl,
           payer: this.montarPayer(input.pagador),
