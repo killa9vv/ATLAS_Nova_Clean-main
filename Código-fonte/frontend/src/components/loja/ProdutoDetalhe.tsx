@@ -6,8 +6,14 @@ import { PrecoProduto } from './PrecoProduto';
 import { ProdutoGaleria } from './produto/ProdutoGaleria';
 import { ProdutoQuantidadeCarrinho } from './produto/ProdutoQuantidadeCarrinho';
 import { ProdutoFrete } from './produto/ProdutoFrete';
+import { ProdutoGarantias } from './produto/ProdutoGarantias';
+import { ProdutoNotaLoja } from './produto/ProdutoNotaLoja';
 import { ProdutoSpecs } from './produto/ProdutoSpecs';
 import type { Produto } from '@/lib/produtos';
+
+function formatarMoeda(valor: number): string {
+  return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
 
 export interface ProdutoDetalheProps {
   variantes: Produto[];
@@ -52,6 +58,7 @@ export function ProdutoDetalhe({ variantes }: ProdutoDetalheProps) {
             {selecionado.produtoTipo?.nome ?? selecionado.nome}
           </h1>
           {selecionado.pack && <p className="mt-1 text-[13px] text-muted">{selecionado.pack}</p>}
+          <ProdutoNotaLoja />
 
           {variantes.length > 1 && (
             <div className="mt-5">
@@ -71,13 +78,19 @@ export function ProdutoDetalhe({ variantes }: ProdutoDetalheProps) {
                       aria-checked={ativo}
                       onClick={() => aoTrocarVariante(variante.id)}
                       className={[
-                        'rounded-[14px] px-2.5 py-1.5 text-[11.5px] font-bold',
+                        'flex min-h-11 flex-col rounded-[14px] px-3 py-1.5 text-left text-[11.5px] font-bold transition-[background-color,color,translate,scale] duration-200 hover:-translate-y-0.5 active:scale-95 motion-reduce:transition-none',
                         ativo
                           ? 'bg-navy text-white'
                           : 'bg-sky text-navy hover:bg-navy hover:text-white',
                       ].join(' ')}
                     >
-                      {variante.marca?.nome ?? 'Genérico'} — {variante.pack ?? variante.nome}
+                      <span>
+                        {variante.marca?.nome ?? 'Genérico'} — {variante.pack ?? variante.nome}
+                      </span>
+                      {/* O preço no próprio botão: dá pra comparar as marcas sem clicar em cada uma. */}
+                      <span className="font-mono font-medium">
+                        {formatarMoeda(variante.precoPromocional ?? variante.preco)}
+                      </span>
                     </button>
                   );
                 })}
@@ -86,17 +99,24 @@ export function ProdutoDetalhe({ variantes }: ProdutoDetalheProps) {
           )}
 
           <div className="mt-5 flex flex-col gap-4 rounded-atlas border border-line bg-white p-4 shadow-atlas">
-            <PrecoProduto
-              preco={selecionado.preco}
-              precoPromocional={selecionado.precoPromocional}
-              tamanho="lg"
-            />
+            {/* A key refaz o bloco ao trocar de marca: o preço novo chama a atenção. */}
+            <div key={selecionado.id} className="animate-card-in motion-reduce:animate-none">
+              <PrecoProduto
+                preco={selecionado.preco}
+                precoPromocional={selecionado.precoPromocional}
+                tamanho="lg"
+              />
+            </div>
             <ProdutoQuantidadeCarrinho
               produtoId={selecionado.id}
+              nome={selecionado.produtoTipo?.nome ?? selecionado.nome}
+              detalhes={[selecionado.marca?.nome, selecionado.pack].filter(Boolean).join(', ')}
+              precoUnitario={selecionado.precoPromocional ?? selecionado.preco}
               estoque={selecionado.estoque}
               quantidade={quantidade}
               aoMudarQuantidade={setQuantidade}
             />
+            <ProdutoGarantias />
           </div>
 
           <div className="mt-4">

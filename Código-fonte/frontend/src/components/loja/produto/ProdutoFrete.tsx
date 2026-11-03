@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { cotarFrete, type OpcaoFrete } from '@/lib/frete';
+import { formatarCep, somenteDigitos } from '@/lib/formatos';
 import { ApiError } from '@/lib/http';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -10,10 +11,6 @@ import { Input } from '@/components/ui/Input';
 export interface ProdutoFreteProps {
   quantidade: number;
   valorUnitario: number;
-}
-
-function somenteDigitos(valor: string): string {
-  return valor.replace(/\D/g, '');
 }
 
 function formatarMoeda(valor: number): string {
@@ -56,7 +53,7 @@ export function ProdutoFrete({ quantidade, valorUnitario }: ProdutoFreteProps) {
             label="CEP"
             placeholder="00000-000"
             value={cep}
-            onChange={(e) => setCep(e.target.value)}
+            onChange={(e) => setCep(formatarCep(e.target.value))}
             maxLength={9}
             inputMode="numeric"
           />
@@ -86,9 +83,12 @@ export function ProdutoFrete({ quantidade, valorUnitario }: ProdutoFreteProps) {
             >
               <span className="text-navy">
                 {opcao.tipo === 'RETIRADA' ? 'Retirada na loja' : 'Entrega'}
-                <span className="ml-1.5 text-muted">
-                  · {opcao.prazoEstimadoDias} {opcao.prazoEstimadoDias === 1 ? 'dia' : 'dias'}
-                </span>
+                {/* Retirada vem com prazo 0, e "0 dias" não diz nada: depende da loja confirmar. */}
+                {opcao.prazoEstimadoDias > 0 && (
+                  <span className="ml-1.5 text-muted">
+                    · {opcao.prazoEstimadoDias} {opcao.prazoEstimadoDias === 1 ? 'dia' : 'dias'}
+                  </span>
+                )}
               </span>
               <span className="font-mono font-bold text-navy">
                 {opcao.valor === 0 ? 'Grátis' : formatarMoeda(opcao.valor)}
