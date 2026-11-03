@@ -6,8 +6,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { ApiError } from '@/lib/http';
 import { redefinirSenha } from '@/lib/conta';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Card } from '@/components/ui/Card';
+import { InputSenha } from '@/components/ui/InputSenha';
+import { ContaErro, ContaMoldura } from '@/components/loja/conta/ContaMoldura';
 
 export default function RedefinirSenhaPage() {
   return (
@@ -45,48 +45,41 @@ function RedefinirSenhaConteudo() {
   }
 
   return (
-    <main className="mx-auto flex min-h-[70vh] max-w-sm items-center px-5 py-10">
-      <Card className="w-full p-8">
-        <p className="mb-1 text-[11px] font-bold uppercase tracking-wider text-blue">
-          Atlas Nova Clean
+    <ContaMoldura titulo="Redefinir senha">
+      {!token ? (
+        <p className="mt-4 rounded-atlas-sm bg-red-50 px-3 py-2.5 text-[13px] text-red-600">
+          Link inválido — solicite a recuperação de senha novamente.
         </p>
-        <h1 className="font-display text-xl font-bold text-navy">Redefinir senha</h1>
-
-        {!token ? (
-          <p className="mt-4 rounded-atlas-sm bg-red-50 px-3 py-2.5 text-[13px] text-red-600">
-            Link inválido — solicite a recuperação de senha novamente.
-          </p>
-        ) : (
-          <form onSubmit={aoEnviar} className="mt-6 flex flex-col gap-4">
-            <Input
+      ) : (
+        <form onSubmit={aoEnviar} className="mt-6 flex flex-col gap-4">
+          <div className="flex flex-col gap-1">
+            <InputSenha
               label="Nova senha"
-              type="password"
               required
               minLength={8}
+              autoFocus
               autoComplete="new-password"
               value={novaSenha}
               onChange={(e) => setNovaSenha(e.target.value)}
             />
-            {erro && (
-              <p
-                role="alert"
-                className="rounded-atlas-sm bg-red-50 px-3 py-2 text-[13px] text-red-600"
-              >
-                {erro}
-              </p>
-            )}
-            <Button type="submit" disabled={carregando} className="mt-1">
-              {carregando ? 'Salvando…' : 'Redefinir senha'}
-            </Button>
-          </form>
-        )}
+            <p
+              className={`text-[12px] ${novaSenha.length >= 8 ? 'font-semibold text-[#14753c]' : 'text-muted'}`}
+            >
+              {novaSenha.length >= 8 ? '✓ ' : ''}Pelo menos 8 caracteres
+            </p>
+          </div>
+          {erro && <ContaErro>{erro}</ContaErro>}
+          <Button type="submit" disabled={carregando} className="mt-1 py-3">
+            {carregando ? 'Salvando…' : 'Redefinir senha'}
+          </Button>
+        </form>
+      )}
 
-        <p className="mt-5 text-center text-[13px] text-muted">
-          <Link href="/conta/entrar" className="font-semibold text-blue hover:underline">
-            Voltar pro login
-          </Link>
-        </p>
-      </Card>
-    </main>
+      <p className="mt-5 text-center text-[13px] text-muted">
+        <Link href="/conta/entrar" className="font-semibold text-blue hover:underline">
+          Voltar pro login
+        </Link>
+      </p>
+    </ContaMoldura>
   );
 }

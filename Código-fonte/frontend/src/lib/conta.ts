@@ -142,6 +142,19 @@ export const STATUS_PEDIDO_LABEL: Record<StatusPedido, string> = {
   ESTORNADO: 'Estornado',
 };
 
+export const TOTAL_ETAPAS_PEDIDO = 5;
+
+// Quantas etapas já foram cumpridas. Cancelado e estornado saem da linha do tempo.
+export const ETAPAS_CUMPRIDAS_POR_STATUS: Partial<Record<StatusPedido, number>> = {
+  CRIADO: 1,
+  AGUARDANDO_PAGAMENTO: 1,
+  AGUARDANDO_CONTATO: 1,
+  PAGO: 2,
+  SEPARACAO: 3,
+  ENVIADO: 4,
+  ENTREGUE: 5,
+};
+
 export interface ItemPedido {
   produtoId: string;
   nome: string;

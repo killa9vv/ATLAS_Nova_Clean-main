@@ -4,8 +4,10 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import {
+  ETAPAS_CUMPRIDAS_POR_STATUS,
   listarMeusPedidos,
   STATUS_PEDIDO_LABEL,
+  TOTAL_ETAPAS_PEDIDO,
   type Pedido,
   type StatusPedido,
 } from '@/lib/conta';
@@ -25,18 +27,6 @@ const BADGE_POR_STATUS: Record<StatusPedido, BadgeVariant> = {
   ENTREGUE: 'green',
   CANCELADO: 'navy',
   ESTORNADO: 'navy',
-};
-
-const TOTAL_ETAPAS = 5;
-// Quantas etapas já foram cumpridas. Cancelado e estornado saem da linha do tempo.
-const ETAPAS_CUMPRIDAS: Partial<Record<StatusPedido, number>> = {
-  CRIADO: 1,
-  AGUARDANDO_PAGAMENTO: 1,
-  AGUARDANDO_CONTATO: 1,
-  PAGO: 2,
-  SEPARACAO: 3,
-  ENVIADO: 4,
-  ENTREGUE: 5,
 };
 
 const NOMES_NO_RESUMO = 2;
@@ -65,7 +55,7 @@ function resumoDosItens(pedido: Pedido): string {
 
 function CartaoPedido({ pedido, indice }: { pedido: Pedido; indice: number }) {
   const repetir = useRepetirPedido();
-  const cumpridas = ETAPAS_CUMPRIDAS[pedido.status];
+  const cumpridas = ETAPAS_CUMPRIDAS_POR_STATUS[pedido.status];
   const hrefDetalhe = `/conta/pedidos/${pedido.id}`;
 
   return (
@@ -94,7 +84,7 @@ function CartaoPedido({ pedido, indice }: { pedido: Pedido; indice: number }) {
 
       {cumpridas !== undefined && (
         <div className="flex gap-1" aria-hidden="true">
-          {Array.from({ length: TOTAL_ETAPAS }, (_, etapa) => (
+          {Array.from({ length: TOTAL_ETAPAS_PEDIDO }, (_, etapa) => (
             <span
               key={etapa}
               className={`h-1 flex-1 rounded-full ${etapa < cumpridas ? 'bg-[#14753c]' : 'bg-line'}`}
