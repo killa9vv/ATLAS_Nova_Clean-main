@@ -47,7 +47,7 @@ export function Hero() {
   const proximo = useCallback(() => irPara(indiceAtivo + 1), [indiceAtivo, irPara]);
   const anterior = useCallback(() => irPara(indiceAtivo - 1), [indiceAtivo, irPara]);
 
-  // Autoplay: pausa só com o mouse sobre botão/link ou com foco de teclado — o banner ocupa
+  // Autoplay: pausa só com o mouse sobre o link ou com foco de teclado — o banner ocupa
   // boa parte da tela, e pausar com o mouse em qualquer ponto dele fazia parecer que não
   // passava sozinho. Respeita prefers-reduced-motion (não roda nada nesse caso). Depende de
   // indiceAtivo pra recomeçar a contagem quando o cliente troca de banner na mão.
@@ -78,9 +78,9 @@ export function Hero() {
         role="region"
         aria-roledescription="carrossel"
         aria-label="Banners promocionais"
-        onMouseOver={(evento) => setPausado(!!(evento.target as Element).closest('a, button'))}
+        onMouseOver={(evento) => setPausado(!!(evento.target as Element).closest('a'))}
         onMouseLeave={() => setPausado(false)}
-        // Só foco de teclado: clicar numa seta também deixa o foco nela, e aí o banner
+        // Só foco de teclado: clicar no botão também deixa o foco nele, e aí o banner
         // ficaria parado até o cliente clicar em outro lugar.
         onFocus={(evento) => {
           if (evento.target.matches(':focus-visible')) setPausado(true);
@@ -165,49 +165,6 @@ export function Hero() {
             </div>
           );
         })}
-
-        {total > 1 && (
-          <div className="relative mx-auto mt-8 flex max-w-[1180px] items-center gap-4 px-5">
-            <button
-              type="button"
-              aria-label="Banner anterior"
-              onClick={anterior}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-line bg-white text-lg font-bold text-navy shadow-atlas hover:bg-sky"
-            >
-              ‹
-            </button>
-            <div className="flex gap-2">
-              {BANNER_SLIDES.map((slide, indice) => (
-                <button
-                  key={slide.id}
-                  type="button"
-                  aria-label={`Ir para o banner ${indice + 1} de ${total}`}
-                  aria-current={indice === indiceAtivo}
-                  onClick={() => irPara(indice)}
-                  // Área de toque de 24x24 (padding invisível) em volta do pontinho visual,
-                  // que continua pequeno — só o alvo clicável cresce.
-                  className="flex h-6 w-6 items-center justify-center"
-                >
-                  <span
-                    aria-hidden="true"
-                    className={[
-                      'h-2.5 rounded-full transition-all',
-                      indice === indiceAtivo ? 'w-6 bg-navy' : 'w-2.5 bg-line hover:bg-navy/40',
-                    ].join(' ')}
-                  />
-                </button>
-              ))}
-            </div>
-            <button
-              type="button"
-              aria-label="Próximo banner"
-              onClick={proximo}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-line bg-white text-lg font-bold text-navy shadow-atlas hover:bg-sky"
-            >
-              ›
-            </button>
-          </div>
-        )}
       </div>
 
       <div className="relative mx-auto mt-8 flex max-w-[1180px] flex-wrap gap-2.5 px-5">
