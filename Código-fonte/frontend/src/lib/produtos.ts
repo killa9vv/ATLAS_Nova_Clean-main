@@ -120,6 +120,10 @@ export function listarProdutosMaisVendidos(
   return api.get<Produto[]>(`/produtos/mais-vendidos?limite=${limite}`, opcoes);
 }
 
+export function buscarProduto(produtoId: string): Promise<Produto> {
+  return api.get<Produto>(`/produtos/${produtoId}`);
+}
+
 export function listarImagensProduto(
   produtoId: string,
   opcoes?: { signal?: AbortSignal },

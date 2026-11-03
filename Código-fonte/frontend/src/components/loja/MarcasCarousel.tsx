@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useSyncExternalStore } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { LogosCarousel } from '@/components/ui/LogosCarousel';
+import { useMenosMovimento } from '@/hooks/use-menos-movimento';
 
 export interface MarcaComContagem {
   id: string;
@@ -19,14 +20,6 @@ export interface MarcasCarouselProps {
 const MARCAS_POR_GRUPO = 6;
 // Uma linha no desktop; no celular os 6 quebram em 2 linhas de 3, sem JS.
 const CLASSES_GRUPO = 'flex-wrap gap-x-4 gap-y-5 sm:gap-x-10';
-
-const CONSULTA_MENOS_MOVIMENTO = '(prefers-reduced-motion: reduce)';
-
-function assinarMenosMovimento(aoMudar: () => void) {
-  const consulta = window.matchMedia(CONSULTA_MENOS_MOVIMENTO);
-  consulta.addEventListener('change', aoMudar);
-  return () => consulta.removeEventListener('change', aoMudar);
-}
 
 function LogoMarca({ marca }: { marca: MarcaComContagem }) {
   return (
@@ -60,11 +53,7 @@ function LogoMarca({ marca }: { marca: MarcaComContagem }) {
 // menos movimento no sistema já recebe a lista direto, sem animação.
 export function MarcasCarousel({ marcas }: MarcasCarouselProps) {
   const [verTodas, setVerTodas] = useState(false);
-  const menosMovimento = useSyncExternalStore(
-    assinarMenosMovimento,
-    () => window.matchMedia(CONSULTA_MENOS_MOVIMENTO).matches,
-    () => false,
-  );
+  const menosMovimento = useMenosMovimento();
 
   if (menosMovimento || verTodas) {
     return (

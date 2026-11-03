@@ -9,7 +9,7 @@ export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
 const VARIANT_CLASSES: Record<BadgeVariant, string> = {
   navy: 'bg-navy text-white',
   amber: 'bg-amber text-navy',
-  green: 'bg-green text-white',
+  green: 'bg-[#14753c] text-white',
   sky: 'bg-sky text-navy',
 };
 
