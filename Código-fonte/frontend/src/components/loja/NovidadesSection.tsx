@@ -1,5 +1,5 @@
 import { listarProdutos } from '@/lib/produtos';
-import { ProductCarousel } from './ProductCarousel';
+import { NovidadesVitrine } from './NovidadesVitrine';
 
 const QUANTIDADE = 12;
 // Estoque/preço/ativo mudam via admin a qualquer momento — revalidate curto.
@@ -24,12 +24,7 @@ export async function NovidadesSection() {
 
   return (
     <section aria-label="Novidades" className="mx-auto max-w-[1180px] px-5 py-10">
-      <p className="mb-1.5 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em] text-blue">
-        <span className="h-px w-4 bg-blue" aria-hidden="true" />
-        Chegou agora
-      </p>
-      <h2 className="mb-6 font-display text-xl font-bold text-navy">Novidades no catálogo</h2>
-      <ProductCarousel produtos={itens} rotulo="novidades" />
+      <NovidadesVitrine produtos={itens} />
     </section>
   );
 }

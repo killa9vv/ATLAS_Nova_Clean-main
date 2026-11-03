@@ -28,12 +28,12 @@ export default function Page() {
 
       <Suspense
         fallback={
-          <div className="mx-auto max-w-[1180px] px-5 py-8">
-            <CategoriaAtalhosSkeleton />
+          <div className="mx-auto max-w-[1180px] px-5 py-10">
+            <ProductRowSkeleton />
           </div>
         }
       >
-        <CategoriaAtalhos />
+        <MarcasSection />
       </Suspense>
 
       <Suspense
@@ -48,12 +48,12 @@ export default function Page() {
 
       <Suspense
         fallback={
-          <div className="mx-auto max-w-[1180px] px-5 py-10">
-            <ProductRowSkeleton />
+          <div className="mx-auto max-w-[1180px] px-5 py-8">
+            <CategoriaAtalhosSkeleton />
           </div>
         }
       >
-        <MarcasSection />
+        <CategoriaAtalhos />
       </Suspense>
 
       <Suspense
@@ -104,7 +104,9 @@ export default function Page() {
         <CategorySection categoria="papelaria" numero="03" indice={3} total={3} />
       </Suspense>
 
-      <ValueProps />
+      <Suspense fallback={null}>
+        <ValueProps />
+      </Suspense>
 
       <Suspense
         fallback={

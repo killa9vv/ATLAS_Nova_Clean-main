@@ -44,7 +44,7 @@ export function ProductTypeCard({
   return (
     <Link
       href={`/produtos/${slug}`}
-      className="animate-card-in flex flex-col overflow-hidden rounded-atlas border border-line bg-white shadow-atlas transition-transform hover:-translate-y-1 motion-reduce:animate-none"
+      className="group @container animate-card-in flex flex-col overflow-hidden rounded-atlas border border-line bg-white shadow-atlas transition-transform hover:-translate-y-1 motion-reduce:animate-none"
       style={{ animationDelay: `${delayMs}ms`, borderTopWidth: 3, borderTopColor: '#2e9bf5' }}
     >
       <div
@@ -63,7 +63,10 @@ export function ProductTypeCard({
             className="object-contain p-2"
           />
         ) : (
-          <span className="text-4xl opacity-70" aria-hidden="true">
+          <span
+            className="text-4xl opacity-70 transition-transform duration-300 group-hover:-rotate-6 group-hover:scale-115 motion-reduce:transition-none"
+            aria-hidden="true"
+          >
             {icone}
           </span>
         )}
@@ -77,15 +80,23 @@ export function ProductTypeCard({
             : `${quantidadeVariantes} opções disponíveis`}
         </p>
 
-        <div className="mt-auto flex items-center justify-between pt-2">
+        {/* flex-wrap: em card estreito com preço longo, o botão desce pra linha de baixo. */}
+        <div className="mt-auto flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5 pt-2 @max-[215px]:gap-x-1">
           <span className="flex flex-col">
             <span className="text-[10px] text-muted">a partir de</span>
             <span className="font-mono text-[14px] font-bold text-navy">
               {formatarMoeda(precoMinimo)}
             </span>
           </span>
-          <span className="rounded-atlas-sm bg-navy px-3 py-1.5 text-[12px] font-semibold text-white">
-            Ver opções →
+          <span className="whitespace-nowrap rounded-atlas-sm bg-navy px-2.5 py-1.5 text-[12px] font-semibold text-white @max-[215px]:px-2">
+            Ver opções{' '}
+            <span
+              aria-hidden="true"
+              // Em card estreito, a seta é o que faz o botão não caber ao lado do preço.
+              className="hidden transition-transform duration-200 group-hover:translate-x-0.5 motion-reduce:transition-none @[215px]:inline-block"
+            >
+              →
+            </span>
           </span>
         </div>
       </div>

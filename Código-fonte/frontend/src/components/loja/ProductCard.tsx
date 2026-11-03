@@ -17,6 +17,11 @@ export interface ProductCardProps {
   indice?: number;
 }
 
+// Pro elemento que envolve os cards (cada card dentro do seu próprio wrapper). Sem inclinar nem
+// escalar o card: o botão "Adicionar" não pode fugir do mouse.
+export const CLASSES_CARDS_VIVOS =
+  '[&>*>*]:transition-[translate,box-shadow] [&>*>*:hover]:shadow-atlas-lg [&_img]:transition-transform [&_img]:duration-500 [&>*>*:hover_img]:scale-108 [&_button]:transition-transform [&_button:active]:scale-95';
+
 export function ProductCard({ produto, indice = 0 }: ProductCardProps) {
   const { itens, adicionar, atualizarQuantidade } = useCart();
   const { showToast } = useToast();
@@ -71,7 +76,8 @@ export function ProductCard({ produto, indice = 0 }: ProductCardProps) {
             alt={produto.marca.nome}
             width={96}
             height={48}
-            className="h-12 w-auto object-contain opacity-70"
+            // Vários logos têm fundo branco: sem isso, viram um retângulo sobre a cor do card.
+            className="h-12 w-auto object-contain opacity-70 mix-blend-multiply"
             onError={() => setNivelFallback(2)}
           />
         ) : (
