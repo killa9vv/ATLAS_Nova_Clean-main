@@ -1,11 +1,10 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { ApiError } from '@/lib/http';
-import { buscarMeuPedido, buscarRastreio, repetirPedido, STATUS_PEDIDO_LABEL } from '@/lib/conta';
-import { useCart } from '@/lib/cart-context';
-import { useToast } from '@/components/ui/Toast';
+import { buscarMeuPedido, buscarRastreio, STATUS_PEDIDO_LABEL } from '@/lib/conta';
+import { useRepetirPedido } from '@/hooks/use-repetir-pedido';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 
@@ -26,8 +25,6 @@ function formatarDataHora(iso: string): string {
 export default function PedidoDetalhePage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const { showToast } = useToast();
-  const { adicionar, abrirDrawer } = useCart();
 
   const pedidoQuery = useQuery({
     queryKey: ['conta', 'pedido', params.id],
@@ -38,38 +35,7 @@ export default function PedidoDetalhePage() {
     queryFn: () => buscarRastreio(params.id),
   });
 
-  const repetir = useMutation({
-    mutationFn: () => repetirPedido(params.id),
-    onSuccess: async (resultado) => {
-      // Sequencial (não Promise.all) — cada POST /carrinho/itens é uma escrita no
-      // mesmo carrinho; disparar todas em paralelo arriscaria corrida entre elas.
-      for (const item of resultado.itens) {
-        await adicionar(item.produtoId, item.quantidade);
-      }
-
-      if (resultado.itens.length > 0) {
-        showToast(
-          `${resultado.itens.length} ${resultado.itens.length === 1 ? 'item adicionado' : 'itens adicionados'} ao carrinho.`,
-          'success',
-        );
-      }
-      if (resultado.itensIndisponiveis.length > 0) {
-        showToast(
-          `Não disponível: ${resultado.itensIndisponiveis.map((i) => i.nome).join(', ')}.`,
-          'error',
-        );
-      }
-      if (resultado.itens.length > 0) {
-        abrirDrawer();
-      }
-    },
-    onError: (erro) => {
-      showToast(
-        erro instanceof ApiError ? erro.message : 'Não foi possível repetir o pedido.',
-        'error',
-      );
-    },
-  });
+  const repetir = useRepetirPedido();
 
   if (pedidoQuery.isLoading) {
     return <p className="text-[13px] text-muted">Carregando…</p>;
@@ -115,7 +81,7 @@ export default function PedidoDetalhePage() {
               {STATUS_PEDIDO_LABEL[pedido.status]}
             </h2>
           </div>
-          <Button onClick={() => repetir.mutate()} disabled={repetir.isPending} size="sm">
+          <Button onClick={() => repetir.mutate(params.id)} disabled={repetir.isPending} size="sm">
             {repetir.isPending ? 'Repetindo…' : 'Repetir pedido'}
           </Button>
         </div>

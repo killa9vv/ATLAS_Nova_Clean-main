@@ -1,14 +1,19 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, ReactNode, useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ApiError } from '@/lib/http';
 import { atualizarMeuPerfil, meuPerfil, solicitarTrocaEmail, trocarSenha } from '@/lib/conta';
 import { obterSessaoCliente, salvarSessaoCliente } from '@/lib/conta-auth';
+import { formatarTelefone, telefoneValido } from '@/lib/formatos';
 import { useToast } from '@/components/ui/Toast';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { InputSenha } from '@/components/ui/InputSenha';
 import { Card } from '@/components/ui/Card';
+import { Skeleton } from '@/components/ui/Skeleton';
+
+const TAMANHO_MINIMO_SENHA = 8;
 
 export default function DadosCadastraisPage() {
   const { showToast } = useToast();
@@ -25,7 +30,7 @@ export default function DadosCadastraisPage() {
     // estado/prop local.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setNome(perfilQuery.data.nome);
-    setTelefone(perfilQuery.data.telefone ?? '');
+    setTelefone(formatarTelefone(perfilQuery.data.telefone ?? ''));
   }, [perfilQuery.data]);
 
   const salvarPerfil = useMutation({
@@ -49,9 +54,16 @@ export default function DadosCadastraisPage() {
     },
   });
 
+  // Compara dígitos no telefone: o salvo pode não ter a máscara que aparece no campo.
+  const houveMudanca =
+    !!perfilQuery.data &&
+    (nome !== perfilQuery.data.nome ||
+      telefone !== formatarTelefone(perfilQuery.data.telefone ?? ''));
+  const dadosValidos = nome.trim().length > 0 && telefoneValido(telefone);
+
   function aoSalvarPerfil(evento: FormEvent) {
     evento.preventDefault();
-    salvarPerfil.mutate();
+    if (houveMudanca && dadosValidos) salvarPerfil.mutate();
   }
 
   return (
@@ -59,33 +71,94 @@ export default function DadosCadastraisPage() {
       <Card className="p-6">
         <h2 className="mb-4 font-display text-base font-bold text-navy">Dados cadastrais</h2>
         {perfilQuery.isLoading ? (
-          <p className="text-[13px] text-muted">Carregando…</p>
+          <div className="flex flex-col gap-4" aria-label="Carregando dados">
+            <Skeleton className="h-11" />
+            <Skeleton className="h-11" />
+            <Skeleton className="h-11" />
+          </div>
         ) : (
           <form onSubmit={aoSalvarPerfil} className="flex flex-col gap-4">
             <Input
               label="Nome completo"
               required
+              autoComplete="name"
               value={nome}
               onChange={(e) => setNome(e.target.value)}
             />
-            <Input label="E-mail" type="email" disabled value={perfilQuery.data?.email ?? ''} />
+            <div className="flex flex-col gap-1">
+              <Input label="E-mail" type="email" disabled value={perfilQuery.data?.email ?? ''} />
+              <p className="text-[12px] text-muted">
+                Para mudar, use &quot;Trocar e-mail&quot; abaixo.
+              </p>
+            </div>
             <Input
               label="Telefone"
+              type="tel"
+              autoComplete="tel-national"
+              inputMode="tel"
               placeholder="(22) 99999-8888"
               value={telefone}
-              onChange={(e) => setTelefone(e.target.value)}
+              onChange={(e) => setTelefone(formatarTelefone(e.target.value))}
+              error={
+                telefone && !telefoneValido(telefone)
+                  ? 'Informe o DDD e o número completo.'
+                  : undefined
+              }
             />
-            <Button type="submit" disabled={salvarPerfil.isPending} className="self-start">
-              {salvarPerfil.isPending ? 'Salvando…' : 'Salvar dados'}
+            <Button
+              type="submit"
+              disabled={!houveMudanca || !dadosValidos || salvarPerfil.isPending}
+              className="self-start"
+            >
+              {salvarPerfil.isPending
+                ? 'Salvando…'
+                : houveMudanca
+                  ? 'Salvar alterações'
+                  : 'Tudo salvo'}
             </Button>
           </form>
         )}
       </Card>
 
-      <TrocarEmailCard />
-
-      <TrocarSenhaCard />
+      <section aria-labelledby="titulo-seguranca">
+        <h2 id="titulo-seguranca" className="mb-2.5 font-display text-base font-bold text-navy">
+          Segurança
+        </h2>
+        <div className="flex flex-col gap-3">
+          <TrocarEmailCard />
+          <TrocarSenhaCard />
+        </div>
+      </section>
     </div>
+  );
+}
+
+// Recolhido: trocar e-mail ou senha é raro, e aberto ocupava a maior parte da tela.
+function BlocoRecolhivel({
+  titulo,
+  descricao,
+  children,
+}: {
+  titulo: string;
+  descricao: string;
+  children: ReactNode;
+}) {
+  return (
+    <details className="group rounded-atlas border border-line bg-white shadow-atlas">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 hover:bg-paper [&::-webkit-details-marker]:hidden">
+        <span className="min-w-0">
+          <span className="block text-[14px] font-bold text-navy">{titulo}</span>
+          <span className="block text-[12.5px] text-muted">{descricao}</span>
+        </span>
+        <span
+          aria-hidden="true"
+          className="shrink-0 text-muted transition-transform duration-200 group-open:rotate-180 motion-reduce:transition-none"
+        >
+          ▾
+        </span>
+      </summary>
+      <div className="border-t border-line p-4">{children}</div>
+    </details>
   );
 }
 
@@ -117,13 +190,14 @@ function TrocarEmailCard() {
   }
 
   return (
-    <Card className="p-6">
-      <h2 className="mb-1 font-display text-base font-bold text-navy">Trocar e-mail</h2>
-      <p className="mb-4 text-[12.5px] text-muted">
-        Enviamos um link pro e-mail novo. A troca só vale depois que você clicar nele, e aí será
-        preciso entrar de novo.
-      </p>
+    <BlocoRecolhivel
+      titulo="Trocar e-mail"
+      descricao="A troca só vale depois de confirmar pelo link enviado ao e-mail novo."
+    >
       <form onSubmit={aoEnviar} className="flex flex-col gap-4">
+        <p className="text-[12.5px] text-muted">
+          Depois de clicar no link, será preciso entrar de novo.
+        </p>
         <Input
           label="Novo e-mail"
           type="email"
@@ -132,9 +206,8 @@ function TrocarEmailCard() {
           value={novoEmail}
           onChange={(e) => setNovoEmail(e.target.value)}
         />
-        <Input
+        <InputSenha
           label="Senha atual"
-          type="password"
           required
           autoComplete="current-password"
           value={senhaAtual}
@@ -149,7 +222,7 @@ function TrocarEmailCard() {
           {solicitar.isPending ? 'Enviando…' : 'Enviar link de confirmação'}
         </Button>
       </form>
-    </Card>
+    </BlocoRecolhivel>
   );
 }
 
@@ -178,34 +251,40 @@ function TrocarSenhaCard() {
     trocar.mutate();
   }
 
+  const senhaLongaOBastante = novaSenha.length >= TAMANHO_MINIMO_SENHA;
+
   return (
-    <Card className="p-6">
-      <h2 className="mb-1 font-display text-base font-bold text-navy">Trocar senha</h2>
-      <p className="mb-4 text-[12.5px] text-muted">
-        Trocar a senha desconecta suas outras sessões (outros dispositivos/abas).
-      </p>
+    <BlocoRecolhivel
+      titulo="Trocar senha"
+      descricao="Trocar a senha desconecta suas outras sessões (outros dispositivos/abas)."
+    >
       <form onSubmit={aoEnviar} className="flex flex-col gap-4">
-        <Input
+        <InputSenha
           label="Senha atual"
-          type="password"
           required
           autoComplete="current-password"
           value={senhaAtual}
           onChange={(e) => setSenhaAtual(e.target.value)}
         />
-        <Input
-          label="Nova senha"
-          type="password"
-          required
-          minLength={8}
-          autoComplete="new-password"
-          value={novaSenha}
-          onChange={(e) => setNovaSenha(e.target.value)}
-        />
+        <div className="flex flex-col gap-1">
+          <InputSenha
+            label="Nova senha"
+            required
+            minLength={TAMANHO_MINIMO_SENHA}
+            autoComplete="new-password"
+            value={novaSenha}
+            onChange={(e) => setNovaSenha(e.target.value)}
+          />
+          <p
+            className={`text-[12px] ${senhaLongaOBastante ? 'font-semibold text-[#14753c]' : 'text-muted'}`}
+          >
+            {senhaLongaOBastante ? '✓ ' : ''}Pelo menos {TAMANHO_MINIMO_SENHA} caracteres
+          </p>
+        </div>
         <Button type="submit" disabled={trocar.isPending} className="self-start">
           {trocar.isPending ? 'Salvando…' : 'Trocar senha'}
         </Button>
       </form>
-    </Card>
+    </BlocoRecolhivel>
   );
 }
