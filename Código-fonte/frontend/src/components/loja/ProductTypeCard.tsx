@@ -51,7 +51,7 @@ export function ProductTypeCard({
         className="relative flex aspect-[1.3/1] items-center justify-center overflow-hidden"
         style={{ background: corFundo }}
       >
-        <span className="absolute left-2 top-2 rounded-atlas-sm bg-white/80 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-navy">
+        <span className="absolute left-2 top-2 z-10 rounded-atlas-sm bg-white/80 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-navy">
           {categoria ?? 'produto'}
         </span>
         {imagemThumbnailUrl ? (

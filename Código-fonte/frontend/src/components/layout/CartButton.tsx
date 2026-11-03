@@ -21,7 +21,7 @@ export function CartButton({ count = 0, onClick }: CartButtonProps) {
         <circle cx="20" cy="21" r="1" />
         <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
       </svg>
-      <span className="max-[360px]:hidden">Sua lista</span>
+      <span className="max-[430px]:hidden">Sua lista</span>
       <span className="flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-amber text-[11px] font-bold text-navy">
         {count}
       </span>

@@ -31,9 +31,24 @@ export function ContaLink() {
   return (
     <Link
       href={nome ? '/conta' : '/conta/entrar'}
-      className="max-w-[80px] truncate text-[13px] font-semibold text-navy hover:text-blue"
+      className="flex max-w-[80px] items-center text-[13px] font-semibold text-navy hover:text-blue"
     >
-      {nome ?? 'Entrar'}
+      {/* Em tela bem estreita o nome empurrava o carrinho pra fora: vira só o ícone. */}
+      <svg
+        aria-hidden="true"
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="min-[381px]:hidden"
+      >
+        <path d="M20 21a8 8 0 0 0-16 0M12 13a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" />
+      </svg>
+      <span className="truncate max-[380px]:sr-only">{nome ?? 'Entrar'}</span>
     </Link>
   );
 }
