@@ -34,7 +34,7 @@ export const BANNER_SLIDES: BannerSlide[] = [
     titulo: 'Compra em quantidade',
     destaque: 'com preço justo',
     texto:
-      'Atacado pro seu comércio ou só o que precisa pra casa — mesmo preço justo dos dois jeitos, sem pedido mínimo.',
+      'Atacado pro seu comércio ou só o que precisa pra casa, sem pedido mínimo e com desconto automático por quantidade.',
     ctaTexto: 'Ver catálogo completo',
     ctaHref: '/catalogo',
     corBlob1: '#ffb020',

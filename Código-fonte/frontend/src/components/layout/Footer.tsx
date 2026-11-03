@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { hrefWhatsApp } from '@/lib/whatsapp';
-import { StatusLoja } from './StatusLoja';
 
 export interface FooterProps {
   /**
@@ -33,9 +32,12 @@ const POLICY_LINKS = [
   { label: 'Termos e condições', href: '/termos-condicoes' },
 ];
 
-function BottomBar() {
+// Sozinha ("simple"), precisa do próprio recuo lateral; no rodapé completo o pai já tem o dele.
+function BottomBar({ comRecuo = false }: { comRecuo?: boolean }) {
   return (
-    <div className="relative mx-auto mt-8 flex max-w-[1180px] flex-wrap justify-between gap-2.5 border-t border-[#1E2C4D] px-5 py-6 text-xs text-[#5F7099]">
+    <div
+      className={`relative mx-auto mt-8 flex max-w-[1180px] flex-wrap justify-between gap-2.5 border-t border-[#1E2C4D] py-6 text-xs text-[#5F7099] ${comRecuo ? 'px-5' : ''}`}
+    >
       <span>© {new Date().getFullYear()} Atlas Nova Clean</span>
       <span>Feito para facilitar o seu dia a dia.</span>
     </div>
@@ -46,7 +48,7 @@ export function Footer({ variant }: FooterProps) {
   if (variant === 'simple') {
     return (
       <footer className="bg-ink">
-        <BottomBar />
+        <BottomBar comRecuo />
       </footer>
     );
   }
@@ -71,7 +73,6 @@ export function Footer({ variant }: FooterProps) {
             Av. Arthur Bernardes, 619 — Campos dos Goytacazes, RJ
             <br />
             Segunda a sábado, das 8h às 18h.
-            <StatusLoja />
           </p>
           <div className="mt-4 flex gap-2.5">
             <a

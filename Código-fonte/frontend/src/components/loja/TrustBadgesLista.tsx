@@ -40,7 +40,7 @@ export function TrustBadgesLista({ totalProdutos }: { totalProdutos: number | nu
         ) : (
           'Catálogo com limpeza, descartáveis e papelaria'
         ),
-      detalhe: 'Atacado e varejo, mesmo preço',
+      detalhe: 'Atacado e varejo, com desconto por quantidade',
     },
   ];
 

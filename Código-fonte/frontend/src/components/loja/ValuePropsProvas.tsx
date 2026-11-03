@@ -2,7 +2,6 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { StatusLoja } from '@/components/layout/StatusLoja';
 import { LogosCarousel } from '@/components/ui/LogosCarousel';
 import { PalavrasStagger } from '@/components/ui/PalavrasStagger';
 import { useContagemAnimada } from '@/hooks/use-contagem-animada';
@@ -249,8 +248,8 @@ export function ValuePropsProvas({ categorias, marcas }: ValuePropsProvasProps) 
           <ProvaCatalogo categorias={categorias} entrada={entrada} />
           <h3 className="mb-1.5 mt-auto font-display text-lg font-bold">Atacado e varejo</h3>
           <p className="text-[13.5px] text-sky/90">
-            Compre em quantidade pro seu comércio ou só o que precisa pra casa — mesmo preço justo
-            dos dois jeitos.
+            Compre em quantidade pro seu comércio ou só o que precisa pra casa, com desconto
+            automático no atacado.
           </p>
         </div>
 
@@ -282,9 +281,8 @@ export function ValuePropsProvas({ categorias, marcas }: ValuePropsProvasProps) 
         style={{ animationDelay: `${ATRASO_ENTRE_CARDS_MS * 3}ms` }}
       >
         <div className="min-w-0">
-          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[14px] font-bold text-navy [&>span]:ml-0">
+          <p className="text-[14px] font-bold text-navy">
             Loja física em Campos, com retirada no local
-            <StatusLoja />
           </p>
           <p className="mt-0.5 text-[13px] text-muted">
             {ENDERECO}. Segunda a sábado, das 8h às 18h.
