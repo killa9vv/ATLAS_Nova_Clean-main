@@ -110,6 +110,7 @@ export default function CheckoutPage() {
   const [salvandoCupom, setSalvandoCupom] = useState(false);
   const [erroCupom, setErroCupom] = useState<string | null>(null);
   const pararPollingRef = useRef<(() => void) | null>(null);
+  const pagamentoAprovado = resultadoPagamento?.tipo === 'sucesso';
   // Último pedido 'site' criado e os dados que o geraram. Trocar pra WhatsApp e
   // voltar, voltar um passo ou tentar recarregar o Brick reaproveita esse pedido
   // enquanto nada mudar — antes cada ida e volta criava um pedido CRIADO novo que
@@ -204,12 +205,14 @@ export default function CheckoutPage() {
   // logo após montar, o carrinho começa vazio até terminar de ler o localStorage
   // (ver CartProvider) — sem esperar, um acesso direto/reload de /checkout com
   // carrinho não vazio seria expulso por engano antes da hidratação terminar.
+  // O pagamento aprovado esvazia o carrinho, e é a hora de mostrar a confirmação: sem essa
+  // exceção, quem acabou de pagar era mandado pro catálogo sem ver nada e podia pagar de novo.
   useEffect(() => {
-    if (hidratado && itens.length === 0) {
+    if (hidratado && itens.length === 0 && !pagamentoAprovado) {
       router.replace('/catalogo');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hidratado, itens.length]);
+  }, [hidratado, itens.length, pagamentoAprovado]);
 
   // Desmonta o Brick e para o polling do Pix ao sair da página — evita Brick
   // fantasma sobrepondo outra tela, ou polling rodando sem ninguém olhando.
@@ -220,7 +223,7 @@ export default function CheckoutPage() {
     };
   }, []);
 
-  if (!hidratado || itens.length === 0) {
+  if ((!hidratado || itens.length === 0) && !pagamentoAprovado) {
     return null;
   }
 
