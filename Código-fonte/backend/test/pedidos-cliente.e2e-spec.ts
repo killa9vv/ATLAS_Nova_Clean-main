@@ -83,7 +83,12 @@ describe('Meus Pedidos (e2e)', () => {
     });
   }
 
-  async function criarPedidoDoCliente(clienteId: string, produtoId: string, quantidade: number) {
+  async function criarPedidoDoCliente(
+    clienteId: string,
+    produtoId: string,
+    quantidade: number,
+    canal: 'site' | 'whatsapp' = 'site',
+  ) {
     const resposta = await request(app.getHttpServer())
       .post('/pedidos')
       .send({
@@ -91,6 +96,7 @@ describe('Meus Pedidos (e2e)', () => {
         tipoEntrega: 'RETIRADA',
         contato: contatoValido,
         clienteId,
+        canal,
       })
       .expect(201);
     return resposta.body.id as string;
@@ -101,9 +107,9 @@ describe('Meus Pedidos (e2e)', () => {
     const outroCliente = await criarClienteComToken();
 
     const produto = await criarProdutoComEstoque(20);
-    await criarPedidoDoCliente(cliente.clienteId, produto.id, 1);
-    await criarPedidoDoCliente(cliente.clienteId, produto.id, 1);
-    await criarPedidoDoCliente(outroCliente.clienteId, produto.id, 1);
+    await criarPedidoDoCliente(cliente.clienteId, produto.id, 1, 'whatsapp');
+    await criarPedidoDoCliente(cliente.clienteId, produto.id, 1, 'whatsapp');
+    await criarPedidoDoCliente(outroCliente.clienteId, produto.id, 1, 'whatsapp');
 
     const resposta = await request(app.getHttpServer())
       .get('/clientes/me/pedidos')
@@ -115,6 +121,78 @@ describe('Meus Pedidos (e2e)', () => {
     expect(
       resposta.body.itens.every((p: { clienteId: string }) => p.clienteId === cliente.clienteId),
     ).toBe(true);
+  });
+
+  describe('checkout online abandonado', () => {
+    function criarPagamento(pedidoId: string, status: 'PENDENTE' | 'RECUSADO' | 'APROVADO') {
+      return prisma.pagamento.create({ data: { pedidoId, metodo: 'PIX', status, valor: 10 } });
+    }
+
+    async function cancelar(pedidoId: string, statusAnterior: 'CRIADO' | 'AGUARDANDO_CONTATO') {
+      await prisma.pedido.update({ where: { id: pedidoId }, data: { status: 'CANCELADO' } });
+      await prisma.pedidoStatusHistorico.create({
+        data: { pedidoId, statusAnterior, statusNovo: 'CANCELADO' },
+      });
+    }
+
+    async function idsListados(accessToken: string) {
+      const resposta = await request(app.getHttpServer())
+        .get('/clientes/me/pedidos')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200);
+      expect(resposta.body.total).toBe(resposta.body.itens.length);
+      return resposta.body.itens.map((pedido: { id: string }) => pedido.id) as string[];
+    }
+
+    it('some da lista sem pagamento, com pagamento recusado ou depois de cancelado por abandono', async () => {
+      const cliente = await criarClienteComToken();
+      const produto = await criarProdutoComEstoque(20);
+
+      await criarPedidoDoCliente(cliente.clienteId, produto.id, 1);
+      const recusado = await criarPedidoDoCliente(cliente.clienteId, produto.id, 1);
+      await criarPagamento(recusado, 'RECUSADO');
+      const cancelado = await criarPedidoDoCliente(cliente.clienteId, produto.id, 1);
+      await cancelar(cancelado, 'CRIADO');
+
+      expect(await idsListados(cliente.accessToken)).toEqual([]);
+    });
+
+    it('continua na lista quem tem Pix em aberto, pagou ou fechou pelo WhatsApp, mesmo cancelado', async () => {
+      const cliente = await criarClienteComToken();
+      const produto = await criarProdutoComEstoque(20);
+
+      const pixEmAberto = await criarPedidoDoCliente(cliente.clienteId, produto.id, 1);
+      await criarPagamento(pixEmAberto, 'PENDENTE');
+      const pagoCancelado = await criarPedidoDoCliente(cliente.clienteId, produto.id, 1);
+      await criarPagamento(pagoCancelado, 'APROVADO');
+      await cancelar(pagoCancelado, 'CRIADO');
+      const whatsApp = await criarPedidoDoCliente(cliente.clienteId, produto.id, 1, 'whatsapp');
+      const whatsAppCancelado = await criarPedidoDoCliente(
+        cliente.clienteId,
+        produto.id,
+        1,
+        'whatsapp',
+      );
+      await cancelar(whatsAppCancelado, 'AGUARDANDO_CONTATO');
+
+      expect((await idsListados(cliente.accessToken)).sort()).toEqual(
+        [pixEmAberto, pagoCancelado, whatsApp, whatsAppCancelado].sort(),
+      );
+    });
+
+    it('o pedido abandonado continua no banco e abre pelo link direto', async () => {
+      const cliente = await criarClienteComToken();
+      const produto = await criarProdutoComEstoque(20);
+      const abandonado = await criarPedidoDoCliente(cliente.clienteId, produto.id, 1);
+
+      const noBanco = await prisma.pedido.findUnique({ where: { id: abandonado } });
+      expect(noBanco?.status).toBe('CRIADO');
+      const detalhe = await request(app.getHttpServer())
+        .get(`/clientes/me/pedidos/${abandonado}`)
+        .set('Authorization', `Bearer ${cliente.accessToken}`)
+        .expect(200);
+      expect(detalhe.body.id).toBe(abandonado);
+    });
   });
 
   it('sem token, GET /clientes/me/pedidos responde 401', async () => {

@@ -33,6 +33,28 @@ type PedidoComItens = PedidoPrisma & { itens: ItemPedidoPrisma[] };
  */
 type ClientePrisma = PrismaService | Prisma.TransactionClient;
 
+const STATUS_AGUARDANDO_PAGAMENTO: StatusPedidoPrisma[] = ['CRIADO', 'AGUARDANDO_PAGAMENTO'];
+
+/**
+ * Checkout online que nunca virou compra: sem pagamento vivo ou aprovado, ou já cancelado por
+ * isso (ver CancelarPedidosAbandonadosUseCase). Fica fora de "Meus pedidos", onde o cliente não
+ * tem o que fazer com ele, mas continua no painel admin. Cancelamento de pedido do WhatsApp não
+ * entra aqui: esse sai de AGUARDANDO_CONTATO e o cliente precisa saber dele.
+ */
+const PEDIDO_ONLINE_ABANDONADO: Prisma.PedidoWhereInput[] = [
+  {
+    status: { in: STATUS_AGUARDANDO_PAGAMENTO },
+    pagamentos: { none: { status: { in: ['PENDENTE', 'EM_PROCESSAMENTO', 'APROVADO'] } } },
+  },
+  {
+    status: 'CANCELADO',
+    pagamentos: { none: { status: 'APROVADO' } },
+    historico: {
+      some: { statusNovo: 'CANCELADO', statusAnterior: { in: STATUS_AGUARDANDO_PAGAMENTO } },
+    },
+  },
+];
+
 @Injectable()
 export class PrismaPedidoRepository extends PedidoRepository {
   constructor(private readonly prisma: PrismaService) {
@@ -151,6 +173,7 @@ export class PrismaPedidoRepository extends PedidoRepository {
     const where: Prisma.PedidoWhereInput = {
       clienteId,
       status: filtros.status as unknown as StatusPedidoPrisma | undefined,
+      NOT: PEDIDO_ONLINE_ABANDONADO,
     };
 
     const [pedidos, total] = await this.prisma.$transaction([
