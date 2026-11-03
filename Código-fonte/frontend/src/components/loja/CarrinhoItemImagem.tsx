@@ -1,7 +1,9 @@
 'use client';
 
 import Image from 'next/image';
+import { useQuery } from '@tanstack/react-query';
 import { useImagemPrincipal } from '@/hooks/use-imagem-principal';
+import { buscarProduto } from '@/lib/produtos';
 
 export interface CarrinhoItemImagemProps {
   produtoId: string;
@@ -9,13 +11,18 @@ export interface CarrinhoItemImagemProps {
   tamanho?: number;
 }
 
-// O item de carrinho (ItemCarrinhoServidor) não traz marca/categoria — só
-// produtoId/nome/preço/quantidade — então o fallback aqui é só 2 níveis (foto real
-// → ícone genérico), diferente do ProductCard/ProdutoGaleria que também caem pro
-// logo da marca. Buscar o produto completo só pra esse fallback extra não valeria
-// a chamada de API a mais.
+// O item de carrinho (ItemCarrinhoServidor) não traz marca/categoria, então o logo da marca
+// exige buscar o produto. A busca só acontece sem foto, e é o que evita mostrar um frasco de
+// limpeza pra um lápis. O ícone final é uma caixa neutra, que serve pra qualquer categoria.
 export function CarrinhoItemImagem({ produtoId, nome, tamanho = 56 }: CarrinhoItemImagemProps) {
-  const { principal } = useImagemPrincipal(produtoId);
+  const { principal, carregando } = useImagemPrincipal(produtoId);
+  const { data: produto } = useQuery({
+    queryKey: ['produto', produtoId],
+    queryFn: () => buscarProduto(produtoId),
+    enabled: !carregando && !principal,
+    staleTime: 5 * 60 * 1000,
+  });
+  const logoMarca = produto?.marca?.imagemUrl;
 
   return (
     <div
@@ -30,10 +37,30 @@ export function CarrinhoItemImagem({ produtoId, nome, tamanho = 56 }: CarrinhoIt
           sizes={`${tamanho}px`}
           className="object-contain p-1"
         />
+      ) : logoMarca ? (
+        <Image
+          src={logoMarca}
+          alt=""
+          fill
+          sizes={`${tamanho}px`}
+          // Vários logos têm fundo branco: sem isso, viram um retângulo sobre o azul-claro.
+          className="object-contain p-1.5 mix-blend-multiply"
+        />
       ) : (
-        <span className="text-lg opacity-60" aria-hidden="true">
-          🧴
-        </span>
+        <svg
+          aria-hidden="true"
+          width="22"
+          height="22"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.75"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="text-muted"
+        >
+          <path d="M21 8l-9-5-9 5v8l9 5 9-5zM3 8l9 5 9-5M12 13v8" />
+        </svg>
       )}
     </div>
   );

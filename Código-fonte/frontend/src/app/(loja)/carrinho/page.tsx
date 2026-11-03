@@ -9,9 +9,9 @@ import { CupomForm } from '@/components/loja/CupomForm';
 import { useCart } from '@/lib/cart-context';
 
 const TRUST_BADGES = [
-  { icone: '⚡', texto: 'Resposta rápida' },
-  { icone: '💳', texto: 'Pix, cartão ou combinado' },
-  { icone: '🔒', texto: 'Sem pagamento adiantado' },
+  { icone: '💳', texto: 'Pix e cartão via Mercado Pago' },
+  { icone: '💬', texto: 'Ou combine pelo WhatsApp' },
+  { icone: '🏬', texto: 'Retirada grátis na loja' },
 ];
 
 function formatarMoeda(valor: number): string {
