@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { hrefWhatsApp } from '@/lib/whatsapp';
+import { StatusLoja } from './StatusLoja';
 
 export interface FooterProps {
   /**
@@ -34,7 +35,7 @@ const POLICY_LINKS = [
 
 function BottomBar() {
   return (
-    <div className="mx-auto mt-8 flex max-w-[1180px] flex-wrap justify-between gap-2.5 border-t border-[#1E2C4D] px-5 py-6 text-xs text-[#5F7099]">
+    <div className="relative mx-auto mt-8 flex max-w-[1180px] flex-wrap justify-between gap-2.5 border-t border-[#1E2C4D] px-5 py-6 text-xs text-[#5F7099]">
       <span>© {new Date().getFullYear()} Atlas Nova Clean</span>
       <span>Feito para facilitar o seu dia a dia.</span>
     </div>
@@ -51,14 +52,26 @@ export function Footer({ variant }: FooterProps) {
   }
 
   return (
-    <footer className="bg-ink px-5 pb-6 pt-12 text-[#B9C8E8]">
-      <div className="mx-auto grid max-w-[1180px] grid-cols-1 gap-[30px] nav:grid-cols-[1.6fr_1fr_1fr_1fr]">
+    <footer className="relative overflow-hidden bg-ink px-5 pb-6 pt-12 text-[#B9C8E8]">
+      <span
+        aria-hidden="true"
+        className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue to-transparent"
+      />
+      {/* Marca d'água. A largura em vw acompanha a tela pro nome caber numa linha só. */}
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 -bottom-[0.18em] select-none whitespace-nowrap text-center font-display text-[11.5vw] font-bold leading-none text-white/[0.035] min-[1400px]:text-[160px]"
+      >
+        Atlas Nova Clean
+      </span>
+      <div className="relative mx-auto grid max-w-[1180px] grid-cols-1 gap-[30px] nav:grid-cols-[1.6fr_1fr_1fr_1fr]">
         <div>
           <h2 className="mb-3 font-display text-sm text-white">Atlas Nova Clean</h2>
           <p className="text-[13px] leading-[1.7] text-[#94A6CC]">
             Av. Arthur Bernardes, 619 — Campos dos Goytacazes, RJ
             <br />
             Segunda a sábado, das 8h às 18h.
+            <StatusLoja />
           </p>
           <div className="mt-4 flex gap-2.5">
             <a
@@ -66,7 +79,7 @@ export function Footer({ variant }: FooterProps) {
               target="_blank"
               rel="noopener"
               aria-label="Instagram da Atlas Nova Clean"
-              className="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-[#132445] text-[#B9C8E8] transition-colors hover:bg-blue hover:text-white"
+              className="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-[#132445] text-[#B9C8E8] transition-[translate,background-color,color] duration-200 hover:-translate-y-1 hover:bg-blue hover:text-white motion-reduce:transition-none"
             >
               <svg
                 width="18"
@@ -86,7 +99,7 @@ export function Footer({ variant }: FooterProps) {
               target="_blank"
               rel="noopener"
               aria-label="Facebook da Atlas Nova Clean"
-              className="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-[#132445] text-[#B9C8E8] transition-colors hover:bg-blue hover:text-white"
+              className="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-[#132445] text-[#B9C8E8] transition-[translate,background-color,color] duration-200 hover:-translate-y-1 hover:bg-blue hover:text-white motion-reduce:transition-none"
             >
               <svg
                 width="18"
@@ -105,7 +118,7 @@ export function Footer({ variant }: FooterProps) {
               target="_blank"
               rel="noopener"
               aria-label="WhatsApp da Atlas Nova Clean"
-              className="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-[#132445] text-[#B9C8E8] transition-colors hover:bg-blue hover:text-white"
+              className="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-[#132445] text-[#B9C8E8] transition-[translate,background-color,color] duration-200 hover:-translate-y-1 hover:bg-blue hover:text-white motion-reduce:transition-none"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 2a10 10 0 00-8.5 15.2L2 22l4.9-1.5A10 10 0 1012 2zm5.9 14.2c-.3.7-1.5 1.4-2.1 1.5-.5.1-1.2.2-3.5-.7-2.9-1.2-4.8-4.1-4.9-4.3-.1-.2-1.2-1.6-1.2-3s.8-2.2 1.1-2.5c.3-.3.6-.4.8-.4h.6c.2 0 .5 0 .7.5s.8 2 .9 2.1c.1.2.1.4 0 .6-.1.2-.2.3-.4.5-.2.2-.4.4-.5.6-.2.2-.4.4-.2.7.2.3.9 1.5 2 2.4 1.4 1.2 2.5 1.6 2.8 1.8.3.2.5.1.7-.1.2-.2.8-.9 1-1.2.2-.3.4-.2.7-.1.3.1 1.9.9 2.2 1.1.3.1.5.2.6.3.1.2.1.9-.2 1.6z" />
@@ -119,7 +132,10 @@ export function Footer({ variant }: FooterProps) {
           <ul className="list-none space-y-0 p-0 [&>li]:text-[13px] [&>li]:leading-[1.7] [&>li]:text-[#94A6CC]">
             {CATEGORY_LINKS.map((link) => (
               <li key={link.href}>
-                <Link href={link.href} className="block py-1 hover:text-white hover:underline">
+                <Link
+                  href={link.href}
+                  className="block py-1 transition-[translate,color] duration-200 hover:translate-x-1 hover:text-white hover:underline motion-reduce:transition-none"
+                >
                   {link.label}
                 </Link>
               </li>
@@ -136,7 +152,7 @@ export function Footer({ variant }: FooterProps) {
                   href={link.href}
                   target={link.href.startsWith('http') ? '_blank' : undefined}
                   rel={link.href.startsWith('http') ? 'noopener' : undefined}
-                  className="block py-1 hover:text-white hover:underline"
+                  className="block py-1 transition-[translate,color] duration-200 hover:translate-x-1 hover:text-white hover:underline motion-reduce:transition-none"
                 >
                   {link.label}
                 </a>
@@ -150,7 +166,10 @@ export function Footer({ variant }: FooterProps) {
           <ul className="list-none space-y-0 p-0 [&>li]:text-[13px] [&>li]:leading-[1.7] [&>li]:text-[#94A6CC]">
             {POLICY_LINKS.map((link) => (
               <li key={link.href}>
-                <Link href={link.href} className="block py-1 hover:text-white hover:underline">
+                <Link
+                  href={link.href}
+                  className="block py-1 transition-[translate,color] duration-200 hover:translate-x-1 hover:text-white hover:underline motion-reduce:transition-none"
+                >
                   {link.label}
                 </Link>
               </li>
