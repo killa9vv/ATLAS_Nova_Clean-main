@@ -18,6 +18,8 @@ export interface FiltrosListagemProdutos {
   ativo?: boolean;
   /** true = só produtos com preço promocional cadastrado (ver Produto.estaEmPromocao). */
   emPromocao?: boolean;
+  /** true = produtos com foto antes dos sem foto, mantendo ordenarPor/direcao em cada grupo. */
+  fotoPrimeiro?: boolean;
   ordenarPor?: 'nome' | 'preco' | 'createdAt';
   direcao?: 'asc' | 'desc';
 }

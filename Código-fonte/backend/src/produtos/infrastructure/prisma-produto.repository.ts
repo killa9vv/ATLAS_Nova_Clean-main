@@ -76,6 +76,7 @@ export class PrismaProdutoRepository extends ProdutoRepository {
       disponivel,
       ativo,
       emPromocao,
+      fotoPrimeiro,
       ordenarPor = 'createdAt',
       direcao = 'desc',
     } = filtros;
@@ -120,7 +121,11 @@ export class PrismaProdutoRepository extends ProdutoRepository {
         where,
         skip: (pagina - 1) * limite,
         take: limite,
-        orderBy: { [ordenarPor]: direcao },
+        // Por quantidade de fotos: o que importa é 0 contra 1 ou mais, e nesse ponto contar
+        // fotos dá o mesmo resultado sem precisar de uma coluna nova.
+        orderBy: fotoPrimeiro
+          ? [{ imagens: { _count: 'desc' } }, { [ordenarPor]: direcao }]
+          : { [ordenarPor]: direcao },
         include: INCLUDE_RELACOES,
       }),
       this.prisma.produto.count({ where }),

@@ -168,4 +168,50 @@ describe('Catálogo: filtros de produtos (e2e)', () => {
     expect(resposta.body.precoMinCatalogo).toBe(15);
     expect(resposta.body.precoMaxCatalogo).toBe(90);
   });
+  it('fotoPrimeiro=true põe quem tem foto antes, mantendo a ordenação pedida em cada grupo', async () => {
+    const categoria = `categoria-foto-${randomUUID()}`;
+    await prisma.categoria.create({ data: { slug: categoria, nome: 'Categoria de foto' } });
+    const criar = (dia: number) =>
+      prisma.produto.create({
+        data: {
+          id: randomUUID(),
+          nome: `Produto foto ${randomUUID()}`,
+          slug: `produto-foto-${randomUUID()}`,
+          preco: 10,
+          estoque: 5,
+          categoria,
+          createdAt: new Date(Date.UTC(2026, 0, dia)),
+        },
+      });
+    const novoSemFoto = await criar(30);
+    const medioComFoto = await criar(20);
+    const velhoComFoto = await criar(10);
+    const velhoSemFoto = await criar(5);
+    for (const produto of [medioComFoto, velhoComFoto]) {
+      await prisma.imagemProduto.create({
+        data: { produtoId: produto.id, url: 'https://exemplo.com/f.png', providerId: randomUUID() },
+      });
+    }
+
+    const comFoto = await request(app.getHttpServer())
+      .get(`/produtos?pagina=1&limite=10&categoria=${categoria}&fotoPrimeiro=true`)
+      .expect(200);
+    expect(comFoto.body.itens.map((p: { id: string }) => p.id)).toEqual([
+      medioComFoto.id,
+      velhoComFoto.id,
+      novoSemFoto.id,
+      velhoSemFoto.id,
+    ]);
+    expect(comFoto.body.total).toBe(4);
+
+    const semParametro = await request(app.getHttpServer())
+      .get(`/produtos?pagina=1&limite=10&categoria=${categoria}`)
+      .expect(200);
+    expect(semParametro.body.itens.map((p: { id: string }) => p.id)).toEqual([
+      novoSemFoto.id,
+      medioComFoto.id,
+      velhoComFoto.id,
+      velhoSemFoto.id,
+    ]);
+  });
 });

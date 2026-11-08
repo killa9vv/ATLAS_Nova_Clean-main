@@ -125,6 +125,16 @@ export class ListarProdutosQueryDto {
   @IsBooleanString()
   emPromocao?: string;
 
+  /** Vem como string na query string (ex: ?fotoPrimeiro=true). true = produtos com foto vêm
+   * antes dos sem foto; dentro de cada grupo vale ordenarPor/direcao. */
+  @ApiPropertyOptional({
+    example: 'true',
+    description: 'String "true"/"false". true = produtos com foto primeiro.',
+  })
+  @IsOptional()
+  @IsBooleanString()
+  fotoPrimeiro?: string;
+
   @ApiPropertyOptional({ enum: ['nome', 'preco', 'createdAt'], default: 'createdAt' })
   @IsOptional()
   @IsIn(['nome', 'preco', 'createdAt'])

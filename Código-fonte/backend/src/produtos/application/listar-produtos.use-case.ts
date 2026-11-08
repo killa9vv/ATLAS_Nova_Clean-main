@@ -22,6 +22,7 @@ export class ListarProdutosUseCase {
       disponivel: query.disponivel !== undefined ? query.disponivel === 'true' : undefined,
       ativo: query.ativo !== undefined ? query.ativo === 'true' : undefined,
       emPromocao: query.emPromocao !== undefined ? query.emPromocao === 'true' : undefined,
+      fotoPrimeiro: query.fotoPrimeiro !== undefined ? query.fotoPrimeiro === 'true' : undefined,
       ordenarPor: query.ordenarPor,
       direcao: query.direcao,
     });
