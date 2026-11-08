@@ -21,6 +21,8 @@ interface GrupoProduto {
 // Agrupa por tipo de produto (ex: "Detergente para Louça") — produto sem
 // produtoTipo vinculado (ex: cadastrado direto pelo admin, sem passar pelo import)
 // cai num grupo de 1 usando o próprio id, mesmo efeito visual do card simples de hoje.
+// Grupos com alguma foto vêm primeiro (sort estável: entre si, mantêm a ordem do catálogo):
+// só os primeiros aparecem antes do "Ver mais", e um ícone genérico vende menos que a foto.
 function agruparPorTipo(produtos: Produto[]): GrupoProduto[] {
   const grupos = new Map<string, Produto[]>();
   for (const produto of produtos) {
@@ -29,7 +31,15 @@ function agruparPorTipo(produtos: Produto[]): GrupoProduto[] {
     lista.push(produto);
     grupos.set(chave, lista);
   }
-  return [...grupos.entries()].map(([chave, variantes]) => ({ chave, variantes }));
+  return [...grupos.entries()]
+    .map(([chave, variantes]) => ({ chave, variantes }))
+    .sort((a, b) => Number(!!fotoDoGrupo(b)) - Number(!!fotoDoGrupo(a)));
+}
+
+// A foto de qualquer variante representa o grupo, não só a da primeira da lista.
+function fotoDoGrupo(grupo: GrupoProduto): string | undefined {
+  return grupo.variantes.find((variante) => variante.imagemPrincipalThumbnailUrl)
+    ?.imagemPrincipalThumbnailUrl;
 }
 
 export function CategoryGrid({ produtos }: CategoryGridProps) {
@@ -157,7 +167,7 @@ export function CategoryGrid({ produtos }: CategoryGridProps) {
                     quantidadeVariantes={grupo.variantes.length}
                     quantidadeMarcas={marcasDistintas}
                     precoMinimo={precoMinimo}
-                    imagemThumbnailUrl={primeira.imagemPrincipalThumbnailUrl}
+                    imagemThumbnailUrl={fotoDoGrupo(grupo)}
                     indice={i}
                   />
                 );
