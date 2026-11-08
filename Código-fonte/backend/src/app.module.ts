@@ -17,6 +17,7 @@ import { FreteModule } from './frete/infrastructure/frete.module';
 import { CuponsModule } from './cupons/infrastructure/cupons.module';
 import { BannersModule } from './banners/infrastructure/banners.module';
 import { ResenhasModule } from './resenhas/infrastructure/resenhas.module';
+import { AtendimentoModule } from './atendimento/infrastructure/atendimento.module';
 import { EmailsModule } from './emails/infrastructure/emails.module';
 import { ObservabilityModule } from './shared/observability/observability.module';
 import { HealthModule } from './health/health.module';
@@ -47,6 +48,7 @@ import { HealthModule } from './health/health.module';
     CuponsModule,
     BannersModule,
     ResenhasModule,
+    AtendimentoModule,
   ],
   providers: [
     {

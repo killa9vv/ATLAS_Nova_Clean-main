@@ -48,6 +48,11 @@ export const envValidationSchema = Joi.object({
     .optional(),
   REDIS_HOST: Joi.string().allow('').optional(),
   REDIS_PORT: Joi.number().port().optional(),
+  // Chat de atendimento: mesmo padrão opcional acima. Sem ANTHROPIC_API_KEY, a API sobe
+  // normalmente e o botão do chat não aparece na loja (ver GET /atendimento/status).
+  ANTHROPIC_API_KEY: Joi.string().allow('').optional(),
+  ATENDIMENTO_MODELO: Joi.string().allow('').optional(),
+  ATENDIMENTO_LIMITE_DIARIO: Joi.number().integer().positive().optional(),
   // Monitoramento de erros — opcional: sem DSN, nada é enviado (ver sentry.ts).
   SENTRY_DSN: Joi.string().uri().allow('').optional(),
 }).unknown(true); // não rejeita outras variáveis de ambiente do sistema (PATH, etc.)

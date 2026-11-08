@@ -2,6 +2,7 @@ import './instrument';
 import 'reflect-metadata';
 import { ValidationPipePtBr } from './shared/validation/validation-pipe-pt-br';
 import { NestFactory } from '@nestjs/core';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
@@ -10,12 +11,16 @@ import { GlobalExceptionFilter } from './shared/observability/global-exception.f
 import { PinoLoggerService } from './shared/observability/pino-logger.service';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bufferLogs: true,
   });
 
   const logger = app.get(PinoLoggerService);
   app.useLogger(logger);
+
+  // Atrás do proxy do Render, sem isto todo visitante tem o mesmo IP e divide o mesmo limite
+  // de requisições (ThrottlerGuard).
+  app.set('trust proxy', 1);
 
   app.use(helmet());
 
