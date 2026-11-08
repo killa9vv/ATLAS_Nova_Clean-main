@@ -9,6 +9,7 @@ import { Header } from '@/components/layout/Header';
 import { Ticker } from '@/components/layout/Ticker';
 import { Footer } from '@/components/layout/Footer';
 import { CartDrawer } from '@/components/layout/CartDrawer';
+import { AtendimentoChat } from '@/components/loja/AtendimentoChat';
 import { WhatsAppFab } from '@/components/loja/WhatsAppFab';
 import { JsonLd } from '@/components/JsonLd';
 import '../globals.css';
@@ -82,6 +83,7 @@ export default function LojaLayout({ children }: LayoutProps<'/'>) {
               {children}
               <Footer variant="full" />
               <WhatsAppFab />
+              <AtendimentoChat />
               <CartDrawer />
             </CartProvider>
           </ToastProvider>

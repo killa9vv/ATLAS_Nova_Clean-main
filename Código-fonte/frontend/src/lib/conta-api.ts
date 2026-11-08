@@ -66,6 +66,26 @@ async function comAuth<T>(chamada: () => Promise<T>): Promise<T> {
   }
 }
 
+// O chat lê a resposta em stream, fora do fluxo de retry do comAuth, e o backend trata token
+// vencido como visitante em vez de responder 401. Por isso renova antes de enviar.
+export async function obterTokenClienteValido(): Promise<string | null> {
+  const sessao = obterSessaoCliente();
+  if (!sessao) return null;
+  if (!tokenVencido(sessao.accessToken)) return sessao.accessToken;
+  const renovou = await tentarRenovar();
+  return renovou ? (obterSessaoCliente()?.accessToken ?? null) : null;
+}
+
+function tokenVencido(token: string): boolean {
+  try {
+    const conteudo = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    const { exp } = JSON.parse(atob(conteudo)) as { exp?: number };
+    return exp !== undefined && exp * 1000 <= Date.now();
+  } catch {
+    return true;
+  }
+}
+
 export const contaApi = {
   get: <T>(caminho: string) => comAuth(() => api.get<T>(caminho, { headers: authHeader() })),
   post: <T>(caminho: string, body?: unknown) =>

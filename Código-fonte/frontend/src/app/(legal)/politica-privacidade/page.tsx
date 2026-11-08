@@ -7,7 +7,7 @@ export default function Page() {
   return (
     <LegalArticle
       titulo="Política de Privacidade"
-      atualizadoEm="9 de julho de 2026"
+      atualizadoEm="8 de novembro de 2026"
       aviso="Este texto é um modelo genérico de política de privacidade baseado na LGPD e deve ser revisado por um profissional antes de ser tratado como definitivo — principalmente se a loja passar a usar ferramentas de análise (Google Analytics, Meta Pixel etc.)."
     >
       <p>
@@ -29,6 +29,16 @@ export default function Page() {
         Usamos essas informações exclusivamente para processar seu pedido, entrar em contato pelo
         WhatsApp e organizar a entrega ou retirada. Não usamos seus dados para nenhuma outra
         finalidade sem o seu conhecimento.
+      </p>
+
+      <h2>Chat de atendimento</h2>
+      <p>
+        O chat da loja é um assistente virtual com inteligência artificial. As mensagens que você
+        escreve nele são enviadas à Anthropic, empresa que fornece essa tecnologia, para gerar as
+        respostas. Se você estiver logado e perguntar sobre seus pedidos, os dados desses pedidos
+        (número, status, data, total, itens e código de rastreio) também são enviados. A conversa
+        fica guardada apenas no seu navegador, até você fechar a aba. Não informe senhas nem dados
+        de cartão no chat.
       </p>
 
       <h2>Cookies</h2>

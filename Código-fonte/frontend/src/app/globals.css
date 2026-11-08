@@ -421,3 +421,78 @@ body {
 .range-thumb-only::-moz-range-track {
   background: transparent;
 }
+
+/* Identidade do Neil, o astronauta do chat: céu estrelado e mascote em movimento leve. */
+.ceu-estrelado {
+  background-color: var(--color-navy);
+  background-image:
+    radial-gradient(1px 1px at 12% 24%, white, transparent),
+    radial-gradient(1px 1px at 34% 68%, rgba(255, 255, 255, 0.8), transparent),
+    radial-gradient(1.5px 1.5px at 58% 18%, white, transparent),
+    radial-gradient(1px 1px at 76% 52%, rgba(255, 255, 255, 0.7), transparent),
+    radial-gradient(1.5px 1.5px at 90% 82%, rgba(255, 255, 255, 0.85), transparent),
+    radial-gradient(1px 1px at 22% 88%, rgba(255, 255, 255, 0.6), transparent);
+  background-size: 120px 90px;
+}
+
+@keyframes neil-flutuar {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-2deg);
+  }
+  50% {
+    transform: translateY(-6px) rotate(2deg);
+  }
+}
+
+@keyframes neil-aceno {
+  0%,
+  100% {
+    transform: rotate(-6deg);
+  }
+  50% {
+    transform: rotate(14deg);
+  }
+}
+
+@keyframes neil-orbita {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes neil-antena {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.neil-flutuar {
+  animation: neil-flutuar 4s ease-in-out infinite;
+}
+
+.neil-aceno {
+  transform-origin: 52px 51px;
+  animation: neil-aceno 1.6s ease-in-out infinite;
+}
+
+.neil-orbita {
+  animation: neil-orbita 7s linear infinite;
+}
+
+.neil-antena {
+  animation: neil-antena 1.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .neil-flutuar,
+  .neil-aceno,
+  .neil-orbita,
+  .neil-antena {
+    animation: none;
+  }
+}
