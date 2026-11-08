@@ -34,7 +34,8 @@ export function CarrinhoSugestoes({ ativo }: { ativo: boolean }) {
   const categoria = base?.categoria;
   const { data: daCategoria } = useQuery({
     queryKey: ['sugestoes-carrinho', categoria],
-    queryFn: () => listarProdutos({ pagina: 1, limite: LIMITE_BUSCA, categoria }),
+    queryFn: () =>
+      listarProdutos({ pagina: 1, limite: LIMITE_BUSCA, categoria, fotoPrimeiro: true }),
     enabled: ativo && !!categoria,
     staleTime: VALIDADE_CACHE_MS,
   });

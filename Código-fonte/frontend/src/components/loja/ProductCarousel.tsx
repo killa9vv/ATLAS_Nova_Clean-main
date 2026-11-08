@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { CLASSES_CARDS_VIVOS, ProductCard } from './ProductCard';
 import type { EntradaNaTela } from '@/hooks/use-entrada-na-tela';
-import type { Produto } from '@/lib/produtos';
+import { comFotoPrimeiro, type Produto } from '@/lib/produtos';
 
 const PASSO_ROLAGEM_PX = 460;
 const FOLGA_LIMITE_PX = 4;
@@ -77,7 +77,7 @@ export function ProductCarousel({ produtos, rotulo, entrada }: ProductCarouselPr
           ...(animado && { maskImage: mascara, WebkitMaskImage: mascara }),
         }}
       >
-        {produtos.map((produto, indice) => (
+        {comFotoPrimeiro(produtos).map((produto, indice) => (
           <div
             key={produto.id}
             className={[

@@ -77,6 +77,8 @@ export interface FiltrosListarProdutos {
   /** true = só estoque > 0. */
   disponivel?: boolean;
   emPromocao?: boolean;
+  /** Produtos com foto antes dos sem foto, mantendo ordenarPor/direcao em cada grupo. */
+  fotoPrimeiro?: boolean;
   ordenarPor?: 'nome' | 'preco' | 'createdAt';
   direcao?: 'asc' | 'desc';
 }
@@ -107,6 +109,7 @@ export function listarProdutos(
   if (params.precoMax !== undefined) query.set('precoMax', String(params.precoMax));
   if (params.disponivel) query.set('disponivel', 'true');
   if (params.emPromocao) query.set('emPromocao', 'true');
+  if (params.fotoPrimeiro) query.set('fotoPrimeiro', 'true');
   if (params.ordenarPor) query.set('ordenarPor', params.ordenarPor);
   if (params.direcao) query.set('direcao', params.direcao);
   return api.get<ProdutoPaginado>(`/produtos?${query.toString()}`, opcoes);
@@ -118,6 +121,16 @@ export function listarProdutosMaisVendidos(
   opcoes?: { next?: { revalidate?: number } },
 ): Promise<Produto[]> {
   return api.get<Produto[]>(`/produtos/mais-vendidos?limite=${limite}`, opcoes);
+}
+
+// Produtos com foto antes dos sem foto. Estável: entre si, cada grupo mantém a ordem original
+// (mais vendidos continua por vendas, novidades por data).
+export function comFotoPrimeiro<T extends Pick<Produto, 'imagemPrincipalThumbnailUrl'>>(
+  produtos: T[],
+): T[] {
+  return [...produtos].sort(
+    (a, b) => Number(!!b.imagemPrincipalThumbnailUrl) - Number(!!a.imagemPrincipalThumbnailUrl),
+  );
 }
 
 export function buscarProduto(produtoId: string): Promise<Produto> {

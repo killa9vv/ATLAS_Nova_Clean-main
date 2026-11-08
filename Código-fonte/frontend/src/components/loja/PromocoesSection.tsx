@@ -1,4 +1,4 @@
-import { listarProdutos } from '@/lib/produtos';
+import { comFotoPrimeiro, listarProdutos } from '@/lib/produtos';
 import { ProductCard } from './ProductCard';
 
 const QUANTIDADE = 12;
@@ -32,7 +32,7 @@ export async function PromocoesSection() {
         className="grid gap-3.5"
         style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))' }}
       >
-        {itens.map((produto, indice) => (
+        {comFotoPrimeiro(itens).map((produto, indice) => (
           <ProductCard key={produto.id} produto={produto} indice={indice} />
         ))}
       </div>

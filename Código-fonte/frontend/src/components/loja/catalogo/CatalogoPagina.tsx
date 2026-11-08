@@ -81,6 +81,7 @@ export function CatalogoPagina() {
           disponivel: filtros.disponivel,
           ordenarPor,
           direcao,
+          fotoPrimeiro: filtros.ordenacao === 'relevancia',
         },
         { signal },
       ),
