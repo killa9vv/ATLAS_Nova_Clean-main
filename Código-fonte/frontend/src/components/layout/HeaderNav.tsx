@@ -9,7 +9,7 @@ import { HeaderSearch } from './HeaderSearch';
 import { useCart } from '@/lib/cart-context';
 
 const NAV_LINK_CLASS =
-  'block px-5 py-3.5 text-[13px] font-semibold text-navy hover:bg-sky nav:inline-block nav:rounded-[20px] nav:px-3 nav:py-2';
+  'block px-5 py-3.5 text-[13px] font-semibold text-navy transition-colors hover:bg-sky hover:text-blue motion-reduce:transition-none nav:inline-block nav:rounded-[20px] nav:px-3 nav:py-2';
 
 export function HeaderNav() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -35,6 +35,7 @@ export function HeaderNav() {
           'nav:static nav:max-h-none nav:flex-1 nav:flex-row nav:items-center nav:gap-1 nav:overflow-visible nav:border-b-0 nav:bg-transparent nav:shadow-none',
         ].join(' ')}
       >
+        <HeaderSearch celular />
         <MegaMenu />
         <Link href="/#avaliacoes" className={NAV_LINK_CLASS}>
           Avaliações

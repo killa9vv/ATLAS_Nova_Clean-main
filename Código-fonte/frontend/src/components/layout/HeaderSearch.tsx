@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
@@ -15,8 +15,9 @@ const TAMANHO_MINIMO_BUSCA = 2;
 // Autocomplete do campo de busca do header: sugere produtos reais enquanto
 // digita (debounced), sem abandonar o comportamento antigo de Enter/submit
 // levar pro catálogo com o termo na URL.
-export function HeaderSearch() {
+export function HeaderSearch({ celular = false }: { celular?: boolean }) {
   const router = useRouter();
+  const idSugestoes = useId();
   const containerRef = useRef<HTMLDivElement>(null);
   const [texto, setTexto] = useState('');
   const [aberto, setAberto] = useState(false);
@@ -49,8 +50,12 @@ export function HeaderSearch() {
   }
 
   return (
-    <div ref={containerRef} className="relative hidden nav:block">
+    <div
+      ref={containerRef}
+      className={celular ? 'border-b border-line p-3 nav:hidden' : 'relative hidden nav:block'}
+    >
       <form
+        className="relative"
         onSubmit={(e) => {
           e.preventDefault();
           if (texto.trim()) irParaCatalogo(texto.trim());
@@ -59,14 +64,17 @@ export function HeaderSearch() {
         <svg
           viewBox="0 0 24 24"
           fill="none"
-          className="pointer-events-none absolute left-[11px] top-[9px] h-3.5 w-3.5 stroke-muted"
+          aria-hidden="true"
+          className="pointer-events-none absolute left-[11px] top-1/2 h-3.5 w-3.5 -translate-y-1/2 stroke-muted"
         >
           <circle cx="11" cy="11" r="7" strokeWidth="2" />
           <path d="M21 21l-4-4" strokeWidth="2" strokeLinecap="round" />
         </svg>
         <input
-          type="text"
+          type="search"
           name="q"
+          aria-label="Buscar produto"
+          enterKeyHint="search"
           value={texto}
           onChange={(e) => {
             setTexto(e.target.value);
@@ -79,18 +87,23 @@ export function HeaderSearch() {
           placeholder="Buscar produto..."
           role="combobox"
           aria-expanded={mostrarPainel}
-          aria-controls="header-search-sugestoes"
+          aria-controls={idSugestoes}
           aria-autocomplete="list"
           autoComplete="off"
-          className="w-[180px] rounded-[20px] border border-line bg-white py-2 pl-[34px] pr-3 font-sans text-[13px]"
+          className={`rounded-[20px] border border-line bg-white py-2 pl-[34px] pr-3 font-sans text-[13px] transition-[width,box-shadow,border-color] duration-200 focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/30 motion-reduce:transition-none ${
+            celular ? 'w-full py-2.5' : 'w-[180px] min-[1100px]:focus:w-[250px]'
+          }`}
         />
       </form>
 
       {mostrarPainel && (
         <div
-          id="header-search-sugestoes"
+          id={idSugestoes}
           role="listbox"
-          className="absolute left-0 top-[calc(100%+8px)] z-[200] w-[320px] overflow-hidden rounded-atlas border border-line bg-white shadow-atlas-lg"
+          // No celular fica no fluxo: o menu tem overflow próprio e cortaria um painel absoluto.
+          className={`painel-cai overflow-hidden rounded-atlas border border-line bg-white shadow-atlas-lg ${
+            celular ? 'mt-2' : 'absolute left-0 top-[calc(100%+8px)] z-[200] w-[320px]'
+          }`}
         >
           {isFetching && sugestoes.length === 0 ? (
             <p className="px-4 py-3 text-[12.5px] text-muted">Buscando…</p>

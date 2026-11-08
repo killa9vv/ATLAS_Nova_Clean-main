@@ -13,8 +13,14 @@ export interface HeaderProps {
 
 function BrandLink() {
   return (
-    <Link href="/" className="flex shrink-0 items-center gap-2.5">
-      <Image src="/logo.png" alt="Atlas Nova Clean" width={36} height={36} className="shrink-0" />
+    <Link href="/" className="group flex shrink-0 items-center gap-2.5">
+      <Image
+        src="/logo.png"
+        alt="Atlas Nova Clean"
+        width={36}
+        height={36}
+        className="shrink-0 transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:-rotate-12 group-hover:scale-110 motion-reduce:transition-none"
+      />
       <span className="font-display leading-none">
         <b className="block text-lg font-bold text-navy">ATLAS</b>
         <span className="block text-[10px] font-semibold tracking-[0.18em] text-blue">
@@ -37,7 +43,7 @@ export function Header({ variant }: HeaderProps) {
   }
 
   return (
-    <header className="sticky top-0 z-40 border-b border-line bg-paper/90 backdrop-blur-[10px]">
+    <header className="cabecalho-rolagem sticky top-0 z-40 border-b border-line bg-paper/90 backdrop-blur-[10px]">
       <div className="relative mx-auto flex max-w-[1180px] items-center justify-between gap-4.5 px-5 py-3.5">
         <BrandLink />
         <HeaderNav />

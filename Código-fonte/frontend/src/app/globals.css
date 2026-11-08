@@ -199,6 +199,43 @@
   }
 }
 
+/* Painéis do cabeçalho (mega menu, sugestões da busca) entram descendo de leve. */
+@keyframes painel-cai {
+  from {
+    transform: translateY(-6px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.painel-cai {
+  animation: painel-cai 0.18s ease-out;
+}
+
+/* Sombra no cabeçalho só depois de rolar a página. Sem suporte a scroll(), fica sem sombra. */
+@keyframes cabecalho-sombra {
+  to {
+    box-shadow: 0 8px 24px rgba(11, 31, 77, 0.1);
+  }
+}
+
+@supports (animation-timeline: scroll()) {
+  .cabecalho-rolagem {
+    animation: cabecalho-sombra linear both;
+    animation-timeline: scroll(root);
+    animation-range: 0 80px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .painel-cai {
+    animation: none;
+  }
+}
+
 /* Mensagem de erro de login: tremida curta pra quem estava olhando pro botão notar. */
 @keyframes tremer {
   20%,
