@@ -10,11 +10,14 @@ const SEGUNDOS_POR_RECADO = 14;
 const INCLINACOES_GRAUS = [-1, 0.8, -0.5, 1.2];
 const CORES_AVATAR = Object.values(COR_POR_CATEGORIA);
 
+// Fuso fixo porque o mural é renderizado no servidor (UTC) e de novo no navegador: à noite, cada um
+// calculava um dia diferente, e o React descartava o HTML do servidor ao hidratar.
 function formatarData(iso: string): string {
   return new Date(iso).toLocaleDateString('pt-BR', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
+    timeZone: 'America/Sao_Paulo',
   });
 }
 
