@@ -22,9 +22,8 @@ import { RolesGuard } from '../../auth/presentation/guards/roles.guard';
 import { Roles } from '../../auth/presentation/decorators/roles.decorator';
 import { PapelUsuario } from '../../auth/domain/papel-usuario.enum';
 
-// Admin-only inteiro: banners ainda não são consumidos pela vitrine pública
-// (isso é escopo do card de Home/vitrine), então por ora só o painel admin
-// gerencia e lê essa lista.
+// Admin-only inteiro: o painel gerencia e vê todos, inclusive os desligados. A vitrine lê só
+// os ativos por BannersPublicosController (GET /banners/ativos).
 @ApiTags('banners')
 @Controller('banners')
 @ApiBearerAuth('access-token')

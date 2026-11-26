@@ -161,6 +161,37 @@ describe('Cupons e Banners (e2e)', () => {
       expect(resposta.body.erro).toBe('BANNER_NAO_ENCONTRADO');
     });
 
+    it('lista os ativos sem login, na ordem do painel e só com o que a vitrine usa', async () => {
+      const criar = async (titulo: string, ordem: number) =>
+        (
+          await request(app.getHttpServer())
+            .post('/banners')
+            .set('Authorization', `Bearer ${tokenAdmin}`)
+            .send({ titulo, ordem, imagemUrl: 'https://res.cloudinary.com/atlas/b.jpg' })
+            .expect(201)
+        ).body.id as string;
+      const segundo = await criar(`Vitrine B ${randomUUID()}`, 902);
+      const primeiro = await criar(`Vitrine A ${randomUUID()}`, 901);
+      const desligado = await criar(`Vitrine C ${randomUUID()}`, 900);
+      await request(app.getHttpServer())
+        .put(`/banners/${desligado}`)
+        .set('Authorization', `Bearer ${tokenAdmin}`)
+        .send({ ativo: false })
+        .expect(200);
+
+      const resposta = await request(app.getHttpServer()).get('/banners/ativos').expect(200);
+
+      const ids = (resposta.body as { id: string }[]).map((banner) => banner.id);
+      expect(ids.filter((id) => [primeiro, segundo, desligado].includes(id))).toEqual([
+        primeiro,
+        segundo,
+      ]);
+      expect(
+        Object.keys(resposta.body.find((b: { id: string }) => b.id === primeiro)).sort(),
+      ).toEqual(['id', 'imagemUrl', 'titulo']);
+      await request(app.getHttpServer()).get('/banners').expect(401);
+    });
+
     it('retorna 404 ao excluir banner inexistente', async () => {
       const resposta = await request(app.getHttpServer())
         .delete(`/banners/${randomUUID()}`)

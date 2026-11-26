@@ -5,6 +5,7 @@ import { AtualizarBannerUseCase } from './atualizar-banner.use-case';
 import { CriarBannerUseCase } from './criar-banner.use-case';
 import { ExcluirBannerUseCase } from './excluir-banner.use-case';
 import { ListarBannersUseCase } from './listar-banners.use-case';
+import { ListarBannersAtivosUseCase } from './listar-banners-ativos.use-case';
 
 function criarRepositorioMock(): jest.Mocked<BannerRepository> {
   return {
@@ -96,5 +97,23 @@ describe('ListarBannersUseCase', () => {
 
     const useCase = new ListarBannersUseCase(bannerRepository);
     await expect(useCase.executar()).resolves.toEqual(banners);
+  });
+});
+
+describe('ListarBannersAtivosUseCase', () => {
+  it('devolve só os ativos, mantendo a ordem do repositório', async () => {
+    const bannerRepository = criarRepositorioMock();
+    const base = criarBanner();
+    const comOrdem = (id: string, ordem: number, ativo: boolean) =>
+      new Banner(id, `Banner ${id}`, ordem, ativo, base.createdAt, base.updatedAt);
+    bannerRepository.listarTodos.mockResolvedValue([
+      comOrdem('a', 0, true),
+      comOrdem('b', 1, false),
+      comOrdem('c', 2, true),
+    ]);
+
+    const banners = await new ListarBannersAtivosUseCase(bannerRepository).executar();
+
+    expect(banners.map((banner) => banner.id)).toEqual(['a', 'c']);
   });
 });
