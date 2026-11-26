@@ -1,8 +1,6 @@
-// Conteúdo do carrossel principal da home. Fixo em config local, não vem de admin/CMS
-// — não existe painel pra gerenciar banners ainda (fora de escopo deste card). Cada
-// slide reaproveita só afirmações já verdadeiras hoje (nada inventado: atacado/varejo,
-// WhatsApp e Pix/cartão já são reais em outras partes do site). Editar aqui é a forma
-// de trocar o conteúdo até existir um painel de verdade.
+// Slides padrão do carrossel da home: aparecem quando não há nenhum banner ativo no painel
+// admin (ou a API não responde). Cada slide reaproveita só afirmações já verdadeiras hoje
+// (atacado/varejo, WhatsApp e Pix/cartão já são reais em outras partes do site).
 export interface BannerSlide {
   id: string;
   eyebrow: string;

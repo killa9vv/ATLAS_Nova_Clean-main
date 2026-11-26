@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { BANNER_SLIDES } from '@/data/banners';
+import { BANNER_SLIDES, type BannerSlide } from '@/data/banners';
+import type { BannerVitrine } from '@/lib/banners';
+import { SITE_URL } from '@/lib/site';
 import { hrefWhatsApp } from '@/lib/whatsapp';
 import { PalavrasStagger } from '@/components/ui/PalavrasStagger';
 
@@ -26,8 +28,34 @@ const STAT_PILLS = [
   { icone: '📦', texto: 'Atacado e varejo' },
 ];
 
-export function Hero() {
-  const total = BANNER_SLIDES.length;
+// O carrossel mostra os banners ativos do painel admin; sem nenhum, os slides fixos de
+// data/banners. Um banner do painel tem só título, imagem e link, então vira um slide de imagem,
+// ou, sem imagem, um slide de texto no mesmo visual dos fixos.
+type Slide = ({ origem: 'fixo' } & BannerSlide) | ({ origem: 'painel' } & BannerVitrine);
+
+const CORES_SLIDE_PAINEL = ['#2e9bf5', '#1faa59'];
+
+function rotuloDoSlide(slide: Slide): string {
+  return slide.origem === 'fixo' ? `${slide.titulo} ${slide.destaque}` : slide.titulo;
+}
+
+// Link do próprio site vira caminho relativo, pra navegar sem recarregar a página.
+function destinoDoBanner(linkUrl: string): { href: string; externo: boolean } {
+  if (linkUrl.startsWith(SITE_URL))
+    return { href: linkUrl.slice(SITE_URL.length) || '/', externo: false };
+  return { href: linkUrl, externo: !linkUrl.startsWith('/') };
+}
+
+export interface HeroProps {
+  banners?: BannerVitrine[];
+}
+
+export function Hero({ banners = [] }: HeroProps) {
+  const slides: Slide[] =
+    banners.length > 0
+      ? banners.map((banner) => ({ origem: 'painel', ...banner }))
+      : BANNER_SLIDES.map((slide) => ({ origem: 'fixo', ...slide }));
+  const total = slides.length;
   const [indiceAtivo, setIndiceAtivo] = useState(0);
   const [pausado, setPausado] = useState(false);
   const reducedMotionRef = useRef(false);
@@ -69,7 +97,7 @@ export function Hero() {
     }
   }
 
-  const slideAtivo = BANNER_SLIDES[indiceAtivo];
+  const slideAtivo = slides[indiceAtivo];
 
   return (
     <section className="relative overflow-hidden py-14">
@@ -95,11 +123,22 @@ export function Hero() {
       >
         {/* Anunciado só pra leitor de tela — o conteúdo visual já troca de slide. */}
         <p aria-live="polite" className="sr-only">
-          Slide {indiceAtivo + 1} de {total}: {slideAtivo.titulo} {slideAtivo.destaque}
+          Slide {indiceAtivo + 1} de {total}: {rotuloDoSlide(slideAtivo)}
         </p>
 
-        {BANNER_SLIDES.map((slide, indice) => {
+        {slides.map((slide, indice) => {
           const ativo = indice === indiceAtivo;
+          if (slide.origem === 'painel') {
+            return (
+              <SlideDoPainel
+                key={slide.id}
+                banner={slide}
+                ativo={ativo}
+                indice={indice}
+                total={total}
+              />
+            );
+          }
           const palavrasDoTitulo = `${slide.titulo} ${slide.destaque}`.split(' ').length;
           return (
             <div
@@ -179,5 +218,88 @@ export function Hero() {
         ))}
       </div>
     </section>
+  );
+}
+
+interface SlideDoPainelProps {
+  banner: BannerVitrine;
+  ativo: boolean;
+  indice: number;
+  total: number;
+}
+
+function SlideDoPainel({ banner, ativo, indice, total }: SlideDoPainelProps) {
+  const destino = banner.linkUrl ? destinoDoBanner(banner.linkUrl) : null;
+  const propsDoLink = destino && {
+    href: destino.href,
+    target: destino.externo ? '_blank' : undefined,
+    rel: destino.externo ? 'noopener noreferrer' : undefined,
+    tabIndex: ativo ? undefined : -1,
+  };
+
+  return (
+    <div
+      aria-roledescription="slide"
+      aria-label={`${indice + 1} de ${total}`}
+      aria-hidden={!ativo}
+      className={[
+        'transition-opacity duration-500 motion-reduce:transition-none',
+        ativo ? 'relative opacity-100' : 'pointer-events-none absolute inset-0 opacity-0',
+      ].join(' ')}
+    >
+      {banner.imagemUrl ? (
+        <div className="relative mx-auto max-w-[1180px] px-5">
+          <h1 className="sr-only">{banner.titulo}</h1>
+          {(() => {
+            const imagem = (
+              // A URL vem do painel e pode ser de qualquer site: next/image exigiria liberar cada
+              // domínio em remotePatterns. Mesmo motivo da prévia no admin (cupons/page.tsx).
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={banner.imagemUrl}
+                alt={banner.titulo}
+                loading={indice === 0 ? 'eager' : 'lazy'}
+                className="aspect-[16/9] w-full rounded-atlas object-cover shadow-atlas nav:aspect-[12/5]"
+              />
+            );
+            return propsDoLink ? (
+              <Link {...propsDoLink} className="block rounded-atlas focus-visible:outline-offset-4">
+                {imagem}
+              </Link>
+            ) : (
+              imagem
+            );
+          })()}
+        </div>
+      ) : (
+        <>
+          <div className="pointer-events-none absolute left-1/2 top-0 h-full w-full max-w-[1180px] -translate-x-1/2">
+            <span
+              aria-hidden="true"
+              className="animate-blob-float motion-reduce:animate-none absolute -top-[150px] -right-[40px] h-[380px] w-[380px] rounded-full opacity-35 blur-[70px]"
+              style={{ background: CORES_SLIDE_PAINEL[0] }}
+            />
+            <span
+              aria-hidden="true"
+              className="animate-blob-float motion-reduce:animate-none absolute -bottom-[130px] -left-[60px] h-[300px] w-[300px] rounded-full opacity-35 blur-[70px]"
+              style={{ background: CORES_SLIDE_PAINEL[1], animationDelay: '-5s' }}
+            />
+          </div>
+          <div className="relative mx-auto max-w-[1180px] px-5">
+            <h1 className="font-display max-w-2xl text-[clamp(32px,4.2vw,54px)] font-bold leading-[1.05] tracking-tight text-navy">
+              <PalavrasStagger texto={banner.titulo} animar={ativo} stagger={STAGGER_TITULO_S} />
+            </h1>
+            {propsDoLink && (
+              <Link
+                {...propsDoLink}
+                className="mt-6 inline-flex items-center gap-2 rounded-full bg-navy px-5 py-2.5 text-[13px] font-bold text-white hover:bg-navy-2"
+              >
+                Saiba mais →
+              </Link>
+            )}
+          </div>
+        </>
+      )}
+    </div>
   );
 }

@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
 import { Hero } from '@/components/loja/Hero';
+import { HeroSection } from '@/components/loja/HeroSection';
 import { CategoriaAtalhos } from '@/components/loja/CategoriaAtalhos';
 import { PromocoesSection } from '@/components/loja/PromocoesSection';
 import { MaisVendidosSection } from '@/components/loja/MaisVendidosSection';
@@ -18,13 +19,16 @@ import {
 } from '@/components/ui/Skeleton';
 
 // Cada seção define seu próprio `next.revalidate` por fetch (ver cada componente) —
-// banners são config local (sem fetch), categorias/marcas mudam pouco (revalidate
+// banners do painel revalidam em 1 minuto, categorias/marcas mudam pouco (revalidate
 // longo), produtos/avaliações mudam mais (revalidate curto). Sem `force-dynamic` aqui,
 // o ISR de cada fetch é quem passa a controlar o quão "fresca" cada seção fica.
 export default function Page() {
   return (
     <main>
-      <Hero />
+      {/* Enquanto os banners do painel não chegam, o topo já aparece com os slides padrão. */}
+      <Suspense fallback={<Hero />}>
+        <HeroSection />
+      </Suspense>
 
       <Suspense
         fallback={
